@@ -18,6 +18,22 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
 - Portal: React/Next.js with MapLibre or Leaflet for AOI input and summaries.
 - Jobs: lightweight worker (Celery or cron-driven) for analysis runs.
 
+## Repo structure (Phase A)
+- Root services with shared contracts:
+  - api/ (FastAPI)
+  - worker/ (Python)
+  - portal/ (Next.js)
+  - contracts/ (schemas)
+  - shared/ (Python helpers)
+  - infra/ (scripts/CI)
+  - docs/ (Aha!Kit truth)
+
+## Contracts (source of truth)
+- JSON Schema in `contracts/schemas/` is authoritative.
+- Required fields in outputs: schema_version, pipeline_version.
+- API validates requests/responses with jsonschema; internal models use Pydantic.
+- Portal generates TS types from schemas; generated code is disposable.
+
 ## Architecture
 - Components: ingest service, preprocessing + quality masking, feature extraction, scoring + rules,
   storage, API for portal, job worker/queue.
@@ -30,6 +46,12 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
 - Key indicators/metrics: NDVI/EVI peak, AUC, cropping intensity, season timing, within-season
   stability, mid-season shocks, spatial uniformity, NDMI, NDWI/MNDWI, trend vs neighbors.
 - Confidence strategy: quality masks + observation count + season clarity; propagate to outputs.
+- Phase A indicator set (locked):
+  - Coverage (observation quality / cloud gaps)
+  - Vegetation trend (2-year trend from NDVI/AUC)
+  - Anomalies (mid-season drops / instability)
+  - Confidence (quality + gap penalty)
+  - Short reasons mapped to each output
 
 ## Modeling approach (by output)
 - Land activity/status (active/intermittent/inactive): rule-based time-series features (NDVI/EVI seasonality, AUC, threshold crossings), with classical ML (RF/XGBoost) on engineered features as labels improve.
@@ -96,12 +118,22 @@ Phase C — Expansion + advanced modeling
 - Outputs (high-level schema): land_status, trend_2y, season_performance, flags[], confidence,
   indicators{...}, report_summary, evidence{...}, report_pdf_payload.
 - Versioning notes: version indicators/thresholds to keep reports stable over time.
+- API endpoints (Phase A):
+  - GET /health
+  - GET /jobs/{id}
+  - GET /jobs/{id}/logs
+  - POST /lands
+  - GET /lands/{id}
+  - GET /lands/{id}/report
+- Job states: queued -> running -> succeeded/failed
+- Job phases: fetching, processing, scoring, rendering
 
 ## Ops & scaling
 - Jobs/queue: async job per land analysis; retry on transient data fetch failures.
 - Retries: bounded retries with backoff and alert on repeated failures.
 - Monitoring: job success rate, data availability, anomaly rates, latency.
 - Performance: cache intermediate composites; batch neighbor comparisons.
+- Demo entry point (Phase A): scripts-driven (make demo or scripts/demo.ps1), no Docker requirement.
 
 ## Technical risks
 - [risk] Boundary accuracy and mixed pixels distort plot-level indicators.

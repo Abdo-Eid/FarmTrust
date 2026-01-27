@@ -36,3 +36,5 @@ For each finding, describe what happened, why it happened, the impact, and the f
 
 ## Changelog (append-only)
 - YYYY-MM-DD: ...
+
+> [Optional] means you don't have to fill it out, but you can if it helps.

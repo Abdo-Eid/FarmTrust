@@ -56,3 +56,27 @@ Why: Improves continuity while staying on open data sources.
 Alternatives: Sentinel-2 only; add commercial sources.
 Consequences: Handle cross-sensor consistency in processing and confidence.
 Links: ENGINEERING §Data & signals
+
+2026-01-27 — Decision: Phase A repo layout with shared contracts folder
+Why: Enables parallel work while keeping schema truth centralized.
+Alternatives: Split repos; flat services-only without shared contracts.
+Consequences: Contracts must be maintained and validated across services.
+Links: ENGINEERING §Repo structure (Phase A) | ENGINEERING §Contracts (source of truth)
+
+2026-01-27 — Decision: Phase A schema tooling stack
+Why: Enforceable payload contracts across API and portal with minimal overhead.
+Alternatives: Pydantic-only; OpenAPI-first without JSON Schema; no contract validation.
+Consequences: Schemas are authoritative; generated types are disposable.
+Links: ENGINEERING §Contracts (source of truth)
+
+2026-01-27 — Decision: Phase A demo entry point uses scripts (no Docker required)
+Why: Faster, Windows-friendly demo for team onboarding.
+Alternatives: Docker-only demo; manual multi-command setup.
+Consequences: Maintain scripts for starting services, seeding AOI, and printing URLs.
+Links: ENGINEERING §Ops & scaling
+
+2026-01-27 — Decision: Phase A indicator set locked to minimal outputs
+Why: Reduce model scope and focus on demo-ready, explainable signals.
+Alternatives: Full indicator suite; include crop classes or yield bands in Phase A.
+Consequences: Limited outputs but faster integration and lower risk.
+Links: ENGINEERING §Data & signals
