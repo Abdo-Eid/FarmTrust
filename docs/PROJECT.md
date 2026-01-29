@@ -38,12 +38,13 @@ Purpose: single place for product truth (vision, scope, roadmap, open questions,
 - Broad crop category output (season + water-demand class).
 - Validation approach: weak labels only; add public-area qualitative reviews when feasible.
 - Risk flags use conservative thresholds to protect trust in MVP outputs.
+- Phase A execution uses a single-job worker path; queue/broker is deferred until multi-user needs.
 
-## Phase 1 ownership (6 roles)
+## Phase A ownership (6 roles)
 - Product/Tech lead: scope, interfaces, decision reviews, demo readiness.
-- Data ingestion: satellite access, AOI mapping, time-series extraction.
-- Data storage/curation: schema, QA, metadata/versioning.
-- ML/time-series: gap handling, smoothing, confidence logic.
+- Data ingestion: satellite access, AOI mapping, time-series extraction, and minimal persistence.
+- ML/time-series preprocessing: gap handling, smoothing, confidence inputs.
+- ML/seasonal analysis: historical pattern + seasonal analysis outputs for scoring.
 - ML/scoring: status/trend/season, flags, evidence, crop category.
 - Frontend: AOI input UI, summary view, evidence display, PDF export.
 
@@ -131,9 +132,9 @@ Inputs → Processing → Outputs → Workflow.
   - Kill condition: confusion or inconsistent actions.
 
 ## Roadmap
-- Phase A (MVP Core): land assessment + lands-only portal + PDF export; pilot validation with low confusion and very low false alarms.
-- Phase B (Hardening + credit layer): regional calibration, confidence tuning, risk tiers, and monitoring readiness.
-- Phase C (Expansion): boundary refinement, crop taxonomy, yield bands, distillation, and advanced models.
+- Phase A: land assessment + lands-only portal + PDF export; minimal persistence only; pilot validation with low confusion and very low false alarms.
+- Phase B: schema governance, QA gates, metadata/versioning discipline, regional calibration, confidence tuning, risk tiers, and monitoring readiness.
+- Phase C: boundary refinement, crop taxonomy, yield bands, distillation, and advanced models.
 
 ## Exploration Gate
 - MVP scope written

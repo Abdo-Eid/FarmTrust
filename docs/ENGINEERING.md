@@ -129,11 +129,23 @@ Phase C — Expansion + advanced modeling
 - Job phases: fetching, processing, scoring, rendering
 
 ## Ops & scaling
-- Jobs/queue: async job per land analysis; retry on transient data fetch failures.
+- Jobs/queue: Phase A uses a direct worker execution path (single-job flow). Queue/broker integration is deferred to Phase B.
+- Retries and failures: simple status update to failed/succeeded; no multi-user reliability guarantees in Phase A.
 - Retries: bounded retries with backoff and alert on repeated failures.
 - Monitoring: job success rate, data availability, anomaly rates, latency.
 - Performance: cache intermediate composites; batch neighbor comparisons.
 - Demo entry point (Phase A): scripts-driven (make demo or scripts/demo.ps1), no Docker requirement.
+
+## Dev workflow (Phase A)
+- Default path for ingestion/ML roles: run the worker directly with a local AOI fixture.
+- Integration path: portal -> API -> worker, used for demo validation.
+- Standard dev command (placeholder):
+  - `python worker/run.py --aoi samples/aoi.geojson --config configs/dev.yaml`
+
+## Phase scope notes
+- Phase A: minimal persistence only; no cross-run comparability requirements.
+- Phase B: add schema governance, QA gates, metadata/versioning, and reproducibility discipline.
+- Phase B: introduce queue/broker for multi-user concurrency and reliability.
 
 ## Technical risks
 - [risk] Boundary accuracy and mixed pixels distort plot-level indicators.

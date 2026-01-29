@@ -26,7 +26,7 @@ This repo uses **Aha!Kit** — a project-first documentation + execution kit wit
    - `docs/index.md`
 
 2) Declare your role and scope:
-   - Post your role (e.g., “ML/time-series”, “Backend ingestion”, “Frontend portal”).
+   - Post your role (e.g., “ML/time-series preprocessing”, “ML/seasonal analysis”, “Data ingestion”, “Frontend portal”).
    - Confirm which outputs/interfaces you own.
 
 3) If using an AI agent, use this onboarding prompt:

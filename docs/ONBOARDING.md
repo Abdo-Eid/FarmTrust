@@ -17,10 +17,10 @@ This repo uses Aha!Kit: product truth in `docs/PROJECT.md`, engineering truth in
 ## How to choose your role
 Pick the role based on outputs you can own end-to-end:
 - Frontend: owns the portal flow (draw AOI, submit, job list, summary view, PDF download). Interfaces with API contracts and defines the minimum UX for Phase A.
-- ML/time-series: owns gap handling, smoothing, and confidence logic. Delivers plot-level time series and quality metrics used by scoring.
+- ML/time-series preprocessing: owns gap handling, smoothing, and confidence inputs. Delivers plot-level time series and quality metrics.
+- ML/seasonal analysis: owns historical pattern + seasonal analysis outputs for scoring.
 - ML/scoring: owns land status/trend/season outputs, risk flags, and short evidence reasons. Consumes time-series features and produces decision-support outputs.
-- Data ingestion: owns satellite access, AOI mapping, and extraction of plot-level time series. Delivers cleaned inputs to time-series processing.
-- Data storage/curation: owns schema, metadata, QA checks, and versioning of outputs. Ensures results are queryable and stable over time.
+- Data ingestion: owns satellite access, AOI mapping, extraction of plot-level time series, and Phase A minimal persistence.
 - Product/Tech lead: owns scope and interfaces, leads decision reviews, and ensures demo readiness with integration checkpoints.
 
 ## Declare your role (required)

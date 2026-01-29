@@ -13,6 +13,8 @@ Purpose: one-file workstream packet for Phase A enablement and structure.
   - Repo structure creation and minimal dev workflow for team start.
   - Contracts: AOI input, job status, results payload, report export.
   - Demo path definition: draw AOI -> submit -> job list -> land summary -> PDF.
+  - Single-job worker flow for Phase A; queue/broker deferred.
+  - Direct worker dev path (default) for ingestion/ML iteration; API path used for demos.
 - Out of scope:
   - Model tuning, feature engineering beyond Phase A indicator set.
   - Advanced portal UX, auth, or production ops.
@@ -23,7 +25,7 @@ Purpose: one-file workstream packet for Phase A enablement and structure.
   - API endpoints and job lifecycle definition.
   - Demo workflow scripts and expected outputs.
 - Dependencies:
-  - Role leads for ingestion, ML/time-series, ML/scoring, frontend.
+  - Role leads for ingestion, ML/time-series preprocessing, ML/seasonal analysis, ML/scoring, frontend.
   - Data access credentials and AOI sample geometry.
   - Decision confirmations for any scope changes.
 

@@ -29,7 +29,7 @@ If a spike becomes real work, open an Issue and link it retroactively.
 
 ## Branch naming
 Use `role/short-topic`.
-Examples by role: `frontend/aoi-draw`, `ml-ts/gap-fill`, `ml-scoring/season-rules`, `ingestion/stac-fetch`, `storage/schema-versioning`, `lead/demo-path`.
+Examples by role: `frontend/aoi-draw`, `ml-ts/gap-fill`, `ml-seasonal/season-patterns`, `ml-scoring/season-rules`, `ingestion/stac-fetch`, `lead/demo-path`.
 Other naming styles (not default): label-based branches like `feature/aoi-draw`, `bug/fix-job-log`, `chore/update-docs`.
 
 ## Commit messages

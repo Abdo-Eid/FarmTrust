@@ -80,3 +80,15 @@ Why: Reduce model scope and focus on demo-ready, explainable signals.
 Alternatives: Full indicator suite; include crop classes or yield bands in Phase A.
 Consequences: Limited outputs but faster integration and lower risk.
 Links: ENGINEERING §Data & signals
+
+2026-01-29 — Decision: Phase A role breakdown adjusted
+Why: Reduce Phase A scope by deferring governance/QA/versioning and split seasonal analysis for parallel delivery.
+Alternatives: Keep storage/curation as a dedicated role; keep ML/time-series as a single role.
+Consequences: Ingestion owns minimal persistence; seasonal analysis is a distinct handoff to scoring.
+Links: PROJECT §Phase 1 ownership | ENGINEERING §Phase scope notes
+
+2026-01-29 — Decision: Phase A uses direct worker flow, queue deferred
+Why: POC scope does not require multi-user concurrency; faster setup and debugging.
+Alternatives: Introduce queue/broker in Phase A.
+Consequences: Limited concurrency and reliability in Phase A; queue added in Phase B.
+Links: PROJECT §MVP scope | ENGINEERING §Ops & scaling

@@ -336,35 +336,77 @@ The bank likes a "reason" not just a number, such as:
 - **Bare Soil / Soil brightness indices**
 - simple roughness/texture indicators
     **Reason:** between-season periods reveal things that are not visible during greenness.
-    ## Final metrics list - MVP-Friendly (14 Metrics)
-    **Active Agriculture Presence**
-    **Computed from:** Sentinel-2 (NDVI) | **How calculated:** frequency of NDVI exceeding a minimum threshold with real green periods | **Meaning for the bank:** the land has recent real agricultural activity | **Recommendation:** eligible for financing / needs follow-up
-    **Cropping Intensity**
-    **Computed from:** Sentinel-2 | **How calculated:** number of NDVI rise/fall cycles per year | **Meaning for the bank:** land is planted once/twice/more per year | **Recommendation:** higher intensity = higher potential return
-    **Land Use Stability**
-    **Computed from:** Sentinel-2 | **How calculated:** stability of land use pattern (cultivated vs fallow/buildings) over time | **Meaning for the bank:** land use is stable or changing | **Recommendation:** instability = risk
-    **Season Start Consistency**
-    **Computed from:** Sentinel-2 | **How calculated:** timing of green-up start compared to previous years and neighbors | **Meaning for the bank:** entering the season at a normal time | **Recommendation:** repeated delay = readiness/management issue
-    **Peak Vegetation Strength**
-    **Computed from:** Sentinel-2 (Peak NDVI / EVI) | **How calculated:** highest greenness value in the season | **Meaning for the bank:** growth strength high/medium/low | **Recommendation:** weak peak = lower potential productivity
-    **Season Productivity (approximate index - AUC)**
-    **Computed from:** Sentinel-2 | **How calculated:** area under the NDVI curve over the season | **Meaning for the bank:** total seasonal activity strong/medium/weak | **Recommendation:** weak activity = lower return
-    **Within-Season Stability**
-    **Computed from:** Sentinel-2 | **How calculated:** curve smoothness vs sharp drops within the season | **Meaning for the bank:** season is stable or disrupted | **Recommendation:** instability = operational risk
-    **Mid-Season Shock Indicator**
-    **Computed from:** Sentinel-2 | **How calculated:** detect sudden NDVI drops during the season | **Meaning for the bank:** sudden stop/problem during the season | **Recommendation:** needs explanation or follow-up
-    **Spatial Uniformity Index**
-    **Computed from:** Sentinel-2 | **How calculated:** NDVI variance within the plot over time | **Meaning for the bank:** land is uniform or has weak patches | **Recommendation:** persistent patches = soil/salinity issue
-    **Irrigation Regularity (approximate index)**
-    **Computed from:** Sentinel-2 (NDMI) | **How calculated:** moisture stability across the season | **Meaning for the bank:** irrigation is regular or intermittent | **Recommendation:** high fluctuation = season-failure risk
-    **Waterlogging Risk**
-    **Computed from:** Sentinel-2 (NDWI / MNDWI) | **How calculated:** repeated standing water in the same locations | **Meaning for the bank:** flooding or poor drainage risk | **Recommendation:** needs intervention/precaution
-    **Salinity Risk (approximate index)**
-    **Computed from:** Sentinel-2 / Landsat | **How calculated:** persistent weak patches with bright bare-soil signals | **Meaning for the bank:** salinity likelihood | **Recommendation:** long-term risk
-    **Two-Year Trend Score**
-    **Computed from:** Sentinel-2 | **How calculated:** trend of Peak NDVI or AUC over two years | **Meaning for the bank:** performance improving/stable/declining | **Recommendation:** decline = re-evaluate financing
-    **Neighbor Comparison Score**
-    **Computed from:** Sentinel-2 | **How calculated:** compare plot performance to neighbors in the same timing | **Meaning for the bank:** better/weaker than surroundings | **Recommendation:** below average = relative risk
+## Final metrics list - MVP-Friendly (14 Metrics)
+- **Active Agriculture Presence**
+    - **Computed from:** Sentinel-2 (NDVI) 
+    - **How calculated:** frequency of NDVI exceeding a minimum threshold with real green periods 
+    - **Meaning for the bank:** the land has recent real agricultural activity 
+    - **Recommendation:** eligible for financing / needs follow-up
+- **Cropping Intensity**
+    - **Computed from:** Sentinel-2 
+    - **How calculated:** number of NDVI rise/fall cycles per year 
+    - **Meaning for the bank:** land is planted once/twice/more per year 
+    - **Recommendation:** higher intensity = higher potential return
+- **Land Use Stability**
+    - **Computed from:** Sentinel-2 
+    - **How calculated:** stability of land use pattern (cultivated vs fallow/buildings) over time 
+    - **Meaning for the bank:** land use is stable or changing 
+    - **Recommendation:** instability = risk
+- **Season Start Consistency**
+    - **Computed from:** Sentinel-2 
+    - **How calculated:** timing of green-up start compared to previous years and neighbors 
+    - **Meaning for the bank:** entering the season at a normal time 
+    - **Recommendation:** repeated delay = readiness/management issue
+- **Peak Vegetation Strength**
+    - **Computed from:** Sentinel-2 (Peak NDVI / EVI) 
+    - **How calculated:** highest greenness value in the season 
+    - **Meaning for the bank:** growth strength high/medium/low 
+    - **Recommendation:** weak peak = lower potential productivity
+- **Season Productivity (approximate index - AUC)**
+    - **Computed from:** Sentinel-2 
+    - **How calculated:** area under the NDVI curve over the season 
+    - **Meaning for the bank:** total seasonal activity strong/medium/weak 
+    - **Recommendation:** weak activity = lower return
+- **Within-Season Stability**
+    - **Computed from:** Sentinel-2 
+    - **How calculated:** curve smoothness vs sharp drops within the season 
+    - **Meaning for the bank:** season is stable or disrupted 
+    - **Recommendation:** instability = operational risk
+- **Mid-Season Shock Indicator**
+    - **Computed from:** Sentinel-2 
+    - **How calculated:** detect sudden NDVI drops during the season 
+    - **Meaning for the bank:** sudden stop/problem during the season 
+    - **Recommendation:** needs explanation or follow-up
+- **Spatial Uniformity Index**
+    - **Computed from:** Sentinel-2 
+    - **How calculated:** NDVI variance within the plot over time 
+    - **Meaning for the bank:** land is uniform or has weak patches 
+    - **Recommendation:** persistent patches = soil/salinity issue
+- **Irrigation Regularity (approximate index)**
+    - **Computed from:** Sentinel-2 (NDMI) 
+    - **How calculated:** moisture stability across the season 
+    - **Meaning for the bank:** irrigation is regular or intermittent 
+    - **Recommendation:** high fluctuation = season-failure risk
+- **Waterlogging Risk**
+    - **Computed from:** Sentinel-2 (NDWI / MNDWI) 
+    - **How calculated:** repeated standing water in the same locations 
+    - **Meaning for the bank:** flooding or poor drainage risk 
+    - **Recommendation:** needs intervention/precaution
+- **Salinity Risk (approximate index)**
+    - **Computed from:** Sentinel-2 / Landsat 
+    - **How calculated:** persistent weak patches with bright bare-soil signals 
+    - **Meaning for the bank:** salinity likelihood 
+    - **Recommendation:** long-term risk
+- **Two-Year Trend Score**
+    - **Computed from:** Sentinel-2 
+    - **How calculated:** trend of Peak NDVI or AUC over two years 
+    - **Meaning for the bank:** performance improving/stable/declining 
+    - **Recommendation:** decline = re-evaluate financing
+- **Neighbor Comparison Score**
+    - **Computed from:** Sentinel-2 
+    - **How calculated:** compare plot performance to neighbors in the same timing 
+    - **Meaning for the bank:** better/weaker than surroundings 
+    - **Recommendation:** below average = relative risk
 
 ## Full-Stack Portal details
 
