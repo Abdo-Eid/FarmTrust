@@ -4,7 +4,7 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
 ## Links
 - DECISIONS entry: <YYYY-MM-DD — Decision: ...>
 - PROJECT section: <PROJECT §...>
-- WORKSTREAM: <WS-xx — name>
+- PLAN: <P-xx — name>
 
 ## System overview
 - Satellite time-series pipeline producing plot-level indicators, confidence, and risk flags.

@@ -4,11 +4,15 @@ Purpose: single place for product truth (vision, scope, roadmap, open questions,
 ## Links
 - DECISIONS entry: <YYYY-MM-DD — Decision: ...>
 - ENGINEERING section: <ENGINEERING §...>
-- WORKSTREAM: <WS-xx — name>
+- PLAN: <P-xx — name>
 
 ## Vision
 - Provide banks and agri-financiers with objective, explainable land visibility from satellite time
   series so financing decisions are faster and better informed without field visits.
+
+## Working principles
+- Protect core scope and technical truth, while encouraging optional improvements that help the team or user outcomes.
+- Use judgment: if an improvement changes shared truth, reflect it in the relevant canonical doc.
 
 ## Problem
 - Financiers lack continuous, objective visibility into land activity and risk; they rely on
@@ -51,6 +55,7 @@ Purpose: single place for product truth (vision, scope, roadmap, open questions,
 ## R&D working rules
 Problem this solves: frequent back-and-forth and overlapping work cause drift, rework, and integration churn.
 - Time-boxed research spikes (3-5 days): each role runs short experiments; outcomes are either (a) ready to integrate, (b) needs more time with a clear next hypothesis, or (c) dropped.
+- Optional improvements are welcome and encouraged when they help the team; preserve scope/technical truth and record any shared-truth changes.
 - Decision authority: lead by default for scope/timeline decisions; group for research-method decisions.
 - Flexible schema: no hard freeze, but any schema change must be announced before weekly integration, include a migration note (what changed + why), and update the relevant truth doc section.
 - Prototype policy: R&D outputs must be labeled "prototype/throwaway" until promoted; production use requires an explicit decision.

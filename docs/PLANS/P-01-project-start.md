@@ -1,5 +1,5 @@
-# WS-01 — project-start
-Purpose: one-file workstream packet for Phase A enablement and structure.
+# P-01 — project-start
+Purpose: one-file plan for Phase A enablement and structure.
 
 ## Links
 - PROJECT section: PROJECT §MVP scope
@@ -55,6 +55,3 @@ Purpose: one-file workstream packet for Phase A enablement and structure.
 - Boundaries: tech lead owns enablement and interfaces.
 - Plan/checklist: Phase A week-by-week tasks defined.
 - Dependencies: role leads and data access identified.
-
-## Changelog (append-only)
-- 2026-01-27: Initialized workstream for Phase A project-start.
