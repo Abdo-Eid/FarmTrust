@@ -4,14 +4,14 @@ Purpose: append-only decision log that records the rationale behind truth.
 ## Links
 - PROJECT section: <PROJECT §...>
 - ENGINEERING section: <ENGINEERING §...>
-- WORKSTREAM: <WS-xx — name>
+- PLAN: <P-xx — name>
 
 ## Format
 YYYY-MM-DD — Decision: <what we chose>
 Why: <reasoning / constraints>
 Alternatives: <A/B/C considered>
 Consequences: <implications / tradeoffs>
-Links: <PROJECT §... | ENGINEERING §... | WS-xx>
+Links: <PROJECT §... | ENGINEERING §... | PLAN: P-xx>
 
 ---
 

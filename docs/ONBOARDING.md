@@ -12,7 +12,7 @@ This repo uses Aha!Kit: product truth in `docs/PROJECT.md`, engineering truth in
 1) Read the docs above.
 2) Choose your role and outputs (see below).
 3) Declare your role to the lead.
-4) Start or follow a workstream.
+4) Start or follow a plan.
 
 ## How to choose your role
 Pick the role based on outputs you can own end-to-end:
@@ -43,24 +43,24 @@ Then use this role-specific plan prompt:
 ```
 I am the <ROLE> for FarmTrust. Based on this role, draft a short execution plan
 with milestones, dependencies, and risks, and include a role-specific checklist.
-Store the plan in a workstream file.
+Store the plan in a plan file.
 Only propose doc updates if it changes shared scope or technical truth.
 ```
 
 ## Start work
-- If a workstream file exists for your role, follow it.
-- If none exists, create one from `docs/WORKSTREAMS/WS-00-template.md`.
+- If a plan exists for your role, follow it.
+- If none exists, create one from `docs/PLANS/P-00-template.md`.
 
 ## Where to write/read
 - Dump raw notes: `docs/inbox.md`
 - Product truth: `docs/PROJECT.md`
 - Engineering truth: `docs/ENGINEERING.md`
 - Decisions: `docs/DECISIONS.md`
-- Workstreams: `docs/WORKSTREAMS/WS-xx.md`
+- Plans: `docs/PLANS/P-xx.md`
 - Docs index: `docs/index.md`
 
 ## Dev workflow
-- TBD. Follow your role workstream and check with the lead for runtime setup.
+- TBD. Follow your role plan and check with the lead for runtime setup.
 
 ## One message template
 ```
