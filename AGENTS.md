@@ -4,7 +4,7 @@ Tagline: Turn ideas into a buildable truth.
 ## Kit overview (Aha!Kit)
 Aha!Kit is a project-first documentation and execution kit for ambiguous projects.
 It keeps a single product truth, a single engineering truth, and a lightweight decision log,
-so workstreams can execute without drift or document sprawl.
+so PLANs can execute without drift or document sprawl.
 
 ## Prime directive
 Prefer clarity over code. Preserve intent. Keep the project coherent.
@@ -14,14 +14,14 @@ Prefer clarity over code. Preserve intent. Keep the project coherent.
 - `docs/PROJECT.md`: product truth (authoritative).
 - `docs/ENGINEERING.md`: engineering truth (authoritative).
 - `docs/DECISIONS.md`: decision log that records the rationale behind truth (authoritative, append-only).
-- `docs/WORKSTREAMS/*.md`: execution truth for a slice; must promote shared-truth changes.
+- `docs/PLANS/*.md`: execution truth for a slice; must promote shared-truth changes.
 
 ## One-file default (truth ripple exception)
 Update exactly ONE canonical file per request by default:
 - Product/scope/roadmap/options/open questions → `docs/PROJECT.md`
 - Architecture/ops/interfaces/pipeline/risks → `docs/ENGINEERING.md`
 - Decisions/commitments → `docs/DECISIONS.md`
-- Execution detail for a slice → one `docs/WORKSTREAMS/WS-xx-*.md`
+- Execution detail for a slice → one `docs/PLANS/P-xx-*.md`
 Touch a second file only for a truth ripple that must be reflected elsewhere.
 
 ## Two-layer writing (avoid mixed levels)
@@ -30,7 +30,7 @@ Touch a second file only for a truth ripple that must be reflected elsewhere.
 If a note is contextual but technical, keep a 1–2 line abstract in `PROJECT.md` and link to details in `ENGINEERING.md`.
 
 ## Promotion workflow
-- Inbox → promote to `PROJECT.md`, `ENGINEERING.md`, or a `WORKSTREAM` file.
+- Inbox → promote to `PROJECT.md`, `ENGINEERING.md`, or a `PLAN` file.
 - Any committed decision → add a `DECISIONS.md` entry and patch the relevant truth doc(s).
 
 ## Gates (lightweight convergence)
@@ -39,15 +39,14 @@ If a note is contextual but technical, keep a 1–2 line abstract in `PROJECT.md
 - Top open questions prioritized
 - Options capped with evidence and decision triggers
 
-### Execution Gate (lives in each workstream file)
+### Execution Gate (lives in each PLAN file)
 - Boundaries + interfaces declared
 - Plan + checklist present
 - Dependencies noted
 - Uncertainty explicitly marked
 
-## Workstream rules
-- Each WS file declares boundaries, interfaces, and dependencies.
-- Each WS file has an append-only changelog section.
+## PLAN rules
+- Each PLAN file declares boundaries, interfaces, and dependencies.
 - Shared-truth changes must update `PROJECT.md`/`ENGINEERING.md` and add a `DECISIONS.md` entry if it is a decision.
 
 ## Inbox rule (capture-only)
@@ -70,7 +69,7 @@ Use:
 
 ## Required behaviors
 - Clarification-options: when a user says they don’t understand next steps or asks for clarification, respond with 2–4 options. For each option include what it means, when to pick it, and what the agent will do next if chosen.
-- README bootstrap: when starting work in a NEW project repo using Aha!Kit, first update `README.md` with a short project overview, the note “This repo uses Aha!Kit,” and starter instructions (inbox, PROJECT, ENGINEERING, DECISIONS, how to start a workstream, minimal dev workflow).
+- README bootstrap: when starting work in a NEW project repo using Aha!Kit, first update `README.md` with a short project overview, the note “This repo uses Aha!Kit,” and starter instructions (inbox, PROJECT, ENGINEERING, DECISIONS, how to start a PLAN, minimal dev workflow).
 
 ## Aha!Kit Commands (Protocol)
 These slash commands are conventions, not tooling features.
@@ -89,7 +88,7 @@ First-run bootstrap + initial structuring.
 Behavior:
 - Ensure repo onboarding is correct:
   - README.md contains a short project overview + note it uses Aha!Kit + starter instructions.
-  - docs/index.md links to all canonical docs and workstreams template.
+  - docs/index.md links to all canonical docs and PLANs template.
 - If docs/inbox.md has content, run the same behavior as `/ahakit promote`:
   - Promote Inbox content into:
     - docs/PROJECT.md (product truth)
@@ -115,7 +114,7 @@ Behavior:
 - Promote its content into the correct canonical doc(s):
   - product intent, scope, roadmap, options, open questions → `docs/PROJECT.md`
   - technical architecture, pipeline, ops, interfaces → `docs/ENGINEERING.md`
-  - execution-specific details → the relevant WORKSTREAM file
+  - execution-specific details → the relevant PLAN file
 - Do NOT modify, clean, or annotate the Inbox entry.
 - Link between docs instead of duplicating content.
 - Preserve uncertainty markers: `[clarification needed]`, `[assumption]`, `[option]`, `[risk]`.
@@ -136,7 +135,7 @@ Behavior:
   - `docs/PROJECT.md`
   - `docs/ENGINEERING.md`
   - `docs/DECISIONS.md`
-  - relevant WORKSTREAM files (if any)
+  - relevant PLAN files (if any)
 - Extract ALL unresolved or ambiguous points, including:
   - explicit markers: `[clarification needed]`, `[assumption]`
   - implicit ambiguities or multiple interpretations

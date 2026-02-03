@@ -43,24 +43,23 @@ Ask me to confirm my role if unclear.
 ```
 I am the <ROLE> for FarmTrust. Based on this role, draft a short execution plan
 with milestones, dependencies, and risks, and include a role-specific checklist.
-Store the plan in a workstream file.
+Store the plan in a PLAN file.
 Only propose doc updates if it changes shared scope or technical truth.
 ```
 
-5) Create a workstream:
-   - Copy `docs/WORKSTREAMS/WS-00-template.md` → `WS-01-<name>.md`
+5) Create a plan:
+   - Copy `docs/PLANS/P-00-template.md` → `P-01-<name>.md`
 
 ## Where to write/read
 - Dump raw notes: `docs/inbox.md`
 - Product truth: `docs/PROJECT.md`
 - Engineering truth: `docs/ENGINEERING.md`
 - Decisions: `docs/DECISIONS.md`
-- Workstreams: `docs/WORKSTREAMS/WS-xx.md`
+- Plans: `docs/PLANS/P-xx.md`
 - Docs index: `docs/index.md`
 
-## Workstreams
-Create a workstream by copying `docs/WORKSTREAMS/WS-00-template.md` → `WS-01-<name>.md`.
-
+## Plans
+Create a plan by copying `docs/PLANS/P-00-template.md` → `P-01-<name>.md`.
 ## Dev workflow
 TBD.
 
