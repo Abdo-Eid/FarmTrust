@@ -1,0 +1,20 @@
+[project]
+name = "farmtrust"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "ipykernel>=7.1.0",
+    "matplotlib>=3.10.8",
+    "numpy>=2.4.2",
+    "planetary-computer>=1.0.0",
+    "pystac-client>=0.9.0",
+    "python-dateutil>=2.9.0.post0",
+    "rasterio>=1.5.0",
+    "requests>=2.32.5",
+    "rioxarray>=0.21.0",
+    "shapely>=2.1.2",
+    "stackstac>=0.5.1",
+    "xarray>=2025.11.0",
+]
