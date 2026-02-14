@@ -1,10 +1,10 @@
 {
   "name": "farmtrust-monorepo",
   "private": true,
-  "workspaces": ["platform"],
+  "workspaces": ["portal"],
   "scripts": {
-    "dev:platform": "bun --filter platform dev",
-    "build:platform": "bun --filter platform build",
-    "start:platform": "bun --filter platform start"
+    "dev:portal": "bun --filter portal dev",
+    "build:portal": "bun --filter portal build",
+    "start:portal": "bun --filter portal start"
   }
 }
