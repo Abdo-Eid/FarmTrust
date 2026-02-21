@@ -1,0 +1,8 @@
+{
+  "aoi_id": "aoi_demo_01",
+  "bbox": [30.9903, 30.594356, 31.013848, 30.616635],
+  "start_date": "2025-08-01",
+  "end_date": "2026-01-01",
+  "max_cloud": 5.0,
+  "output_dir": "data/aoi_demo_01"
+}
