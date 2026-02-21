@@ -22,13 +22,10 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import json
 import logging
-import os
 import shutil
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -41,58 +38,18 @@ from rasterio.enums import Resampling
 from rasterio.windows import Window, from_bounds
 from rasterio.warp import reproject
 
+from farmtrust_core.ingest.config import default_dates, load_config, normalize_bbox, parse_bbox
+from farmtrust_core.ingest.indices import (
+    compute_evi,
+    compute_mndwi,
+    compute_ndmi,
+    compute_ndvi,
+    compute_ndwi,
+)
+from farmtrust_core.ingest.utils import compute_fingerprint, safe_write_text, utc_now_iso
+
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-
-# -------------------------
-# Parsing / helpers
-# -------------------------
-
-def parse_bbox(value: str) -> List[float]:
-    parts = [p.strip() for p in value.split(",") if p.strip()]
-    if len(parts) != 4:
-        raise argparse.ArgumentTypeError("bbox must be four comma-separated numbers")
-    try:
-        return [float(p) for p in parts]
-    except ValueError as exc:
-        raise argparse.ArgumentTypeError("bbox values must be numbers") from exc
-
-
-def normalize_bbox(value: object) -> List[float]:
-    if isinstance(value, list):
-        if len(value) != 4:
-            raise ValueError("bbox list must have four numbers")
-        return [float(v) for v in value]
-    if isinstance(value, str):
-        return parse_bbox(value)
-    raise ValueError("bbox must be a list or a comma-separated string")
-
-
-def default_dates() -> tuple[str, str]:
-    end_date = datetime.now(timezone.utc).date()
-    start_date = end_date - timedelta(days=30)
-    return start_date.isoformat(), end_date.isoformat()
-
-
-def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def safe_write_text(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(text, encoding="utf-8")
-    os.replace(tmp, path)
-
-
-def compute_fingerprint(payload: Dict[str, Any]) -> str:
-    """
-    Stable fingerprint for caching decisions.
-    Include anything that changes outputs (bbox, dates, cloud threshold, invalid classes, script version string, etc.)
-    """
-    b = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return hashlib.sha256(b).hexdigest()
 
 
 # -------------------------
@@ -109,6 +66,17 @@ def bbox_to_scene_crs(bbox_lonlat: List[float], dst_crs: str, src_crs: str = "EP
 
 @dataclass(frozen=True)
 class ChipGrid:
+    """Defines the canonical grid for AOI chips, based on the SCL band of each scene.
+     The SCL band is used as the reference for the grid because it defines valid/invalid pixels
+     and has the same resolution as the main Sentinel-2 bands (10m). By reprojecting all bands
+     to this grid, we ensure that the mask aligns correctly with the indices.
+
+     The grid is defined by its CRS (in WKT), affine transform, width, and height. This allows
+     for flexible handling of different scenes that may have varying resolutions or alignments,
+     while still maintaining a consistent reference frame for the AOI chips.
+    
+    wkt means "Well-Known Text" and is a standard format for representing coordinate reference systems (CRS) in geospatial applications.
+    """
     crs_wkt: str
     transform: Any
     width: int
@@ -193,45 +161,6 @@ def write_geotiff(path: Path, arr: np.ndarray, grid: ChipGrid, dtype: str, nodat
 
 
 # -------------------------
-# Index computations
-# -------------------------
-
-def compute_stats(arr: np.ndarray, mask: np.ndarray, name: str) -> Tuple[float, float]:
-    valid = arr[mask & ~np.isnan(arr)]
-    if valid.size == 0:
-        logging.getLogger(__name__).warning(f"No valid pixels for {name}")
-        return float("nan"), float("nan")
-    mean = float(np.nanmean(valid))
-    p95 = float(np.nanpercentile(valid, 95))
-    return mean, p95
-
-
-def compute_ndvi(red: np.ndarray, nir: np.ndarray, mask: np.ndarray) -> Tuple[float, float]:
-    ndvi = (nir - red) / (nir + red + 1e-8)
-    return compute_stats(ndvi, mask, "ndvi")
-
-
-def compute_evi(blue: np.ndarray, red: np.ndarray, nir: np.ndarray, mask: np.ndarray) -> Tuple[float, float]:
-    evi = 2.5 * (nir - red) / (nir + 6 * red - 7.5 * blue + 1 + 1e-8)
-    return compute_stats(evi, mask, "evi")
-
-
-def compute_ndmi(nir: np.ndarray, swir1: np.ndarray, mask: np.ndarray) -> Tuple[float, float]:
-    ndmi = (nir - swir1) / (nir + swir1 + 1e-8)
-    return compute_stats(ndmi, mask, "ndmi")
-
-
-def compute_ndwi(green: np.ndarray, nir: np.ndarray, mask: np.ndarray) -> Tuple[float, float]:
-    ndwi = (green - nir) / (green + nir + 1e-8)
-    return compute_stats(ndwi, mask, "ndwi")
-
-
-def compute_mndwi(green: np.ndarray, swir1: np.ndarray, mask: np.ndarray) -> Tuple[float, float]:
-    mndwi = (green - swir1) / (green + swir1 + 1e-8)
-    return compute_stats(mndwi, mask, "mndwi")
-
-
-# -------------------------
 # Global JSON index (canonical)
 # -------------------------
 
@@ -276,18 +205,6 @@ def should_skip_scene(index: Dict[str, Any], item_id: str, chip_dir: Path, finge
 # -------------------------
 # Main ingestion
 # -------------------------
-
-def load_config(path: Optional[str]) -> dict:
-    if not path:
-        return {}
-    config_path = Path(path)
-    if not config_path.exists():
-        raise FileNotFoundError(f"Config file not found: {config_path}")
-    data = json.loads(config_path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict):
-        raise ValueError("Config must be a JSON object")
-    return data
-
 
 def write_outputs(
     output_dir: Path,

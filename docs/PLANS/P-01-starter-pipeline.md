@@ -175,11 +175,19 @@ thinking of add a post-search step to enforce min gap (e.g., 2–3 weeks) and pr
     - [x] Chips directory populated with per-scene manifest
     - [X] 12–24 month target run validated for production AOI
 - [ ] Ingestion core migration complete (stable parts only)
-    - [ ] `farmtrust_core/ingest/indices.py` populated
+    - [X] `farmtrust_core/ingest/indices.py` populated
+        - Moved: compute_stats, compute_ndvi, compute_evi, compute_ndmi, compute_ndwi, compute_mndwi
+        - Why: pure math + no I/O; least likely to change during optimization work
+    - [X] `farmtrust_core/ingest/config.py` populated
+        - Moved: parse_bbox, normalize_bbox, default_dates, load_config
+        - Why: stable parsing and config load with minimal coupling to processing logic
+    - [X] `farmtrust_core/ingest/utils.py` populated
+        - Moved: utc_now_iso, safe_write_text, compute_fingerprint
+        - Why: shared utilities used across ingestion; low behavior risk
     - [ ] `farmtrust_core/ingest/window_read.py` populated
     - [ ] `farmtrust_core/ingest/stac_client.py` populated
     - [ ] Script still produces unchanged outputs
-- [ ] Simple loader script planned for downstream users (not implemented yet)
+- [ ] Simple loader script planned for downstream users
 - [ ] Milestone 1.6 research spike complete (notes + recommended approach)
     - [ ] Scene-spacing filter options evaluated (min-gap, best-cloud, buckets)
     - [ ] User-selected band/indices options evaluated
@@ -198,5 +206,6 @@ thinking of add a post-search step to enforce min gap (e.g., 2–3 weeks) and pr
 
 ## Findings & learnings
 
+[Migration and optimization research notes](../documentaions/01-F&Lmigration-and-optimization.md)
 <finding title>
 Short note on what happened, why it matters, and what you learned for yourself.
