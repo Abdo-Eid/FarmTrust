@@ -20,7 +20,7 @@ Deliver a minimal pipeline contract and test flow that all three ML roles can ru
 
 - Shared starter contract: minimal input and output fields for each stage.
 - Simple file-based handoffs (CSV + JSON) for quick testing.
-- Callable ingestion script with local cache for fast re-runs.
+- Callable ingestion script with AOI chip export and scene-index caching for fast re-runs.
 - Acceptance checks that confirm each stage produced usable output.
 
 ### Out of scope (explicit non-goals)
@@ -39,10 +39,11 @@ Deliver a minimal pipeline contract and test flow that all three ML roles can ru
 
 - **Data ingestion**
     - Inputs: AOI bbox (EPSG:4326), time window, cloud filter.
-    - Responsibilities: STAC search, AOI-only window reads, SCL mask, per-scene indices, local cache.
-    - Code location: `farmtrust_core.ingest` for logic; `worker/scripts/` for entrypoints.
-    - Outputs: per-scene CSV + run metadata JSON for one AOI.
-    - Fast test: re-run the same AOI and confirm cache reuse.
+    - Responsibilities: STAC search, AOI-only window reads, SCL mask, per-scene indices, chip export, and scene-index caching.
+    - Runtime mode: download chips + compute stats in one pass.
+    - Code location: `worker/scripts/ingest_aoi.py`.
+    - Outputs: per-scene CSV + run metadata JSON + `scenes_index.json` + per-scene chips/manifest.
+    - Fast test: re-run the same AOI and confirm skip/reuse behavior for existing scenes.
 
 - **ML/time-series preprocessing**
     - Inputs: per-scene CSV from ingestion.
@@ -88,17 +89,56 @@ Deliver a minimal pipeline contract and test flow that all three ML roles can ru
 
 **Deliverables**
 
-- `worker/scripts/ingest_aoi.py` (callable ingestion entrypoint importing `farmtrust_core.ingest`)
-- `data/ingest/<aoi_id>/indices_timeseries.csv`
-- `data/ingest/<aoi_id>/run_metadata.json`
-- `data/cache/ingest/<aoi_id>/` (local cache for signed assets and windows)
+- `worker/scripts/ingest_aoi.py` (callable ingestion entrypoint)
+- `data/<aoi_id>/chips/<item_id>/` (AOI chips + `manifest.json`)
+- `data/<aoi_id>/indices_timeseries.csv`
+- `data/<aoi_id>/scenes_index.json`
+- `data/<aoi_id>/run_metadata.json`
 
 **Acceptance**
 
-- Script can be invoked with AOI + time window inputs and writes outputs to `data/ingest/<aoi_id>/`.
+- Script can be invoked with AOI + time window inputs and writes outputs to `data/<aoi_id>/`.
 - CSV contains per-scene rows with `timestamp`, `valid_fraction`, and NDVI/EVI/NDMI/NDWI/MNDWI stats.
 - JSON records AOI, time window, invalid SCL classes, and thresholds.
-- Cache is used by default and can be cleared between runs.
+- `scenes_index.json` records per-scene paths/status for rerun reuse.
+- Chips are written per scene with expected bands and `manifest.json`.
+
+### Milestone 1.5 — Ingestion core migration (stable parts first)
+
+**Deliverables**
+
+- `farmtrust_core/ingest/indices.py` with stable index/stat helpers moved from the script.
+- `farmtrust_core/ingest/window_read.py` with stable AOI window read, reproject, and GeoTIFF write helpers.
+- `farmtrust_core/ingest/stac_client.py` with stable STAC open/search/sort helpers.
+- `worker/scripts/ingest_aoi.py` remains runnable as CLI/orchestration and imports the migrated helpers.
+- A simple loader script for downstream use.
+
+**Acceptance**
+
+- Output contract unchanged: `indices_timeseries.csv`, `scenes_index.json`, `run_metadata.json`, chips + manifests.
+- Fingerprint + skip/reuse behavior unchanged.
+- Existing config path (`worker/scripts/ingest_demo.json`) still runs without changes.
+- Migration only covers stable logic; optimizations are explicitly deferred.
+
+### Milestone 1.6 — Ingestion optimization + selection research spike
+
+**Intent**
+
+Research and validate selection/throughput improvements before implementation. Capture findings and the chosen approach.
+Willing to optimize the search and post-search of the script for faster, performant but keeping the quality.
+thinking of add a post-search step to enforce min gap (e.g., 2–3 weeks) and prefer best cloud cover via a config flag; allow user-selected bands for faster retrieval; explore faster download over time; finalize the notebook with the run command, RGB TIFF plot, and a simple NDVI-over-time POC.
+
+**Deliverables**
+
+- Short research note (1–2 pages) summarizing findings, options, and recommended approach.
+- Proposed config flags for scene selection, band selection, and download strategy.
+- Updated acceptance targets for the implementation step that follows.
+
+**Acceptance**
+
+- 2–3 options documented with tradeoffs, evidence needed, and decision triggers.
+- One recommended path selected (or explicitly deferred).
+- No production code changes in this milestone.
 
 ### Milestone 2 — Time-series preprocessing baseline
 
@@ -126,12 +166,25 @@ Deliver a minimal pipeline contract and test flow that all three ML roles can ru
 
 ## Checklist (Definition of Done)
 
-- [ ] Ingestion output exists for one AOI and 12–24 months
-    - Notes: AOI-only window reads; no full tiles; local cache enabled.
-    - [ ] Script runs with AOI + time window args
-    - [ ] CSV has required columns
-    - [ ] JSON has required metadata
-    - [ ] Cache directory populated and re-used on re-run
+- [X] Ingestion output exists for one AOI and 12–24 months
+    - Notes: AOI-only window reads; no full tiles; chips + scene-index caching enabled.
+    - [x] Script runs with AOI + time window args
+    - [x] CSV has required columns
+    - [x] JSON has required metadata
+    - [x] `scenes_index.json` populated
+    - [x] Chips directory populated with per-scene manifest
+    - [X] 12–24 month target run validated for production AOI
+- [ ] Ingestion core migration complete (stable parts only)
+    - [ ] `farmtrust_core/ingest/indices.py` populated
+    - [ ] `farmtrust_core/ingest/window_read.py` populated
+    - [ ] `farmtrust_core/ingest/stac_client.py` populated
+    - [ ] Script still produces unchanged outputs
+- [ ] Simple loader script planned for downstream users (not implemented yet)
+- [ ] Milestone 1.6 research spike complete (notes + recommended approach)
+    - [ ] Scene-spacing filter options evaluated (min-gap, best-cloud, buckets)
+    - [ ] User-selected band/indices options evaluated
+    - [ ] Retrieval speed options evaluated
+    - [ ] Notebook POC finalization scope defined
 - [ ] Preprocessing output exists and references ingestion output
     - Notes: smoothing + gap metrics only.
     - [ ] Smoothed NDVI file generated
