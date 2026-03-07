@@ -92,3 +92,9 @@ Why: POC scope does not require multi-user concurrency; faster setup and debuggi
 Alternatives: Introduce queue/broker in Phase A.
 Consequences: Limited concurrency and reliability in Phase A; queue added in Phase B.
 Links: PROJECT §MVP scope | ENGINEERING §Ops & scaling
+
+2026-03-07 — Decision: Use `farmtrust_core/` as the single top-level importable Python package
+Why: Keep reusable pipeline logic in one place so worker, API, and shared modules consume the same implementation and avoid duplication.
+Alternatives: Keep logic inside service-specific folders; split shared logic across multiple utility packages.
+Consequences: Cleaner long-term reuse and simpler imports; requires disciplined boundaries so service-specific concerns do not leak into core.
+Links: ENGINEERING §Repo structure (Phase A) | PLAN: P-01 — Starter pipeline for three roles

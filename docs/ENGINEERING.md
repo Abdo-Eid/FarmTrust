@@ -33,6 +33,7 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
     - shared/ (Python helpers)
     - infra/ (scripts/CI)
     - docs/ (Aha!Kit truth)
+- `farmtrust_core/` is the single importable top-level Python package for core pipeline logic reused by worker, API, and shared modules.
 
 ## Contracts (source of truth)
 
