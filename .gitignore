@@ -1,13 +1,29 @@
 # Python-generated files
 __pycache__/
+**/__pycache__/
 *.py[oc]
+*.pyc
 build/
 dist/
 wheels/
 *.egg-info
 
+# Runtime / cache
+.cache/
+
+# Jupyter noise
+**/.ipynb_checkpoints/
+worker/notebooks/.cache/
+
 # Virtual environments
 .venv
+.venv/
 
+# OS/editor
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Data artifacts (keep docs)
 data/*
 !data/README.md

@@ -30,10 +30,9 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
     - farmtrust_core/ (core pipeline package)
     - portal/ (Next.js)
     - contracts/ (schemas)
-    - shared/ (Python helpers)
     - infra/ (scripts/CI)
     - docs/ (Aha!Kit truth)
-- `farmtrust_core/` is the single importable top-level Python package for core pipeline logic reused by worker, API, and shared modules.
+- `farmtrust_core/` is the single importable top-level Python package for core pipeline logic reused by worker and API services.
 
 ## Contracts (source of truth)
 
@@ -159,11 +158,19 @@ Phase C — Expansion + advanced modeling
 
 ## Dev workflow (Phase A)
 
-- Default path for ingestion/ML roles: run the worker directly with a local AOI fixture.
+- Environment manager: `uv` with a single repo-level `.venv`.
+- Dependency model:
+    - Main deps: minimal shared runtime (`farmtrust_core`-level needs).
+    - Extra `data`: ingestion/geospatial dependencies.
+    - Extra `ml`: reserved placeholder for later ML framework selection (empty in Phase A).
+    - Dev group: notebook + local tooling.
+- Role setup:
+    - Core/API work: `uv sync`
+    - Ingestion/geospatial work: `uv sync --extra data`
+    - Team reproducibility install: `uv sync --frozen --extra data`
 - Worker scripts and services import pipeline logic from `farmtrust_core`.
+- Standard ingestion command: `uv run ingest-aoi --config worker/scripts/ingest_demo.json`.
 - Integration path: portal -> API -> worker, used for demo validation.
-- Standard dev command (placeholder):
-    - `python worker/run.py --aoi samples/aoi.geojson --config configs/dev.yaml`
 
 ## Phase scope notes
 

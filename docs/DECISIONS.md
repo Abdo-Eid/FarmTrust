@@ -94,7 +94,13 @@ Consequences: Limited concurrency and reliability in Phase A; queue added in Pha
 Links: PROJECT §MVP scope | ENGINEERING §Ops & scaling
 
 2026-03-07 — Decision: Use `farmtrust_core/` as the single top-level importable Python package
-Why: Keep reusable pipeline logic in one place so worker, API, and shared modules consume the same implementation and avoid duplication.
-Alternatives: Keep logic inside service-specific folders; split shared logic across multiple utility packages.
+Why: Keep reusable pipeline logic in one place so worker and API consume the same implementation and avoid duplication.
+Alternatives: Keep logic inside service-specific folders; split reusable logic across multiple utility packages.
 Consequences: Cleaner long-term reuse and simpler imports; requires disciplined boundaries so service-specific concerns do not leak into core.
 Links: ENGINEERING §Repo structure (Phase A) | PLAN: P-01 — Starter pipeline for three roles
+
+2026-03-12 — Decision: Use lean default dependency install with `data` extra for ingestion
+Why: Keep default environment small for faster onboarding and lower install friction while preserving a clear opt-in path for heavy geospatial dependencies.
+Alternatives: Keep ingestion/geospatial dependencies in main dependencies so `uv sync` installs everything by default.
+Consequences: Ingestion contributors must run `uv sync --extra data`; docs and runbooks must point to extra-based setup to avoid missing-package errors.
+Links: ENGINEERING §Dev workflow (Phase A) | README §Python environment (uv)
