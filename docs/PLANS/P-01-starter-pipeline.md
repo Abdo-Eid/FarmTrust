@@ -206,6 +206,6 @@ thinking of add a post-search step to enforce min gap (e.g., 2–3 weeks) and pr
 
 ## Findings & learnings
 
-[Migration and optimization research notes](../documentaions/01-F&Lmigration-and-optimization.md)
+[Migration and optimization research notes](../documentations/00-phaseA_ingestion_full_writeup.md)
 <finding title>
 Short note on what happened, why it matters, and what you learned for yourself.

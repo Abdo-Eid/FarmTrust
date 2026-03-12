@@ -23,7 +23,7 @@ This repo uses **Aha!Kit** — a project-first documentation + execution kit wit
    - `docs/PROJECT.md`
    - `docs/ENGINEERING.md`
    - `docs/DECISIONS.md`
-   - `docs/index.md`
+   - `docs/INDEX.md`
 
 2) Declare your role and scope:
    - Post your role (e.g., “ML/time-series preprocessing”, “ML/seasonal analysis”, “Data ingestion”, “Frontend portal”).
@@ -32,7 +32,7 @@ This repo uses **Aha!Kit** — a project-first documentation + execution kit wit
 3) If using an AI agent, use this onboarding prompt:
 ```
 You are onboarding to FarmTrust. Read `docs/PROJECT.md`, `docs/ENGINEERING.md`,
-`docs/DECISIONS.md`, and `docs/index.md`. Summarize:
+`docs/DECISIONS.md`, and `docs/INDEX.md`. Summarize:
 - project goal, MVP scope, and non-goals
 - key decisions already made
 - open questions that affect my role
@@ -51,16 +51,60 @@ Only propose doc updates if it changes shared scope or technical truth.
    - Copy `docs/PLANS/P-00-template.md` → `P-01-<name>.md`
 
 ## Where to write/read
-- Dump raw notes: `docs/inbox.md`
+- Inbox source docs: `docs/inbox/*.md` except `docs/inbox/README.md` (use metadata)
+- Keep verbatim docs only: set `keep_as_user: true`
+- Working docs lifecycle: `stage: added -> adapted|discussed|clarification`, then delete after promotion/extraction
+- Legacy raw archive: `docs/inbox.md` (read-only except promotion pointer append)
 - Product truth: `docs/PROJECT.md`
 - Engineering truth: `docs/ENGINEERING.md`
 - Decisions: `docs/DECISIONS.md`
 - Plans: `docs/PLANS/P-xx.md`
-- Docs index: `docs/index.md`
+- Docs index: `docs/INDEX.md`
 
 ## Plans
 Create a plan by copying `docs/PLANS/P-00-template.md` → `P-01-<name>.md`.
+
+## Python environment (uv)
+
+Install and sync dependencies with `uv`.
+
+Dependency split model:
+- Main dependencies: minimal runtime dependencies required by `farmtrust_core` code.
+- Optional extra `data`: ingestion and geospatial stack.
+- Optional extra `ml`: placeholder for future ML framework decision (intentionally empty).
+- Dev group: notebook and local developer tooling.
+
+Setup commands:
+
+```bash
+uv sync
+```
+
+Ingestion/data role setup:
+
+```bash
+uv sync --extra data
+```
+
+Install all extras:
+
+```bash
+uv sync --all-extras
+```
+
+Team-safe sync (frozen lock):
+
+```bash
+uv sync --frozen --extra data
+```
+
 ## Dev workflow
-TBD.
+
+Common commands:
+
+```bash
+uv run ingest-aoi --config worker/scripts/ingest_demo.json
+uv run python scripts/ingest_fixtures.py
+```
 
 Note: README stays short. The source of truth lives in `/docs`.
