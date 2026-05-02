@@ -26,8 +26,8 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
 
 - Root services with shared contracts:
     - api/ (FastAPI)
-    - worker/ (Python)
     - farmtrust_core/ (core pipeline package)
+    - scripts/ (CLI entry points)
     - portal/ (Next.js)
     - contracts/ (schemas)
     - infra/ (scripts/CI)
@@ -168,8 +168,8 @@ Phase C — Expansion + advanced modeling
     - Core/API work: `uv sync`
     - Ingestion/geospatial work: `uv sync --extra data`
     - Team reproducibility install: `uv sync --frozen --extra data`
-- Worker scripts and services import pipeline logic from `farmtrust_core`.
-- Standard ingestion command: `uv run ingest-aoi --config worker/scripts/ingest_demo.json`.
+- Scripts in `scripts/` import pipeline logic from `farmtrust_core`.
+- Standard ingestion command: `uv run ingest-aoi --config scripts/ingest_demo.json`.
 - Integration path: portal -> API -> worker, used for demo validation.
 
 ## Phase scope notes

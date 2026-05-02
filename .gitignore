@@ -27,3 +27,5 @@ Thumbs.db
 # Data artifacts (keep docs)
 data/*
 !data/README.md
+.claude
+.opencode

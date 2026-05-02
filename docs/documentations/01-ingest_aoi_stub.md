@@ -20,7 +20,7 @@ uv sync --extra data
 Use the demo config:
 
 ```bash
-uv run ingest-aoi --config worker/scripts/ingest_demo.json
+uv run ingest-aoi --config scripts/ingest_demo.json
 ```
 
 Or pass parameters directly:
@@ -51,7 +51,7 @@ uv sync --frozen --extra data
 
 > Note: `cache_dir` is **no longer used**. The `chips/` directory is the canonical dataset.
 
-Config example lives at `worker/scripts/ingest_demo.json`.
+Config example lives at `scripts/ingest_demo.json`.
 
 ## Outputs
 
