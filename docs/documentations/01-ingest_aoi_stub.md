@@ -11,16 +11,28 @@ This script queries Sentinel-2 L2A scenes via STAC (Planetary Computer), **downl
 
 ## Run (UV)
 
+Install ingestion dependencies first:
+
+```bash
+uv sync --extra data
+```
+
 Use the demo config:
 
 ```bash
-uv run python worker/scripts/ingest_aoi.py --config worker/scripts/ingest_demo.json
+uv run ingest-aoi --config scripts/ingest_demo.json
 ```
 
 Or pass parameters directly:
 
 ```bash
-uv run python worker/scripts/ingest_aoi.py --aoi-id aoi_demo_01 --bbox 30.9903,30.594356,31.013848,30.616635
+uv run ingest-aoi --aoi-id aoi_demo_01 --bbox 30.9903,30.594356,31.013848,30.616635
+```
+
+For team-consistent installs:
+
+```bash
+uv sync --frozen --extra data
 ```
 
 ### Additional options
@@ -39,7 +51,7 @@ uv run python worker/scripts/ingest_aoi.py --aoi-id aoi_demo_01 --bbox 30.9903,3
 
 > Note: `cache_dir` is **no longer used**. The `chips/` directory is the canonical dataset.
 
-Config example lives at `worker/scripts/ingest_demo.json`.
+Config example lives at `scripts/ingest_demo.json`.
 
 ## Outputs
 
@@ -89,4 +101,3 @@ Use `--force-rerun` to wipe and rebuild everything.
 * **Any downstream pixel-level logic**: reads chips directly from `chips/<item_id>/...`.
 
 This script fetches Sentinel-2 data via STAC (Planetary Computer) and writes a reproducible local chip dataset for downstream processing.
-

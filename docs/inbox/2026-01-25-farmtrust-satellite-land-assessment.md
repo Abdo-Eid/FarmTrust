@@ -1,25 +1,10 @@
-# Inbox
-
-Purpose: raw capture only. Paste thoughts, drafts, notes, questions, or links here. No organizing, no tagging, no decisions.
-
-<entry date="YYYY-MM-DD" type="idea|note|question|link|draft|PRD" title="Short title">
-<dump></dump>
-<promoted-to>#</promoted-to>
-</entry>
-
-Promoted to: docs/PROJECT.md#Vision; docs/ENGINEERING.md#System overview; docs/DECISIONS.md#2026-01-25
-
+---
+keep_as_user: true
+title: FarmTrust satellite land assessment legacy capture
+migrated_from: docs/inbox.md
 ---
 
-<entry date="2026-01-25"
-         type="draft"
-         title="FarmTrust: Satellite-based land evaluation for agri-finance">
-<dump>
-
-## 2026-01-25 — FarmTrust: Satellite-based land evaluation for agri-finance
-
-Type: draft
-Dump:
+2026-01-25 - FarmTrust: Satellite-based land evaluation for agri-finance
 
 # FarmTrust Project Overview - Satellite-Based Agricultural Land Assessment for Banks and Agri-Finance
 
@@ -448,6 +433,3 @@ Instead of just "lands", introduce a concept:
 - store analysis outputs so the display is fast
 
 > Idea: this Portal turns the analysis into a usable product, otherwise it stays a "model result" not a financing tool.
-
-</dump>
-</entry>

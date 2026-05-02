@@ -3,7 +3,7 @@
 Thanks for contributing.
 
 ## Quick start
-1) Read: `docs/PROJECT.md`, `docs/ENGINEERING.md`, `docs/DECISIONS.md`, `docs/index.md`
+1) Read: `docs/PROJECT.md`, `docs/ENGINEERING.md`, `docs/DECISIONS.md`, `docs/INDEX.md`
 2) Declare your role + outputs to the lead before starting work.
 
 ## Work tracking (issue-first with pragmatic exceptions)
@@ -49,7 +49,11 @@ feat(api): add job status endpoint (Closes #123)
 - Product/scope/roadmap/options/open questions -> `docs/PROJECT.md`
 - Architecture/ops/interfaces/pipeline/risks -> `docs/ENGINEERING.md`
 - Decisions -> `docs/DECISIONS.md` (append-only)
-- Execution detail -> a single workstream file in `docs/WORKSTREAMS/`
+- Execution detail -> one `docs/PLANS/P-xx-*.md`
 
 ## Not sure where to write?
-Use `docs/inbox.md` for raw capture. Do not edit or reorganize existing inbox content.
+Use `docs/inbox/*.md` for new raw capture (except `docs/inbox/README.md`).
+Use metadata in front matter.
+Set `keep_as_user: true` only for docs that must stay verbatim.
+For working docs, move `stage: added -> adapted|discussed|clarification`, then delete after extraction/promotion.
+Treat `docs/inbox.md` as legacy archive (read-only except promotion pointer append).

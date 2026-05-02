@@ -41,28 +41,28 @@ Deliver a minimal pipeline contract and test flow that all three ML roles can ru
     - Inputs: AOI bbox (EPSG:4326), time window, cloud filter.
     - Responsibilities: STAC search, AOI-only window reads, SCL mask, per-scene indices, chip export, and scene-index caching.
     - Runtime mode: download chips + compute stats in one pass.
-    - Code location: `worker/scripts/ingest_aoi.py`.
+    - Code location: `scripts/ingest_aoi.py`.
     - Outputs: per-scene CSV + run metadata JSON + `scenes_index.json` + per-scene chips/manifest.
     - Fast test: re-run the same AOI and confirm skip/reuse behavior for existing scenes.
 
 - **ML/time-series preprocessing**
     - Inputs: per-scene CSV from ingestion.
     - Responsibilities: filter by `valid_fraction`, smooth NDVI, compute gap metrics and confidence inputs.
-    - Code location: `farmtrust_core.preprocess` for logic; `worker/scripts/` for entrypoints.
+    - Code location: `farmtrust_core.preprocess` for logic; `scripts/` for entrypoints.
     - Outputs: smoothed NDVI series + quality metrics JSON.
     - Fast test: confirm `gap_ratio` and `max_gap_days` are non-null and stable.
 
 - **ML/seasonal analysis**
     - Inputs: smoothed NDVI series + quality metrics.
     - Responsibilities: detect season windows, label season quality, record key dates.
-    - Code location: `farmtrust_core.seasonal` for logic; `worker/scripts/` for entrypoints.
+    - Code location: `farmtrust_core.seasonal` for logic; `scripts/` for entrypoints.
     - Outputs: season windows JSON with start/end dates and quality label.
     - Fast test: at least one season window in a 12-24 month span.
 
 - **ML/scoring**
     - Inputs: season windows + quality metrics + basic NDVI stats.
     - Responsibilities: status/trend/season labels, conservative flags, evidence summary.
-    - Code location: `farmtrust_core.scoring` for logic; `worker/scripts/` for entrypoints.
+    - Code location: `farmtrust_core.scoring` for logic; `scripts/` for entrypoints.
     - Outputs: scoring summary JSON with `land_status`, `trend_2y`, `season_performance`, `flags`, `confidence`.
     - Fast test: scoring output generated without missing required fields.
 
@@ -89,7 +89,7 @@ Deliver a minimal pipeline contract and test flow that all three ML roles can ru
 
 **Deliverables**
 
-- `worker/scripts/ingest_aoi.py` (callable ingestion entrypoint)
+- `scripts/ingest_aoi.py` (callable ingestion entrypoint)
 - `data/<aoi_id>/chips/<item_id>/` (AOI chips + `manifest.json`)
 - `data/<aoi_id>/indices_timeseries.csv`
 - `data/<aoi_id>/scenes_index.json`
@@ -110,14 +110,14 @@ Deliver a minimal pipeline contract and test flow that all three ML roles can ru
 - `farmtrust_core/ingest/indices.py` with stable index/stat helpers moved from the script.
 - `farmtrust_core/ingest/window_read.py` with stable AOI window read, reproject, and GeoTIFF write helpers.
 - `farmtrust_core/ingest/stac_client.py` with stable STAC open/search/sort helpers.
-- `worker/scripts/ingest_aoi.py` remains runnable as CLI/orchestration and imports the migrated helpers.
+- `scripts/ingest_aoi.py` remains runnable as CLI/orchestration and imports the migrated helpers.
 - A simple loader script for downstream use.
 
 **Acceptance**
 
 - Output contract unchanged: `indices_timeseries.csv`, `scenes_index.json`, `run_metadata.json`, chips + manifests.
 - Fingerprint + skip/reuse behavior unchanged.
-- Existing config path (`worker/scripts/ingest_demo.json`) still runs without changes.
+- Existing config path (`scripts/ingest_demo.json`) still runs without changes.
 - Migration only covers stable logic; optimizations are explicitly deferred.
 
 ### Milestone 1.6 — Ingestion optimization + selection research spike
@@ -206,6 +206,6 @@ thinking of add a post-search step to enforce min gap (e.g., 2–3 weeks) and pr
 
 ## Findings & learnings
 
-[Migration and optimization research notes](../documentaions/01-F&Lmigration-and-optimization.md)
+[Migration and optimization research notes](../documentations/00-phaseA_ingestion_full_writeup.md)
 <finding title>
 Short note on what happened, why it matters, and what you learned for yourself.
