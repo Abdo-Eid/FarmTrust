@@ -24,6 +24,10 @@ worker/notebooks/.cache/
 .DS_Store
 Thumbs.db
 
+# Portal (Next.js) — covered by portal/.gitignore but catch from root too
+portal/node_modules/
+portal/.next/
+
 # Data artifacts (keep docs)
 data/*
 !data/README.md
