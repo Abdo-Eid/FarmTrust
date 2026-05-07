@@ -104,3 +104,21 @@ Why: Keep default environment small for faster onboarding and lower install fric
 Alternatives: Keep ingestion/geospatial dependencies in main dependencies so `uv sync` installs everything by default.
 Consequences: Ingestion contributors must run `uv sync --extra data`; docs and runbooks must point to extra-based setup to avoid missing-package errors.
 Links: ENGINEERING §Dev workflow (Phase A) | README §Python environment (uv)
+
+2026-05-07 — Decision: Pre-download deduplication strategy for Sentinel-2 scenes
+Why: STAC returns multiple scenes per date when AOIs span tile boundaries or when S2A and S2B both acquire on the same day. Without dedup, redundant tiles waste bandwidth and pollute the time series with duplicate observations.
+Alternatives: Deduplicate after processing using valid_fraction (AOI-specific quality); no dedup (keep all scenes for mosaic use cases).
+Consequences: Pre-download filter saves bandwidth and download time. eo:cloud_cover (tile-wide metadata) is the practical pre-filter criterion; valid_fraction (computed from SCL) remains the gold-standard quality metric but requires downloading first. --no-dedupe flag preserves raw mode when needed.
+Links: ENGINEERING §Pipeline | docs/documentations/00-phaseA_ingestion_full_writeup.md §12
+
+2026-05-07 — Decision: Parallel scene downloads via ThreadPoolExecutor (max_workers=4 default)
+Why: Each scene requires 6 HTTP range requests to COG assets on Planetary Computer — purely I/O-bound. Sequential processing left all workers idle while waiting on network. ThreadPoolExecutor bypasses the GIL for I/O and gives ~4x speedup with no code-complexity penalty.
+Alternatives: async/await (more complex refactor, no clear benefit for this workload); single-threaded (available via --workers 1 for debugging).
+Consequences: Rate limit risk above ~8 workers on Planetary Computer (free tier). Retry logic with exponential backoff and SAS token re-signing on each attempt handles transient failures. max_workers is tunable via --workers CLI flag or "workers" key in config JSON.
+Links: ENGINEERING §Pipeline | ENGINEERING §Ops & scaling
+
+2026-05-07 — Decision: Split scripts/ingest_aoi.py into focused farmtrust_core/ingest/ modules
+Why: The script grew to 797 lines across 5 unrelated concerns (raster I/O, index CRUD, dedup, parallel worker, orchestration). Logic in scripts/ is not importable or unit-testable.
+Alternatives: Keep monolithic script; split into fewer but larger modules.
+Consequences: scripts/ingest_aoi.py is now ~100 lines (CLI argument parsing only). All pipeline logic lives in farmtrust_core/ingest/ and can be imported and tested independently. New modules: window_read.py, scene_index.py, dedup.py, processor.py, pipeline.py.
+Links: ENGINEERING §Repo structure | DECISIONS 2026-03-07 (farmtrust_core single package)

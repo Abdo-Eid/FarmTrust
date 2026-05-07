@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [project.scripts]
-ingest-aoi = "worker.scripts.ingest_aoi:main"
+ingest-aoi = "scripts.ingest_aoi:main"
 
 [project.optional-dependencies]
 ml = []
@@ -43,4 +43,4 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["farmtrust_core*", "worker*"]
+include = ["farmtrust_core*", "scripts*"]

@@ -12,10 +12,12 @@ from farmtrust_core.ingest.utils import compute_fingerprint, utc_now_iso
 
 
 def cache_enabled() -> bool:
+    """Check if cache is enabled via STAC_CACHE_DISABLE env var (default: enabled)."""
     return os.environ.get("STAC_CACHE_DISABLE", "0").strip() not in ("1", "true", "TRUE", "yes", "YES")
 
 
 def cache_ttl_hours() -> int:
+    """Get cache TTL from STAC_CACHE_TTL_HOURS env var (default: 72h). TTL=0 means never expires."""
     v = os.environ.get("STAC_CACHE_TTL_HOURS", "72").strip()
     try:
         return max(0, int(v))
@@ -24,11 +26,13 @@ def cache_ttl_hours() -> int:
 
 
 def cache_path(cache_dir: Path, key: str) -> Path:
+    """Ensure cache dir exists and return path to cache file for the given fingerprint key."""
     cache_dir.mkdir(parents=True, exist_ok=True)
     return cache_dir / f"{key}.json"
 
 
 def read_cache(cache_dir: Path, query_obj: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Retrieve cached payload if cache is enabled, file exists, and not expired. Return None on cache miss."""
     if not cache_enabled():
         return None
 
@@ -46,6 +50,7 @@ def read_cache(cache_dir: Path, query_obj: Dict[str, Any]) -> Optional[Dict[str,
 
 
 def write_cache(cache_dir: Path, query_obj: Dict[str, Any], payload: Dict[str, Any]) -> None:
+    """Write payload to cache with saved_at timestamp. No-op if cache is disabled."""
     if not cache_enabled():
         return
     key = compute_fingerprint(query_obj)

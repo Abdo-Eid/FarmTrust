@@ -33,6 +33,16 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
     - infra/ (scripts/CI)
     - docs/ (Aha!Kit truth)
 - `farmtrust_core/` is the single importable top-level Python package for core pipeline logic reused by worker and API services.
+- `farmtrust_core/ingest/` submodules:
+    - `config.py` — bbox parsing, default dates
+    - `indices.py` — NDVI, EVI, NDMI, NDWI, MNDWI computation
+    - `stac_client.py` — STAC search with endpoint fallback and PC signing
+    - `utils.py` — fingerprint, safe_write_text, utc_now_iso
+    - `window_read.py` — ChipGrid, COG window reads, reprojection, write_geotiff
+    - `scene_index.py` — scenes_index.json CRUD + cache-skip logic
+    - `dedup.py` — pre-download dedup (one best per date/spacecraft)
+    - `processor.py` — SceneResult, process_one_scene (thread-safe worker)
+    - `pipeline.py` — write_outputs orchestrator
 
 ## Contracts (source of truth)
 
@@ -78,7 +88,7 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
 
 ## Pipeline
 
-- Ingest: fetch imagery for polygon/time window; validate geometry.
+- Ingest: fetch imagery for polygon/time window; validate geometry; deduplicate to one best scene per (date, spacecraft) before downloading; parallel COG window reads via thread pool (default 4 workers).
 - Preprocess: cloud/shadow masking, compositing, smoothing/de-spiking, optional gap-fill.
 - Feature extraction: plot-level time series and spatial stats; neighbor comparison window.
 - Scoring / classification: conservative rule-based thresholds for land status, trend, season outcome, risks.

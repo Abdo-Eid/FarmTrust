@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { authClient } from "@/lib/auth-client";
@@ -20,13 +19,9 @@ export default function LoginPage() {
     const [authError, setAuthError] = useState<string | null>(null);
     const { data: session, isPending } = authClient.useSession();
 
-    const {
-        register,
-        handleSubmit,
-        formState: { errors, isSubmitting },
-    } = useForm<FormData>({
-        resolver: zodResolver(schema),
-    });
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (!isPending && session) {
@@ -46,17 +41,20 @@ export default function LoginPage() {
         return null;
     }
 
-    const onSubmit = async (data: FormData) => {
+    const onSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
         setAuthError(null);
         const { error } = await authClient.signIn.email({
-            email: data.email,
-            password: data.password,
+            email,
+            password,
             callbackURL: "/lands",
         });
         if (error) {
             setAuthError(
                 "Invalid credentials. Try analyst@farmtrust.eg / demo123",
             );
+            setIsSubmitting(false);
         } else {
             router.push("/lands");
         }
@@ -159,33 +157,22 @@ export default function LoginPage() {
                         </p>
                     </div>
 
-                    <form
-                        onSubmit={handleSubmit(onSubmit)}
-                        className="space-y-4"
-                    >
-                        <FormField
-                            label="Email Address"
-                            error={errors.email?.message}
-                            required
-                        >
+                    <form onSubmit={onSubmit} className="space-y-4">
+                        <FormField label="Email Address" required>
                             <Input
                                 type="email"
                                 placeholder="analyst@farmtrust.eg"
-                                error={!!errors.email}
-                                {...register("email")}
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                             />
                         </FormField>
 
-                        <FormField
-                            label="Password"
-                            error={errors.password?.message}
-                            required
-                        >
+                        <FormField label="Password" required>
                             <Input
                                 type="password"
                                 placeholder="••••••••"
-                                error={!!errors.password}
-                                {...register("password")}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                             />
                         </FormField>
 

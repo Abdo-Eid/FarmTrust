@@ -259,7 +259,65 @@ Optional:
 
 ---
 
-## 12) Next steps (preprocessing readiness)
+## 12) Deduplication Strategy
+
+### 12.1 Why multiple scenes appear per date
+
+Several factors cause the STAC search to return multiple items for the same calendar date:
+
+- **Multi-tile AOI**: if the AOI crosses MGRS tile boundaries, Sentinel-2 publishes one item per tile — one acquisition date can legitimately return multiple items.
+- **Different UTC timestamps**: scenes may have different acquisition times even within the same calendar date; timestamps reduced to `YYYY-MM-DD` make them appear as the same date.
+- **No per-day constraint in STAC**: the search uses `intersects` (bbox) + date range + cloud filter. Every intersecting scene is returned.
+- **Storage keyed by `item_id`**: ingestion preserves all scenes — multiple scenes per date are intentional by design.
+
+**AOI coverage note**: STAC returns scenes that *intersect* the AOI bounding box, not scenes that fully contain it. Partial-coverage scenes are included. If strict full containment is required, a post-filter (geometry containment or coverage-ratio threshold) would need to be added separately.
+
+### 12.2 Strategies evaluated
+
+| Strategy | Description | Tradeoff |
+|---|---|---|
+| Keep all scenes | No deduplication | Max fidelity; deduplication deferred downstream |
+| One scene per day (global) | Exactly one record per date | Clean daily series; may drop tile coverage for multi-tile AOIs |
+| One scene per day per tile | One best scene per `(date, mgrs_tile)` | Preserves spatial granularity; still multiple rows/day if AOI spans tiles |
+
+### 12.3 Final decision
+
+**Keep one best scene per day per spacecraft (S2A and S2B).**
+
+Selection rule (in priority order):
+1. Highest `valid_fraction`
+2. Lowest `eo_cloud_cover` (tiebreaker)
+
+This ensures:
+- Redundant tile duplicates are removed.
+- Each spacecraft contributes at most one scene per day.
+- The time series remains clean while preserving dual-satellite observations (S2A and S2B on the same date are both valid and kept).
+
+### 12.4 Future consideration: mosaic edge case
+
+If the AOI is only partially covered by individual tiles on a given date and full spatial coverage is required, the pre-deduplication scenes may need to be mosaicked before filtering. This is deferred until full spatial continuity becomes a strict downstream requirement.
+
+---
+
+## 13) Module structure
+
+All ingestion logic lives in `farmtrust_core/ingest/`. The `scripts/ingest_aoi.py` entry point is CLI argument parsing only (~100 lines).
+
+| Module | Responsibility |
+|---|---|
+| `pipeline.py` | `write_outputs()` — top-level orchestrator: STAC search → dedup → parallel download → CSV + index |
+| `processor.py` | `process_one_scene()` — thread-safe worker: download chips, compute indices, return result |
+| `dedup.py` | `pre_deduplicate_items()` — one best scene per (date, spacecraft) before any I/O |
+| `scene_index.py` | `scenes_index.json` CRUD, cache-skip logic (`should_skip_scene`) |
+| `window_read.py` | `ChipGrid`, COG window reads, band reprojection, GeoTIFF output |
+| `indices.py` | NDVI, EVI, NDMI, NDWI, MNDWI — pure NumPy, no I/O |
+| `stac_client.py` | STAC search with multi-endpoint fallback and Planetary Computer signing |
+| `config.py` | Bbox parsing/normalization, default date range, JSON config loading |
+| `utils.py` | `compute_fingerprint`, `safe_write_text` (atomic), `utc_now_iso` |
+
+---
+
+## 14) Next steps (preprocessing readiness)
 Given the time-series CSV, preprocessing can:
 - filter and weight observations by `valid_fraction`,
 - smooth NDVI,

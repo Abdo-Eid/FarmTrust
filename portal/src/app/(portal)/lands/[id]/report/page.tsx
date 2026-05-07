@@ -8,7 +8,6 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { FormField, Input, Select } from "@/components/ui/FormField";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -60,24 +59,15 @@ export default function ReportPage({
     const router = useRouter();
     const { data: land, isLoading } = useLand(id);
 
-    const {
-        register,
-        watch,
-        formState: { errors },
-    } = useForm<ReportFormData>({
-        resolver: zodResolver(reportFormSchema),
-        defaultValues: {
-            analystName: "",
-            institution: "",
-            reportDate: new Date().toISOString().split("T")[0],
-            reportType: "full",
-            includeVegetation: true,
-            includeRiskFlags: true,
-            includeSummary: true,
-        },
+    const [formValues, setFormValues] = useState<ReportFormData>({
+        analystName: "",
+        institution: "",
+        reportDate: new Date().toISOString().split("T")[0],
+        reportType: "full",
+        includeVegetation: true,
+        includeRiskFlags: true,
+        includeSummary: true,
     });
-
-    const formValues = watch();
 
     if (isLoading) {
         return (
@@ -199,47 +189,61 @@ export default function ReportPage({
 
                         <div className="mt-6 space-y-4">
                             {/* Analyst Name */}
-                            <FormField
-                                label="Analyst Name"
-                                required
-                                error={errors.analystName?.message}
-                            >
+                            <FormField label="Analyst Name" required>
                                 <Input
-                                    {...register("analystName")}
                                     placeholder="Your name"
-                                    error={!!errors.analystName}
+                                    value={formValues.analystName}
+                                    onChange={(e) =>
+                                        setFormValues({
+                                            ...formValues,
+                                            analystName: e.target.value,
+                                        })
+                                    }
                                 />
                             </FormField>
 
                             {/* Institution */}
-                            <FormField
-                                label="Institution"
-                                required
-                                error={errors.institution?.message}
-                            >
+                            <FormField label="Institution" required>
                                 <Input
-                                    {...register("institution")}
                                     placeholder="Bank or organization name"
-                                    error={!!errors.institution}
+                                    value={formValues.institution}
+                                    onChange={(e) =>
+                                        setFormValues({
+                                            ...formValues,
+                                            institution: e.target.value,
+                                        })
+                                    }
                                 />
                             </FormField>
 
                             {/* Report Date */}
-                            <FormField
-                                label="Report Date"
-                                required
-                                error={errors.reportDate?.message}
-                            >
+                            <FormField label="Report Date" required>
                                 <Input
                                     type="date"
-                                    {...register("reportDate")}
-                                    error={!!errors.reportDate}
+                                    value={formValues.reportDate}
+                                    onChange={(e) =>
+                                        setFormValues({
+                                            ...formValues,
+                                            reportDate: e.target.value,
+                                        })
+                                    }
                                 />
                             </FormField>
 
                             {/* Report Type */}
                             <FormField label="Report Type">
-                                <Select {...register("reportType")}>
+                                <Select
+                                    value={formValues.reportType}
+                                    onChange={(e) =>
+                                        setFormValues({
+                                            ...formValues,
+                                            reportType: e.target.value as
+                                                | "full"
+                                                | "executive"
+                                                | "risk",
+                                        })
+                                    }
+                                >
                                     <option value="full">
                                         Full Assessment
                                     </option>
@@ -259,7 +263,16 @@ export default function ReportPage({
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
                                             type="checkbox"
-                                            {...register("includeVegetation")}
+                                            checked={
+                                                formValues.includeVegetation
+                                            }
+                                            onChange={(e) =>
+                                                setFormValues({
+                                                    ...formValues,
+                                                    includeVegetation:
+                                                        e.target.checked,
+                                                })
+                                            }
                                             className="w-4 h-4 rounded border-gray-300 text-teal-600"
                                         />
                                         <span className="text-sm text-gray-700">
@@ -269,7 +282,16 @@ export default function ReportPage({
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
                                             type="checkbox"
-                                            {...register("includeRiskFlags")}
+                                            checked={
+                                                formValues.includeRiskFlags
+                                            }
+                                            onChange={(e) =>
+                                                setFormValues({
+                                                    ...formValues,
+                                                    includeRiskFlags:
+                                                        e.target.checked,
+                                                })
+                                            }
                                             className="w-4 h-4 rounded border-gray-300 text-teal-600"
                                         />
                                         <span className="text-sm text-gray-700">
@@ -279,7 +301,14 @@ export default function ReportPage({
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
                                             type="checkbox"
-                                            {...register("includeSummary")}
+                                            checked={formValues.includeSummary}
+                                            onChange={(e) =>
+                                                setFormValues({
+                                                    ...formValues,
+                                                    includeSummary:
+                                                        e.target.checked,
+                                                })
+                                            }
                                             className="w-4 h-4 rounded border-gray-300 text-teal-600"
                                         />
                                         <span className="text-sm text-gray-700">

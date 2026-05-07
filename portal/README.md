@@ -1,64 +1,73 @@
 # FarmTrust Portal
 
-Next.js 14 web portal for FarmTrust — a satellite-based land assessment tool for banks and agricultural financiers in Egypt.
+Satellite-based land intelligence portal for agricultural financing decisions.
 
 ## Stack
 
-- **Next.js 14** (App Router) + **TypeScript**
-- **Tailwind CSS** with custom teal/turquoise design tokens
-- **Bun** runtime
-- **TanStack Query v5** for data fetching and job polling
-- **MapLibre GL** for AOI input and evidence workbench maps
-- **Recharts** for NDVI time-series visualization
-- **@react-pdf/renderer** for PDF report generation
-- **NextAuth v4** for authentication
-- **React Hook Form + Zod** for form validation
-- **Radix UI** for accessible primitives (Dialog, Tabs, Select)
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 16 (App Router, Turbopack) |
+| Runtime | Bun |
+| Language | TypeScript |
+| Styling | Tailwind CSS |
+| Maps | react-leaflet 5 + Leaflet 1.9 |
+| Auth | better-auth (email/password, SQLite session store) |
+| DB | `bun:sqlite` — `dev.db` file at project root |
+| Forms | react-hook-form + zod |
+| Charts | Recharts |
+| PDF | @react-pdf/renderer |
+| Data fetching | TanStack Query |
 
-## Getting Started
+## First-time setup
 
 ```bash
 bun install
+bun setup        # creates DB tables + seeds 3 mock users
 bun dev
 ```
 
-Portal runs at `http://localhost:3000`.
+Open [http://localhost:3000](http://localhost:3000).
 
-## Demo Credentials
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `bun dev` | Dev server with Turbopack |
+| `bun build` | Production build |
+| `bun start` | Serve production build |
+| `bun typecheck` | TypeScript check (no emit) |
+| `bun db:migrate` | Run better-auth schema migrations |
+| `bun db:seed` | Seed mock users into dev.db |
+| `bun setup` | `db:migrate` + `db:seed` (run once after clone) |
+
+## Demo credentials
 
 | Email | Password | Role |
-|-------|----------|------|
-| analyst@farmtrust.eg | demo123 | Analyst |
-| admin@farmtrust.eg | demo123 | Admin |
-| reviewer@ncb.eg | demo123 | Analyst |
+|---|---|---|
+| analyst@farmtrust.eg | demo123 | analyst |
+| admin@farmtrust.eg | demo123 | admin |
+| reviewer@ncb.eg | demo123 | analyst |
 
-> These credentials are hardcoded in `src/app/api/auth/[...nextauth]/route.ts`. Remove and replace with real DB auth before production.
-
-## Screens
-
-| Route | Screen |
-|-------|--------|
-| `/login` | Login |
-| `/lands` | Lands List |
-| `/lands/new` | Add Land (AOI input + map) |
-| `/lands/[id]` | Processing Status (live polling) |
-| `/lands/[id]/summary` | Land Assessment Summary |
-| `/lands/[id]/workbench` | Geospatial Evidence Workbench |
-| `/lands/[id]/evidence` | Evidence & Data Tables |
-| `/lands/[id]/report` | Report Export (PDF) |
-| `/admin` | System Administration |
+> Remove the credentials hint block in `src/app/(auth)/login/page.tsx` before production.
 
 ## Environment
 
-```env
-# .env.local
-NEXT_PUBLIC_API_BASE=/api        # swap to http://localhost:8000 for real FastAPI
-NEXTAUTH_SECRET=your-secret
-NEXTAUTH_URL=http://localhost:3000
+`.env.local` is present for dev. Required variables:
+
+```
+BETTER_AUTH_SECRET=   # any random string — change in production
+BETTER_AUTH_URL=      # full app URL (e.g. https://farmtrust.eg)
+NEXT_PUBLIC_API_BASE= # internal API base path (default: /api)
 ```
 
-Setting `NEXT_PUBLIC_API_BASE` to the FastAPI backend URL is the only change needed to switch from mock data to live data — no code changes required.
+## Map tiles
 
-## Mock Data
+- **Satellite + labels**: Esri World Imagery + CartoDB light-only-labels (no key required)
+- **Street / RGB mode**: OpenStreetMap (no key required)
 
-All API responses are served by Next.js Route Handlers under `src/app/api/` using mock data from `src/lib/mocks/`. The mock dataset includes 12 land records covering all status, confidence, and risk flag combinations.
+## Auth notes
+
+- Sessions stored in `dev.db` (SQLite, gitignored, auto-created by `bun db:migrate`)
+- Route protection: `src/proxy.ts` (Next.js 16 proxy, fast cookie check)
+- To swap to real users: replace `MOCK_USERS` in `scripts/seed.ts` with a DB lookup in `src/lib/auth.ts`
+- SSO-ready: add an OIDC / Azure AD provider to `betterAuth({})` in `src/lib/auth.ts`

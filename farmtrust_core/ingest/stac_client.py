@@ -10,6 +10,7 @@ from pystac_client import Client
 
 
 def _try_import_planetary_computer():
+    """Soft-import planetary_computer; return module or None if not installed."""
     try:
         return importlib.import_module("planetary_computer")
     except Exception:
@@ -17,6 +18,7 @@ def _try_import_planetary_computer():
 
 
 def compute_start_date(end_dt: datetime, months: int) -> datetime:
+    """Subtract months from end_dt using exact calendar math (dateutil) or 30-day fallback."""
     try:
         from dateutil.relativedelta import relativedelta
         return end_dt - relativedelta(months=months)
@@ -25,6 +27,7 @@ def compute_start_date(end_dt: datetime, months: int) -> datetime:
 
 
 def open_client(api_url: str, endpoint_name: str) -> Client:
+    """Open STAC client; for Planetary Computer, apply sign_inplace to auto-renew SAS URL tokens."""
     pc = _try_import_planetary_computer()
     if endpoint_name == "planetary_computer" and pc is not None:
         return Client.open(api_url, modifier=pc.sign_inplace)

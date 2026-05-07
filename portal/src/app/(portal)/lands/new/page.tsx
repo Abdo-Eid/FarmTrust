@@ -1,7 +1,6 @@
 "use client";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import dynamic from "next/dynamic";
@@ -50,17 +49,12 @@ export default function AddLandPage() {
     );
     const [fileError, setFileError] = useState<string | null>(null);
 
-    const {
-        register,
-        handleSubmit,
-        watch,
-        formState: { errors },
-    } = useForm<FormData>({
-        resolver: zodResolver(schema),
-        defaultValues: { method: "point_area", area_feddan: 10 },
+    const [formData, setFormData] = useState<Partial<FormData>>({
+        method: "point_area",
+        area_feddan: 10,
     });
 
-    const method = watch("method");
+    const method = formData.method;
 
     const handleFileUpload = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,17 +82,18 @@ export default function AddLandPage() {
         [],
     );
 
-    const onSubmit = async (data: FormData) => {
+    const onSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
         setSubmitting(true);
         try {
             const land = await api.lands.create({
-                name: data.name,
-                governorate: data.governorate,
-                district: data.district,
-                area_feddan: data.area_feddan,
-                method: data.method,
+                name: formData.name || "",
+                governorate: formData.governorate || "",
+                district: formData.district,
+                area_feddan: formData.area_feddan || 10,
+                method: formData.method || "point_area",
                 geometry: geojson?.features[0]?.geometry ?? null,
-                notes: data.notes,
+                notes: formData.notes,
             });
             router.push(`/lands/${land.id}`);
         } catch {
@@ -139,30 +134,32 @@ export default function AddLandPage() {
                     </div>
 
                     <form
-                        onSubmit={handleSubmit(onSubmit)}
+                        onSubmit={onSubmit}
                         className="flex-1 px-6 py-5 space-y-5"
                     >
-                        <FormField
-                            label="Land Name"
-                            error={errors.name?.message}
-                            required
-                        >
+                        <FormField label="Land Name" required>
                             <Input
                                 placeholder="e.g. North Sharqia Plot A"
-                                {...register("name")}
-                                error={!!errors.name}
+                                value={formData.name || ""}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        name: e.target.value,
+                                    })
+                                }
                             />
                         </FormField>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <FormField
-                                label="Governorate"
-                                error={errors.governorate?.message}
-                                required
-                            >
+                            <FormField label="Governorate" required>
                                 <Select
-                                    {...register("governorate")}
-                                    error={!!errors.governorate}
+                                    value={formData.governorate || ""}
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            governorate: e.target.value,
+                                        })
+                                    }
                                 >
                                     <option value="">Select...</option>
                                     {GOVERNORATES.map((g) => (
@@ -173,13 +170,16 @@ export default function AddLandPage() {
                                 </Select>
                             </FormField>
 
-                            <FormField
-                                label="District"
-                                error={errors.district?.message}
-                            >
+                            <FormField label="District">
                                 <Input
                                     placeholder="Optional"
-                                    {...register("district")}
+                                    value={formData.district || ""}
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            district: e.target.value,
+                                        })
+                                    }
                                 />
                             </FormField>
                         </div>
@@ -195,7 +195,16 @@ export default function AddLandPage() {
                                             <input
                                                 type="radio"
                                                 value={m}
-                                                {...register("method")}
+                                                checked={formData.method === m}
+                                                onChange={(e) =>
+                                                    setFormData({
+                                                        ...formData,
+                                                        method: e.target
+                                                            .value as
+                                                            | "point_area"
+                                                            | "geojson",
+                                                    })
+                                                }
                                                 className="accent-teal-700"
                                             />
                                             <span className="text-sm text-gray-700">
@@ -212,7 +221,6 @@ export default function AddLandPage() {
                         {method === "point_area" && (
                             <FormField
                                 label="Area (Feddan)"
-                                error={errors.area_feddan?.message}
                                 hint="1 feddan = 4,200 m². Valid range: 1–200 feddan."
                                 required
                             >
@@ -222,8 +230,15 @@ export default function AddLandPage() {
                                     max={200}
                                     step={0.5}
                                     placeholder="e.g. 45"
-                                    {...register("area_feddan")}
-                                    error={!!errors.area_feddan}
+                                    value={formData.area_feddan || 10}
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            area_feddan: parseFloat(
+                                                e.target.value,
+                                            ),
+                                        })
+                                    }
                                 />
                             </FormField>
                         )}
@@ -281,7 +296,13 @@ export default function AddLandPage() {
                             <Textarea
                                 placeholder="Any additional context for the analyst..."
                                 rows={3}
-                                {...register("notes")}
+                                value={formData.notes || ""}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        notes: e.target.value,
+                                    })
+                                }
                             />
                         </FormField>
 

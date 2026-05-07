@@ -41,6 +41,8 @@ uv sync --frozen --extra data
 * `--debug`: enable debug logging for troubleshooting.
 * `--limit-items N`: limit number of scenes (useful for quick testing).
 * `--log-signed-hrefs`: log signed STAC asset URLs (very verbose).
+* `--no-dedupe`: skip pre-download deduplication; emit all STAC scenes as-is (raw/debug mode).
+* `--workers N`: number of parallel download workers (default: 4; set to 1 for sequential debugging). Can also be set as `"workers": N` in the JSON config file.
 
 ## Inputs
 
@@ -52,6 +54,25 @@ uv sync --frozen --extra data
 > Note: `cache_dir` is **no longer used**. The `chips/` directory is the canonical dataset.
 
 Config example lives at `scripts/ingest_demo.json`.
+
+## Deduplication
+
+STAC returns multiple scenes per calendar date when the AOI spans tile boundaries, or when both S2A and S2B satellites acquire on the same day. By default, the script keeps only one scene per (calendar date, spacecraft) before downloading — the one with the lowest `eo:cloud_cover`. If two scenes tie on cloud cover, the lexicographically lower `item_id` wins (deterministic).
+
+The log shows which scenes are dropped:
+```
+Pre-dedup: 2025-08-03 S2C kept=S2C_..._T36RUU dropped=['S2C_..._T36RTU'] (cloud_cover=1.79)
+```
+
+Use `--no-dedupe` to skip this filter and process all STAC results.
+
+## Parallel downloads
+
+By default, up to 4 scenes are downloaded simultaneously (`--workers 4`). Each worker is a thread — safe for I/O-bound COG reads. Planetary Computer handles up to ~8 concurrent connections without throttling.
+
+Each failed scene is retried up to 3 times with exponential backoff (1s, 2s, 4s). SAS tokens are re-signed before each retry to handle token expiry.
+
+To run sequentially (useful when debugging a single scene): `--workers 1`.
 
 ## Outputs
 
@@ -82,6 +103,9 @@ This file is a single JSON object that stores:
 * the **relative paths** to chip files for each band
 * computed stats (mean + p95)
 * a **fingerprint** of the config (bbox/dates/cloud threshold/mask rules) used for caching
+* `platform`: raw STAC platform string (e.g. `"Sentinel-2C"`)
+* `spacecraft`: normalized spacecraft ID (`"S2A"`, `"S2B"`, `"S2C"`)
+* `aoi_geometry`: the AOI bbox as a GeoJSON Polygon — load with `shapely.geometry.shape(scenes_index["aoi_geometry"])` for coverage or containment calculations
 
 ### Caching behavior (“skip if chip exists”)
 
@@ -100,4 +124,18 @@ Use `--force-rerun` to wipe and rebuild everything.
 * **ML/scoring**: consumes seasonal windows + quality metrics produced downstream.
 * **Any downstream pixel-level logic**: reads chips directly from `chips/<item_id>/...`.
 
-This script fetches Sentinel-2 data via STAC (Planetary Computer) and writes a reproducible local chip dataset for downstream processing.
+## Implementation
+
+The CLI entry point is `scripts/ingest_aoi.py` (~100 lines, argument parsing only). All pipeline logic lives in `farmtrust_core/ingest/`:
+
+| Module | Responsibility |
+|---|---|
+| `pipeline.py` | `write_outputs()` orchestrator |
+| `processor.py` | `process_one_scene()` thread-safe worker |
+| `dedup.py` | Pre-download deduplication |
+| `scene_index.py` | `scenes_index.json` CRUD + cache-skip logic |
+| `window_read.py` | COG window reads, reprojection, chip writing |
+| `indices.py` | NDVI, EVI, NDMI, NDWI, MNDWI computation |
+| `stac_client.py` | STAC search with endpoint fallback |
+| `config.py` | Config parsing, bbox normalization |
+| `utils.py` | Fingerprint, atomic file write, UTC timestamp |
