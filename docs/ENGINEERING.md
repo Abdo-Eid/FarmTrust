@@ -71,6 +71,7 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
     - Anomalies (mid-season drops / instability)
     - Confidence (quality + gap penalty)
     - Short reasons mapped to each output
+    - Smoothed metric evidence charts for NDVI, EVI, NDMI, and NDWI
 
 ## Modeling approach (by output)
 
@@ -90,9 +91,39 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
 
 - Ingest: fetch imagery for polygon/time window; validate geometry; deduplicate to one best scene per (date, spacecraft) before downloading; parallel COG window reads via thread pool (default 4 workers).
 - Preprocess: cloud/shadow masking, compositing, smoothing/de-spiking, optional gap-fill.
+  - Current Phase A implementation exports merged daily raw + smoothed values for `ndvi`, `evi`, `ndmi`, and `ndwi` in `ndvi_smoothed.csv`.
 - Feature extraction: plot-level time series and spatial stats; neighbor comparison window.
-- Scoring / classification: conservative rule-based thresholds for land status, trend, season outcome, risks.
+- Scoring / classification: conservative rule-based thresholds for land status, trend, season outcome, risks, and assessment confidence.
+- Seasonal detection policy (current): NDVI remains the primary detector (threshold crossing + backtracked onset + duration checks). Multi-index confirmation from EVI/NDMI/NDWI is applied as a secondary confidence/label adjustment layer.
 - Serving: persist results; expose summary and report endpoints for portal.
+
+## Phase A assessment contract
+
+- Purpose: produce a lender-readable, file-based land assessment from preprocessing + seasonal outputs without depending on the portal or API.
+- Input files:
+    - `data/<aoi_id>/run_metadata.json`
+    - `data/preprocess/<aoi_id>/ndvi_smoothed.csv`
+    - `data/preprocess/<aoi_id>/quality_metrics.json`
+    - `data/seasonal/<aoi_id>/season_windows.json`
+- Output file:
+    - `data/assessment/<aoi_id>/phase_a_assessment.json`
+- Required top-level output fields:
+    - `aoi_id`
+    - `interval`
+    - `land_status`
+    - `trend_2y`
+    - `season_count`
+    - `latest_season_performance`
+    - `risk_flags`
+    - `confidence`
+    - `evidence`
+    - `metrics_summary`
+- Policy notes:
+    - `land_status` must be inferred from interval-level behavior across seasons and low-activity spans, not from one latest point.
+    - `trend_2y` is derived from season-level strength summaries such as peak NDVI and seasonal activity area.
+    - `latest_season_performance` uses the latest closed season when available; otherwise it uses the latest open season and marks it provisional.
+    - Risk flags stay conservative and should prefer `uncertain` or lower confidence when continuity or season clarity is weak.
+    - Phase A skips crop category output.
 
 ## Model evolution plan (collapsed phases)
 
@@ -146,6 +177,7 @@ Phase C — Expansion + advanced modeling
 - Inputs: polygon geometry or point+area; time window (default 24 months).
 - Outputs (high-level schema): land_status, trend_2y, season_performance, flags[], confidence,
   indicators{...}, report_summary, evidence{...}, report_pdf_payload.
+- File-based Phase A assessment output: `phase_a_assessment.json` with interval summary, season summary, risk flags, and metric evidence summaries.
 - Versioning notes: version indicators/thresholds to keep reports stable over time.
 - API endpoints (Phase A):
     - GET /health

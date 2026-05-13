@@ -122,3 +122,9 @@ Why: The script grew to 797 lines across 5 unrelated concerns (raster I/O, index
 Alternatives: Keep monolithic script; split into fewer but larger modules.
 Consequences: scripts/ingest_aoi.py is now ~100 lines (CLI argument parsing only). All pipeline logic lives in farmtrust_core/ingest/ and can be imported and tested independently. New modules: window_read.py, scene_index.py, dedup.py, processor.py, pipeline.py.
 Links: ENGINEERING §Repo structure | DECISIONS 2026-03-07 (farmtrust_core single package)
+
+2026-05-13 — Decision: Phase A skips crop category and upgrades to interval-based land assessment
+Why: The first lender-facing Phase A output must prioritize trust, explainability, and interval-level evidence over breadth. Crop category is weaker than land status, trend, season performance, and risk signals with the current validation level.
+Alternatives: Keep broad crop category in Phase A; add more categories before the assessment layer is stable.
+Consequences: Phase A now focuses on smoothed metric evidence, season count, interval-based land status, trend, latest-season performance, conservative risk flags, and confidence. Crop/category output is deferred until stronger validation exists.
+Links: PROJECT §Outputs (what the user sees) | PROJECT §MVP scope (what we ship first) | ENGINEERING §Phase A assessment contract
