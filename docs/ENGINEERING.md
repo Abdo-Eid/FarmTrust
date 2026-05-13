@@ -84,7 +84,7 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
     - Abandonment: long fallow periods + lack of seasonal cycles.
     - Encroachment: persistent non-vegetation + land-use change cues.
     - Start rule-based; transition to ML-assisted scoring when labels are stable.
-- Broad crop category (season + water-demand class): heuristic classification using timing + NDVI/NDMI curves; weakly supervised RF/XGBoost from public datasets when feasible.
+- Broad crop category (season + water-demand class): deferred beyond the current Phase A assessment contract and revisited only after stronger validation evidence exists.
 - Boundary refinement (later): segmentation model (U-Net/DeepLab) trained on public or weak labels to improve small-plot purity.
 
 ## Pipeline
@@ -92,9 +92,12 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
 - Ingest: fetch imagery for polygon/time window; validate geometry; deduplicate to one best scene per (date, spacecraft) before downloading; parallel COG window reads via thread pool (default 4 workers).
 - Preprocess: cloud/shadow masking, compositing, smoothing/de-spiking, optional gap-fill.
   - Current Phase A implementation exports merged daily raw + smoothed values for `ndvi`, `evi`, `ndmi`, and `ndwi` in `ndvi_smoothed.csv`.
+  - Preprocessing quality output now also includes explicit gap diagnostics such as `long_gap_count` and `long_gap_windows`.
 - Feature extraction: plot-level time series and spatial stats; neighbor comparison window.
 - Scoring / classification: conservative rule-based thresholds for land status, trend, season outcome, risks, and assessment confidence.
 - Seasonal detection policy (current): NDVI remains the primary detector (threshold crossing + backtracked onset + duration checks). Multi-index confirmation from EVI/NDMI/NDWI is applied as a secondary confidence/label adjustment layer.
+- Seasonal output now includes per-season gap-overlap diagnostics so reviewers can see whether a season window intersects one or more long observation gaps.
+  - The current overlap diagnostic records both severity and the dominant season stage touched by the gap (`onset`, `peak`, `tail`, or `multiple`).
 - Serving: persist results; expose summary and report endpoints for portal.
 
 ## Phase A assessment contract
@@ -123,6 +126,8 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
     - `trend_2y` is derived from season-level strength summaries such as peak NDVI and seasonal activity area.
     - `latest_season_performance` uses the latest closed season when available; otherwise it uses the latest open season and marks it provisional.
     - Risk flags stay conservative and should prefer `uncertain` or lower confidence when continuity or season clarity is weak.
+    - Assessment outputs should surface explicit gap diagnostics, not only a single `gap_risk` label.
+    - Assessment confidence now exposes component levels for continuity, season clarity, and signal strength in addition to the final level.
     - Phase A skips crop category output.
 
 ## Model evolution plan (collapsed phases)
@@ -133,7 +138,6 @@ Phase A — MVP Core
 - Trend: linear/robust trend tests on peak NDVI/AUC.
 - Season performance: curve-shape rules + change-point detection.
 - Risk flags: rule-based NDWI/NDMI + persistence checks.
-- Crop category: heuristic + weakly supervised RF/XGBoost if possible.
 
 Phase B — Hardening + credit layer
 
@@ -141,6 +145,7 @@ Phase B — Hardening + credit layer
 - Calibrate thresholds by region (Delta/Valley/Reclaimed).
 - Add confidence models (probability calibration + uncertainty bands).
 - Introduce credit readiness layer (risk tiers) as an aggregation of indicators.
+- Revisit broad crop category only if validation evidence and trust requirements are met.
 
 Phase C — Expansion + advanced modeling
 

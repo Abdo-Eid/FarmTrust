@@ -8,6 +8,8 @@ from typing import Iterable
 
 
 EXPECTED_CADENCE_DAYS = 5.0
+MODERATE_GAP_DAYS = 10.0
+HIGH_GAP_DAYS = 15.0
 
 
 def _day_deltas(timestamps: Iterable[datetime]) -> list[float]:
@@ -55,6 +57,43 @@ def compute_gap_metrics(
     }
 
 
+def compute_gap_windows(
+    timestamps: Iterable[datetime],
+    *,
+    expected_cadence_days: float = EXPECTED_CADENCE_DAYS,
+    long_gap_days: float = MODERATE_GAP_DAYS,
+) -> dict[str, object]:
+    """Return explicit gap windows for downstream review and storytelling."""
+    ordered = sorted(timestamps)
+    if len(ordered) < 2:
+        return {
+            "gap_window_count": 0,
+            "long_gap_count": 0,
+            "long_gap_windows": [],
+        }
+
+    long_gap_windows: list[dict[str, object]] = []
+    for left, right in zip(ordered[:-1], ordered[1:]):
+        gap_days = (right - left).total_seconds() / 86400.0
+        if gap_days <= long_gap_days:
+            continue
+
+        long_gap_windows.append(
+            {
+                "start_timestamp": left.isoformat(),
+                "end_timestamp": right.isoformat(),
+                "gap_days": float(gap_days),
+                "excess_gap_days": float(max(0.0, gap_days - expected_cadence_days)),
+            }
+        )
+
+    return {
+        "gap_window_count": len(long_gap_windows),
+        "long_gap_count": len(long_gap_windows),
+        "long_gap_windows": long_gap_windows,
+    }
+
+
 def build_confidence_inputs(
     *,
     usable_observation_count: int,
@@ -75,7 +114,7 @@ def classify_gap_risk(
     max_gap_days: float,
 ) -> dict[str, object]:
     """Classify gap risk for downstream confidence and review use."""
-    if max_gap_days > 15.0 or gap_ratio > 0.30:
+    if max_gap_days > HIGH_GAP_DAYS or gap_ratio > 0.30:
         return {
             "gap_risk": "high",
             "confidence_penalty": "high",
@@ -84,7 +123,7 @@ def classify_gap_risk(
             ),
         }
 
-    if max_gap_days > 10.0 or gap_ratio > 0.15:
+    if max_gap_days > MODERATE_GAP_DAYS or gap_ratio > 0.15:
         return {
             "gap_risk": "moderate",
             "confidence_penalty": "moderate",

@@ -16,6 +16,7 @@ from .gaps import (
     build_confidence_inputs,
     classify_gap_risk,
     compute_gap_metrics,
+    compute_gap_windows,
 )
 from .smoothing import SMOOTHING_METHOD_NAME, smooth_usable_values
 
@@ -274,6 +275,10 @@ def build_preprocess_artifacts(
         usable_timestamps,
         expected_cadence_days=expected_cadence_days,
     )
+    gap_windows = compute_gap_windows(
+        usable_timestamps,
+        expected_cadence_days=expected_cadence_days,
+    )
     gap_risk = classify_gap_risk(
         gap_ratio=gap_metrics["gap_ratio"],
         max_gap_days=gap_metrics["max_gap_days"],
@@ -289,6 +294,8 @@ def build_preprocess_artifacts(
         "gap_ratio": gap_metrics["gap_ratio"],
         "max_gap_days": gap_metrics["max_gap_days"],
         "median_gap_days": gap_metrics["median_gap_days"],
+        "long_gap_count": gap_windows["long_gap_count"],
+        "long_gap_windows": gap_windows["long_gap_windows"],
         "smoothing_method": SMOOTHING_METHOD_NAME,
         "usable_valid_fraction_threshold": float(valid_fraction_threshold),
         "gap_risk": gap_risk["gap_risk"],

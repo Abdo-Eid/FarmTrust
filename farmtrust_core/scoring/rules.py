@@ -62,6 +62,9 @@ class SeasonMetric:
     median_ndmi: float
     median_ndwi: float
     evidence_summary: str
+    gap_overlap_count: int
+    gap_overlap_risk: str
+    gap_overlap_stage: str
 
 
 def _parse_timestamp(value: str) -> datetime:
@@ -185,6 +188,9 @@ def _build_season_metrics(
                 median_ndmi=round(_median([row.ndmi_smoothed for row in rows]), 6),
                 median_ndwi=round(_median([row.ndwi_smoothed for row in rows]), 6),
                 evidence_summary=str(season["evidence_summary"]),
+                gap_overlap_count=int(season.get("gap_overlap_count", 0)),
+                gap_overlap_risk=str(season.get("gap_overlap_risk", "low")),
+                gap_overlap_stage=str(season.get("gap_overlap_stage", "none")),
             )
         )
 
@@ -285,53 +291,85 @@ def _derive_confidence(
     quality_metrics: dict[str, Any],
     latest_season: SeasonMetric,
 ) -> dict[str, Any]:
-    score = 3.0
+    continuity_score = 3.0
+    season_clarity_score = 3.0
+    signal_strength_score = 3.0
     reasons: list[str] = []
 
     gap_risk = str(quality_metrics["gap_risk"])
     if gap_risk == "high":
-        score -= 1.5
+        continuity_score -= 1.5
         reasons.append("Gap risk is high, so timing and boundary confidence are reduced.")
     elif gap_risk == "moderate":
-        score -= 0.75
+        continuity_score -= 0.75
         reasons.append("Gap risk is moderate, so some season interpretation remains cautious.")
     else:
         reasons.append("Gap continuity is strong enough for a confident baseline.")
 
     usable_count = int(quality_metrics["usable_observation_count"])
     if usable_count < 30:
-        score -= 1.0
+        continuity_score -= 1.0
         reasons.append("Usable observation count is low for a two-year interval.")
     elif usable_count < 60:
-        score -= 0.5
+        continuity_score -= 0.5
         reasons.append("Usable observation count is acceptable but still somewhat thin.")
     else:
         reasons.append(f"Usable observation count is solid ({usable_count}).")
 
     if latest_season.confirmation_level == "weak":
-        score -= 0.75
+        season_clarity_score -= 0.75
         reasons.append("Latest season has weak multi-index confirmation.")
     elif latest_season.confirmation_level == "moderate":
-        score -= 0.25
+        season_clarity_score -= 0.25
         reasons.append("Latest season has moderate multi-index confirmation.")
     else:
         reasons.append("Latest season has strong multi-index confirmation.")
 
     if latest_season.quality_label == "weak":
-        score -= 0.75
+        signal_strength_score -= 0.75
         reasons.append("Latest season quality is weak.")
     elif latest_season.quality_label == "interrupted":
-        score -= 0.5
+        signal_strength_score -= 0.5
         reasons.append("Latest season shows interruption risk.")
 
-    if score >= 2.5:
+    if latest_season.gap_overlap_risk == "high":
+        continuity_score -= 0.5
+        reasons.append(
+            f"The latest season overlaps one or more long gap windows near {latest_season.gap_overlap_stage}."
+        )
+    elif latest_season.gap_overlap_risk == "moderate":
+        continuity_score -= 0.25
+        reasons.append(
+            f"The latest season partially overlaps a long gap window near {latest_season.gap_overlap_stage}."
+        )
+
+    continuity_level = _score_to_level(continuity_score)
+    season_clarity_level = _score_to_level(season_clarity_score)
+    signal_strength_level = _score_to_level(signal_strength_score)
+    final_score = min(continuity_score, season_clarity_score, signal_strength_score)
+
+    if final_score >= 2.5:
         level = "high"
-    elif score >= 1.5:
+    elif final_score >= 1.5:
         level = "medium"
     else:
         level = "low"
 
-    return build_confidence_payload(level, reasons)
+    payload = build_confidence_payload(level, reasons)
+    payload["components"] = {
+        "continuity": continuity_level,
+        "season_clarity": season_clarity_level,
+        "signal_strength": signal_strength_level,
+    }
+    return payload
+
+
+def _score_to_level(score: float) -> str:
+    if score >= 2.5:
+        return "high"
+    if score >= 1.5:
+        return "medium"
+    return "low"
 
 
 def _derive_risk_flags(
@@ -350,6 +388,18 @@ def _derive_risk_flags(
                 "continuity_gap_risk",
                 gap_risk,
                 gap_reason or "Observation gaps may distort timing or seasonal interpretation.",
+            )
+        )
+
+    if latest_season.gap_overlap_risk in {"moderate", "high"}:
+        flags.append(
+            build_risk_flag(
+                "season_gap_overlap_risk",
+                latest_season.gap_overlap_risk,
+                (
+                    f"The latest interpreted season overlaps {latest_season.gap_overlap_count} "
+                    f"long gap window(s) near {latest_season.gap_overlap_stage}."
+                ),
             )
         )
 
@@ -478,6 +528,8 @@ def build_phase_a_assessment(
         "metrics_summary": {
             "usable_observation_count": int(quality_metrics["usable_observation_count"]),
             "gap_risk": str(quality_metrics["gap_risk"]),
+            "long_gap_count": int(quality_metrics.get("long_gap_count", 0)),
+            "long_gap_windows": quality_metrics.get("long_gap_windows", []),
             "active_observation_fraction": round(active_fraction, 4),
             "interval_max_ndvi": round(max(row.ndvi_smoothed for row in observations), 6),
             "interval_max_evi": round(max(row.evi_smoothed for row in observations), 6),
@@ -494,6 +546,9 @@ def build_phase_a_assessment(
                     "quality_label": season.quality_label,
                     "confirmation_level": season.confirmation_level,
                     "is_open": season.is_open,
+                    "gap_overlap_count": season.gap_overlap_count,
+                    "gap_overlap_risk": season.gap_overlap_risk,
+                    "gap_overlap_stage": season.gap_overlap_stage,
                 }
                 for season in season_metrics
             ],

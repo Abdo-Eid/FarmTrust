@@ -67,6 +67,9 @@ class SeasonWindow:
     quality_label: str
     evidence_summary: str
     confirmation_level: str
+    gap_overlap_count: int
+    gap_overlap_risk: str
+    gap_overlap_stage: str
 
 
 def _parse_timestamp(value: str) -> datetime:
@@ -94,6 +97,13 @@ def _build_season_confidence_note(quality_metrics: dict[str, Any]) -> str:
     if reason:
         return f"Gap risk is {gap_risk}. {reason}"
     return f"Gap risk is {gap_risk}."
+
+
+def _parse_gap_windows(quality_metrics: dict[str, Any]) -> list[dict[str, Any]]:
+    windows = quality_metrics.get("long_gap_windows", [])
+    if not isinstance(windows, list):
+        return []
+    return [window for window in windows if isinstance(window, dict)]
 
 
 def load_preprocess_observations(csv_path: Path) -> list[SeasonalObservation]:
@@ -299,6 +309,76 @@ def _apply_confirmation_adjustment(
     return adjusted_label, f"{base_evidence} {confirmation_evidence}"
 
 
+def _compute_gap_overlap(
+    season_observations: list[SeasonalObservation],
+    long_gap_windows: list[dict[str, Any]],
+) -> tuple[int, str, str, str]:
+    if not season_observations or not long_gap_windows:
+        return 0, "low", "none", "No long gaps overlap this season window."
+
+    season_start = season_observations[0].timestamp
+    season_end = season_observations[-1].timestamp
+    season_span_days = max((season_end - season_start).total_seconds() / 86400.0, 1.0)
+    onset_end = season_start + (season_end - season_start) / 3
+    tail_start = season_end - (season_end - season_start) / 3
+    peak_row = max(season_observations, key=lambda row: row.ndvi_smoothed)
+    peak_start = peak_row.timestamp - (season_end - season_start) / 6
+    peak_end = peak_row.timestamp + (season_end - season_start) / 6
+    overlapping: list[dict[str, Any]] = []
+    touched_stages: set[str] = set()
+
+    for window in long_gap_windows:
+        start_value = window.get("start_timestamp")
+        end_value = window.get("end_timestamp")
+        if not isinstance(start_value, str) or not isinstance(end_value, str):
+            continue
+
+        gap_start = _parse_timestamp(start_value)
+        gap_end = _parse_timestamp(end_value)
+        if gap_start <= season_end and gap_end >= season_start:
+            overlapping.append(window)
+            if gap_start <= onset_end and gap_end >= season_start:
+                touched_stages.add("onset")
+            if gap_start <= peak_end and gap_end >= peak_start:
+                touched_stages.add("peak")
+            if gap_start <= season_end and gap_end >= tail_start:
+                touched_stages.add("tail")
+
+    overlap_count = len(overlapping)
+    if overlap_count == 0:
+        return 0, "low", "none", "No long gaps overlap this season window."
+
+    max_overlap_gap_days = max(float(window.get("gap_days", 0.0)) for window in overlapping)
+    if len(touched_stages) > 1:
+        dominant_stage = "multiple"
+    elif touched_stages:
+        for candidate in ("onset", "peak", "tail", "middle"):
+            if candidate in touched_stages:
+                dominant_stage = candidate
+                break
+        else:
+            dominant_stage = "middle"
+    else:
+        dominant_stage = "middle"
+
+    if "onset" in touched_stages or "peak" in touched_stages:
+        overlap_risk = "high"
+    elif overlap_count >= 2 or max_overlap_gap_days > 15.0:
+        overlap_risk = "high"
+    else:
+        overlap_risk = "moderate"
+
+    return (
+        overlap_count,
+        overlap_risk,
+        dominant_stage,
+        (
+            f"{overlap_count} long gap window(s) overlap this season "
+            f"(stage={dominant_stage}, max_gap_days={max_overlap_gap_days:.1f}, span_days={season_span_days:.1f})."
+        ),
+    )
+
+
 def _is_left_edge_partial_tail(
     observations: list[SeasonalObservation],
     crossing_index: int,
@@ -318,8 +398,10 @@ def detect_season_windows(
     observations: list[SeasonalObservation],
     *,
     activity_threshold: float = ACTIVITY_THRESHOLD,
+    long_gap_windows: Optional[list[dict[str, Any]]] = None,
 ) -> list[SeasonWindow]:
     seasons: list[SeasonWindow] = []
+    long_gap_windows = long_gap_windows or []
     activity_threshold = compute_activity_threshold(
         observations,
         activity_threshold=activity_threshold,
@@ -354,6 +436,11 @@ def detect_season_windows(
             confirmation_level=confirmation_level,
             confirmation_evidence=confirmation_evidence,
         )
+        gap_overlap_count, gap_overlap_risk, gap_overlap_stage, gap_overlap_evidence = _compute_gap_overlap(
+            season_observations,
+            long_gap_windows,
+        )
+        evidence_summary = f"{evidence_summary} {gap_overlap_evidence}"
 
         seasons.append(
             SeasonWindow(
@@ -368,6 +455,9 @@ def detect_season_windows(
                 quality_label=quality_label,
                 evidence_summary=evidence_summary,
                 confirmation_level=confirmation_level,
+                gap_overlap_count=gap_overlap_count,
+                gap_overlap_risk=gap_overlap_risk,
+                gap_overlap_stage=gap_overlap_stage,
             )
         )
 
@@ -380,7 +470,8 @@ def build_season_payload(
 ) -> dict[str, Any]:
     quality_metrics = _load_quality_metrics(quality_metrics_path)
     observations = load_preprocess_observations(smoothed_csv_path)
-    seasons = detect_season_windows(observations)
+    long_gap_windows = _parse_gap_windows(quality_metrics)
+    seasons = detect_season_windows(observations, long_gap_windows=long_gap_windows)
     season_confidence_note = _build_season_confidence_note(quality_metrics)
 
     if not seasons:
@@ -406,6 +497,9 @@ def build_season_payload(
                 "quality_label": season.quality_label,
                 "evidence_summary": season.evidence_summary,
                 "confirmation_level": season.confirmation_level,
+                "gap_overlap_count": season.gap_overlap_count,
+                "gap_overlap_risk": season.gap_overlap_risk,
+                "gap_overlap_stage": season.gap_overlap_stage,
                 "season_confidence_note": season_confidence_note,
             }
             for season in seasons

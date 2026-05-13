@@ -51,7 +51,7 @@ Purpose: single place for product truth (vision, scope, roadmap, open questions,
 - Data ingestion: satellite access, AOI mapping, time-series extraction, and minimal persistence.
 - ML/time-series preprocessing: gap handling, smoothing, confidence inputs.
 - ML/seasonal analysis: historical pattern + seasonal analysis outputs for scoring.
-- ML/scoring: status/trend/season, flags, evidence, crop category.
+- ML/scoring: status/trend/season, flags, evidence, and assessment confidence.
 - Frontend: AOI input UI, summary view, evidence display, PDF export.
 
 ## R&D working rules
