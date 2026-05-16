@@ -61,10 +61,10 @@ Deliver a minimal pipeline contract and test flow that all three ML roles can ru
 
 - **ML/scoring**
     - Inputs: season windows + quality metrics + basic NDVI stats.
-    - Responsibilities: status/trend/season labels, conservative flags, evidence summary.
+    - Responsibilities: interval-based land status, trend, latest-season summary, conservative flags, evidence summary.
     - Code location: `farmtrust_core.scoring` for logic; `scripts/` for entrypoints.
-    - Outputs: scoring summary JSON with `land_status`, `trend_2y`, `season_performance`, `flags`, `confidence`.
-    - Fast test: scoring output generated without missing required fields.
+    - Outputs: assessment JSON with `land_status`, `trend_2y`, `latest_season_performance`, `risk_flags`, `confidence`, and evidence summaries.
+    - Fast test: assessment output generated without missing required fields and matches interval-level seasonal evidence.
 
 ## Workflow
 
@@ -75,7 +75,7 @@ Deliver a minimal pipeline contract and test flow that all three ML roles can ru
 3. **Seasonal analysis**
    Identify season windows and label season quality.
 4. **Scoring**
-   Produce status/trend/season labels and risk flags with evidence.
+   Produce interval-based land assessment, season summary, and risk flags with evidence.
 
 ## R&D approach
 
@@ -152,17 +152,17 @@ thinking of add a post-search step to enforce min gap (e.g., 2–3 weeks) and pr
 - Smoothed NDVI series has no missing timestamps for the chosen smoothing window.
 - Quality metrics include `usable_observation_count`, `gap_ratio`, and `max_gap_days`.
 
-### Milestone 3 — Seasonal + scoring baseline
+### Milestone 3 – Seasonal + scoring baseline
 
 **Deliverables**
 
 - `data/seasonal/<aoi_id>/season_windows.json`
-- `data/scoring/<aoi_id>/summary.json`
+- `data/assessment/<aoi_id>/phase_a_assessment.json`
 
 **Acceptance**
 
 - Season windows include start/end dates and a season quality label.
-- Scoring summary includes `land_status`, `trend_2y`, `season_performance`, `flags[]`, and `confidence`.
+- Assessment summary includes `land_status`, `trend_2y`, `season_count`, `latest_season_performance`, `risk_flags[]`, and `confidence`.
 
 ## Checklist (Definition of Done)
 
@@ -201,8 +201,8 @@ thinking of add a post-search step to enforce min gap (e.g., 2–3 weeks) and pr
     - Notes: simple season windows only.
     - [ ] Season windows file generated
 - [ ] Scoring output exists and references seasonal output
-    - Notes: conservative labels and evidence.
-    - [ ] Summary file generated
+    - Notes: conservative interval-based labels and evidence.
+    - [ ] Assessment file generated
 
 ## Findings & learnings
 

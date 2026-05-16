@@ -26,7 +26,7 @@ This repo uses **Aha!Kit** — a project-first documentation + execution kit wit
     - `docs/PROJECT.md`
     - `docs/ENGINEERING.md`
     - `docs/DECISIONS.md`
-    - `docs/INDEX.md`
+    - `docs/index.md`
 
 2. Declare your role and scope:
     - Post your role (e.g., “ML/time-series preprocessing”, “ML/seasonal analysis”, “Data ingestion”, “Frontend portal”).
@@ -36,7 +36,7 @@ This repo uses **Aha!Kit** — a project-first documentation + execution kit wit
 
 ```
 You are onboarding to FarmTrust. Read `docs/PROJECT.md`, `docs/ENGINEERING.md`,
-`docs/DECISIONS.md`, and `docs/INDEX.md`. Summarize:
+`docs/DECISIONS.md`, and `docs/index.md`. Summarize:
 - project goal, MVP scope, and non-goals
 - key decisions already made
 - open questions that affect my role
@@ -65,7 +65,7 @@ Only propose doc updates if it changes shared scope or technical truth.
 - Engineering truth: `docs/ENGINEERING.md`
 - Decisions: `docs/DECISIONS.md`
 - Plans: `docs/PLANS/P-xx.md`
-- Docs index: `docs/INDEX.md`
+- Docs index: `docs/index.md`
 
 ## Plans
 

@@ -29,6 +29,8 @@ Purpose: single place for product truth (vision, scope, roadmap, open questions,
 - Risk flags: waterlogging, salinity likelihood, abandonment, land-use change.
 - Risk tier: low / medium / high (score later when accuracy is proven).
 - Confidence level (high/medium/low) per output.
+- Smoothed evidence graphs for the most valuable time-series signals (NDVI, EVI, NDMI, NDWI).
+- Season count across the selected interval, with season boundaries explained visually.
 - PDF report export for lender review.
 
 ## MVP scope (what we ship first)
@@ -39,7 +41,7 @@ Purpose: single place for product truth (vision, scope, roadmap, open questions,
 - Two-year behavior + trend indicators and last-season performance summary.
 - Simple, explainable report suitable for financing review.
 - Lightweight portal: lands-only list, one-page land summary, optional map tab.
-- Broad crop category output (season + water-demand class).
+- Phase A assessment must be based on interval-level evidence, not a single latest observation.
 - Validation approach: weak labels only; add public-area qualitative reviews when feasible.
 - Risk flags use conservative thresholds to protect trust in MVP outputs.
 - Phase A execution uses a single-job worker path; queue/broker is deferred until multi-user needs.
@@ -49,7 +51,7 @@ Purpose: single place for product truth (vision, scope, roadmap, open questions,
 - Data ingestion: satellite access, AOI mapping, time-series extraction, and minimal persistence.
 - ML/time-series preprocessing: gap handling, smoothing, confidence inputs.
 - ML/seasonal analysis: historical pattern + seasonal analysis outputs for scoring.
-- ML/scoring: status/trend/season, flags, evidence, crop category.
+- ML/scoring: status/trend/season, flags, evidence, and assessment confidence.
 - Frontend: AOI input UI, summary view, evidence display, PDF export.
 
 ## R&D working rules
@@ -81,16 +83,16 @@ Inputs → Processing → Outputs → Workflow.
 
 ## Options (2–3 max per topic)
 ### Topic: Crop signal depth
-- [option] Broad crop classes only (season + water demand)
-  - Tradeoff: lower precision but more robust in small, mixed plots.
-  - Evidence needed: stable class separability in Egyptian time series.
-  - Decision trigger: class accuracy and stability exceed agreed threshold.
-  - Kill condition: class instability causes frequent contradictions.
 - [option] Attempt detailed crop types
   - Tradeoff: higher value if correct, higher risk of error and trust loss.
   - Evidence needed: reliable local ground truth or strong domain adaptation.
   - Decision trigger: access to labels and acceptable validation performance.
   - Kill condition: error rate damages credibility with users.
+- [option] Skip crop category in Phase A
+  - Tradeoff: lower feature breadth, higher trust and lower ambiguity in the first lender-facing outputs.
+  - Evidence needed: none for Phase A; revisit only when regional labels and validation are available.
+  - Decision trigger: decision-support outputs are stable and the team has enough crop evidence to add a coarse class safely.
+  - Kill condition: crop output would distract from more reliable land-status and season evidence.
 ### Topic: Yield representation
 - [option] Yield potential band (low/medium/high)
   - Tradeoff: less precise, safer for trust in early stages.
