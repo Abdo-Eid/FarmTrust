@@ -45,10 +45,10 @@ feat(api): add job status endpoint (Closes #123)
 - Lead may merge without review; request a review when possible.
 - Update docs if you change shared scope, interfaces, or decisions.
 
-## Doc updates (Aha!Kit rules)
+## Doc updates (workflow rules)
 - Product/scope/roadmap/options/open questions -> `docs/PROJECT.md`
 - Architecture/ops/interfaces/pipeline/risks -> `docs/ENGINEERING.md`
-- Decisions -> `docs/DECISIONS.md` (append-only)
+- Decisions -> `docs/DECISIONS.md` (curated with `Supersedes:` / `Refines:` references when needed)
 - Execution detail -> one `docs/PLANS/P-xx-*.md`
 
 ## Not sure where to write?

@@ -1,8 +1,8 @@
-# AGENTS.md — Aha!Kit
+# AGENTS.md — Project Documentation Kit
 Tagline: Turn ideas into a buildable truth.
 
-## Kit overview (Aha!Kit)
-Aha!Kit is a project-first documentation and execution kit for ambiguous projects.
+## Kit overview
+This is a project-first documentation and execution kit for ambiguous projects.
 It keeps a single product truth, a single engineering truth, and a lightweight decision log,
 so PLANs can execute without drift or document sprawl.
 
@@ -14,7 +14,7 @@ Prefer clarity over code. Preserve intent. Keep the project coherent.
 - `docs/inbox.md`: legacy raw capture archive (non-authoritative, read-only except promotion pointer append).
 - `docs/PROJECT.md`: product truth (authoritative).
 - `docs/ENGINEERING.md`: engineering truth (authoritative).
-- `docs/DECISIONS.md`: decision log that records rationale behind truth (authoritative, append-only).
+- `docs/DECISIONS.md`: curated decision log that records rationale behind truth (authoritative; prune or update superseded entries with references).
 - `docs/PLANS/*.md`: execution truth for a slice; must promote shared-truth changes.
 
 ## One-file default (truth ripple exception)
@@ -32,7 +32,8 @@ If a note is contextual but technical, keep a 1-2 line abstract in `PROJECT.md` 
 
 ## Promotion workflow
 - Inbox -> promote to `PROJECT.md`, `ENGINEERING.md`, or a `PLAN` file.
-- Any committed decision -> add a `DECISIONS.md` entry and patch relevant truth doc(s).
+- Any committed decision -> add or update a `DECISIONS.md` entry and patch relevant truth doc(s).
+- When a decision supersedes or refines an older one, include `Supersedes:` or `Refines:` so history remains readable from the diff.
 
 ## Gates (lightweight convergence)
 ### Exploration Gate (lives in `PROJECT.md`)
@@ -58,7 +59,7 @@ If a note is contextual but technical, keep a 1-2 line abstract in `PROJECT.md` 
 - Use lightweight role split per cycle (`driver`, `reviewer`, `curator`); roles may interleave and switch.
 - After brainstorming approval, scaffold a plan and docs/README as instructed by `brainstorming`.
 - After inbox triage approval, apply accepted extractions into the right docs, plans, issues, or follow-up proposals.
-- Before commit, and again when a plan/task is finished, compact and clean the Work Packet: update task status, remove stale notes, preserve durable knowledge.
+- Before commit, and again when a plan/task is finished, compact and clean the Work Packet: update task status, remove stale notes, and promote durable knowledge to `PROJECT.md`, `ENGINEERING.md`, or `DECISIONS.md`.
 - No TDD requirement. Prefer running existing tests; add tests when risk is high.
 - Prefer small, reversible changes.
 - Conventional commits when committing.
@@ -78,7 +79,15 @@ If a note is contextual but technical, keep a 1-2 line abstract in `PROJECT.md` 
   - Knowledge to Keep
   - Done Summary
 - Keep it compact and current; do not let completed or obsolete tasks linger.
-- During closeout, extract long-lived knowledge to durable docs (README, ADR, architecture docs, roadmap, backlog) and keep only a concise summary in the Work Packet.
+- During closeout, extract long-lived knowledge to durable docs (`PROJECT.md`, `ENGINEERING.md`, `DECISIONS.md`) and keep only a concise summary in the Work Packet.
+
+## Docs lifecycle cleanup
+- Use existing canonical docs only: product truth in `PROJECT.md`, engineering truth in `ENGINEERING.md`, and decision rationale in `DECISIONS.md`.
+- Do not create new durable docs for one-off findings or session history unless explicitly requested.
+- Promote only high-signal, current knowledge; leave trivial observations, temporary notes, and low-signal fixes out of canonical docs.
+- Prune stale or superseded Work Packet notes during closeout instead of preserving session history indefinitely.
+- `DECISIONS.md` is curated, not append-only: when a new decision fully replaces an older entry, update or remove the older entry in the same change and add `Supersedes: <date/title>` to the new entry.
+- When a decision only partially changes an older entry, keep both and add `Refines: <date/title>` to the newer entry.
 
 ## Inbox rules (flat source docs)
 - Put new intake docs directly in `docs/inbox/*.md`.
@@ -115,7 +124,7 @@ Use:
 
 ## Required behaviors
 - Clarification-options: when a user says they do not understand next steps or asks for clarification, respond with 2-4 options. For each option include what it means, when to pick it, and what the agent will do next if chosen.
-- README bootstrap: when starting work in a NEW project repo using Aha!Kit, first update `README.md` with a short project overview, the note "This repo uses Aha!Kit," and starter instructions (inbox, PROJECT, ENGINEERING, DECISIONS, how to start a PLAN, minimal dev workflow).
+- README bootstrap: when starting work in a NEW project repo using this kit, first update `README.md` with a short project overview, the note "This repo uses the project documentation workflow," and starter instructions (inbox, PROJECT, ENGINEERING, DECISIONS, how to start a PLAN, minimal dev workflow).
 
 ## Skill map (project-local)
 Use the OpenCode `skill` tool to load these when relevant:
@@ -124,16 +133,16 @@ Use the OpenCode `skill` tool to load these when relevant:
 - `inbox-triage`: process raw notes/ideas/inbox content; extract, split, classify, and propose merges/adaptations into project docs and plans
 - `guidance`: commits, verification, debugging, security guardrails
 
-## Aha!Kit Commands (Protocol)
+## Commands (Protocol)
 These slash commands are conventions, not tooling features.
 They are instruction shortcuts understood by the agent when used in this repository.
-All other Aha!Kit behaviors are enforced automatically by AGENTS.md and do NOT require commands.
+All other workflow behaviors are enforced automatically by AGENTS.md and do NOT require commands.
 
 Only the commands below exist.
 
 ---
 
-### /ahakit promote
+### /promote
 
 Purpose:
 Explicitly move from raw capture to structured truth.
@@ -161,7 +170,7 @@ When to use:
 
 ---
 
-### /ahakit clarify
+### /clarify
 
 Purpose:
 Resolve ambiguity and align before proceeding.

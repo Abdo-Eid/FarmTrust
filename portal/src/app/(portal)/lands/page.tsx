@@ -160,7 +160,7 @@ export default function LandsPage() {
 
       <div className="p-6 space-y-5">
         {/* Stat row */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label="Total Lands"     value={stats.total}    icon="grid_view"   color="default" />
           <StatCard label="Active"          value={stats.active}   icon="eco"         color="green"   sublabel="Confirmed cultivation" />
           <StatCard label="In Progress"     value={stats.pending}  icon="hourglass_empty" color="indigo" sublabel="Processing or queued" />
@@ -168,7 +168,7 @@ export default function LandsPage() {
         </div>
 
         {/* Filter bar */}
-        <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-md px-4 py-2.5 shadow-panel">
+        <div className="flex flex-wrap items-center gap-3 bg-white border border-gray-200 rounded-md px-4 py-2.5 shadow-panel">
           <div className="flex-1 flex items-center gap-2">
             <span className="material-symbols-outlined text-gray-400 text-lg">search</span>
             <input
@@ -204,6 +204,7 @@ export default function LandsPage() {
         </div>
 
         {/* Table */}
+        <div className="overflow-x-auto">
         <DataTable
           columns={columns}
           data={filtered}
@@ -214,6 +215,7 @@ export default function LandsPage() {
           }}
           emptyMessage="No lands match your filters. Try adjusting the search or status."
         />
+        </div>
 
         <p className="text-xs text-gray-400 text-right">
           {filtered.length} of {lands.length} lands shown

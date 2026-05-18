@@ -1,1 +1,1 @@
-"""I/O and caching utilities."""
+"""I/O utilities."""

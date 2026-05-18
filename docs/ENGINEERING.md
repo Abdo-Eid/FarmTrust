@@ -30,8 +30,7 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
     - scripts/ (CLI entry points)
     - portal/ (Next.js)
     - contracts/ (schemas)
-    - infra/ (scripts/CI)
-    - docs/ (Aha!Kit truth)
+    - docs/ (documentation truth)
 - `farmtrust_core/` is the single importable top-level Python package for core pipeline logic reused by worker and API services.
 - `farmtrust_core/ingest/` submodules:
     - `config.py` — bbox parsing, default dates
@@ -43,6 +42,7 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
     - `dedup.py` — pre-download dedup (one best per date/spacecraft)
     - `processor.py` — SceneResult, process_one_scene (thread-safe worker)
     - `pipeline.py` — write_outputs orchestrator
+- `farmtrust_core/io/` contains general I/O helpers only; the unused STAC query cache helper was removed.
 
 ## Contracts (source of truth)
 
@@ -61,7 +61,7 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
 
 ## Data & signals
 
-- Sources: Sentinel-2 (primary) with Landsat fallback for gap coverage.
+- Sources: Sentinel-2 is the current implemented source. Broader satellite-source selection, including Landsat and when/why to use each source, remains a future exploration topic.
 - Key indicators/metrics: NDVI/EVI peak, AUC, cropping intensity, season timing, within-season
   stability, mid-season shocks, spatial uniformity, NDMI, NDWI/MNDWI, trend vs neighbors.
 - Confidence strategy: quality masks + observation count + season clarity; propagate to outputs.
@@ -84,12 +84,14 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
     - Abandonment: long fallow periods + lack of seasonal cycles.
     - Encroachment: persistent non-vegetation + land-use change cues.
     - Start rule-based; transition to ML-assisted scoring when labels are stable.
-- Broad crop category (season + water-demand class): deferred beyond the current Phase A assessment contract and revisited only after stronger validation evidence exists.
+- Broad crop category (season + water-demand class): deferred beyond the current land assessment contract and revisited only after stronger validation evidence exists.
 - Boundary refinement (later): segmentation model (U-Net/DeepLab) trained on public or weak labels to improve small-plot purity.
 
 ## Pipeline
 
-- Ingest: fetch imagery for polygon/time window; validate geometry; deduplicate to one best scene per (date, spacecraft) before downloading; parallel COG window reads via thread pool (default 4 workers).
+- Ingest: current CLI uses bbox/time-window input; intended product input is a user-drawn polygon. The pipeline deduplicates to one best scene per (date, spacecraft) before downloading and uses parallel COG window reads via thread pool (default 4 workers).
+  - Local reuse is scene/chip based: STAC is queried each run, then `scenes_index.json` + chip completeness + matching fingerprint determine which scenes can skip download/reprocessing.
+  - There is no active STAC query-result cache; the unused TTL/env-var STAC cache helper was removed to avoid stale scene lists and dead-code confusion.
 - Preprocess: cloud/shadow masking, compositing, smoothing/de-spiking, optional gap-fill.
   - Current Phase A implementation exports merged daily raw + smoothed values for `ndvi`, `evi`, `ndmi`, and `ndwi` in `ndvi_smoothed.csv`.
   - Preprocessing quality output now also includes explicit gap diagnostics such as `long_gap_count` and `long_gap_windows`.
@@ -100,27 +102,17 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
   - The current overlap diagnostic records both severity and the dominant season stage touched by the gap (`onset`, `peak`, `tail`, or `multiple`).
 - Serving: persist results; expose summary and report endpoints for portal.
 
-## Phase A assessment contract
+## Land assessment artifact
 
-- Purpose: produce a lender-readable, file-based land assessment from preprocessing + seasonal outputs without depending on the portal or API.
+- Purpose: produce the internal assessment artifact that summarizes preprocessing and seasonal evidence into lender-facing land status, trend, season performance, risk flags, confidence, and evidence.
+- Backend handoff: FastAPI runs or triggers the pipeline, reads `land_assessment.json`, maps it into API response DTOs, and sends those API responses to the portal. The frontend should not receive or depend on the raw file path or file name.
 - Input files:
     - `data/<aoi_id>/run_metadata.json`
     - `data/preprocess/<aoi_id>/ndvi_smoothed.csv`
     - `data/preprocess/<aoi_id>/quality_metrics.json`
     - `data/seasonal/<aoi_id>/season_windows.json`
 - Output file:
-    - `data/assessment/<aoi_id>/phase_a_assessment.json`
-- Required top-level output fields:
-    - `aoi_id`
-    - `interval`
-    - `land_status`
-    - `trend_2y`
-    - `season_count`
-    - `latest_season_performance`
-    - `risk_flags`
-    - `confidence`
-    - `evidence`
-    - `metrics_summary`
+    - `data/assessment/<aoi_id>/land_assessment.json`
 - Policy notes:
     - `land_status` must be inferred from interval-level behavior across seasons and low-activity spans, not from one latest point.
     - `trend_2y` is derived from season-level strength summaries such as peak NDVI and seasonal activity area.
@@ -179,10 +171,10 @@ Phase C — Expansion + advanced modeling
 
 ## Interfaces
 
-- Inputs: polygon geometry or point+area; time window (default 24 months).
+- Inputs: intended product input is polygon geometry drawn on a map; current Phase A CLI uses bbox/config input. Assessment window target is 24 months.
 - Outputs (high-level schema): land_status, trend_2y, season_performance, flags[], confidence,
   indicators{...}, report_summary, evidence{...}, report_pdf_payload.
-- File-based Phase A assessment output: `phase_a_assessment.json` with interval summary, season summary, risk flags, and metric evidence summaries.
+- File-based land assessment output: `land_assessment.json` with interval summary, season summary, risk flags, and metric evidence summaries. FastAPI reads this internal artifact and returns shaped API responses to the portal.
 - Versioning notes: version indicators/thresholds to keep reports stable over time.
 - API endpoints (Phase A):
     - GET /health
@@ -210,7 +202,7 @@ Phase C — Expansion + advanced modeling
     - Main deps: minimal shared runtime (`farmtrust_core`-level needs).
     - Extra `data`: ingestion/geospatial dependencies.
     - Extra `ml`: reserved placeholder for later ML framework selection (empty in Phase A).
-    - Dev group: notebook + local tooling.
+    - Dev group: local analysis and developer tooling.
 - Role setup:
     - Core/API work: `uv sync`
     - Ingestion/geospatial work: `uv sync --extra data`

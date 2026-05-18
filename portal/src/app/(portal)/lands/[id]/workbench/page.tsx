@@ -81,9 +81,9 @@ export default function WorkbenchPage({
     }
 
     return (
-        <div className="flex h-screen overflow-hidden bg-gray-50">
-            {/* Left 70%: Map */}
-            <div className="flex-1" style={{ width: "70%" }}>
+        <div className="flex flex-col md:flex-row md:h-screen md:overflow-hidden bg-gray-50">
+            {/* Map — top on mobile (fixed height), left 70% on desktop */}
+            <div className="h-64 md:h-auto md:flex-1 relative flex-shrink-0">
                 <GeoMap
                     geometry={land.geometry || null}
                     showLayerControls={true}
@@ -92,11 +92,8 @@ export default function WorkbenchPage({
                 />
             </div>
 
-            {/* Right 30%: Sidebar */}
-            <div
-                className="overflow-y-auto bg-white border-l border-gray-200"
-                style={{ width: "30%" }}
-            >
+            {/* Sidebar — bottom on mobile, right 30% on desktop */}
+            <div className="w-full md:w-[30%] md:flex-shrink-0 overflow-y-auto bg-white border-t md:border-t-0 md:border-l border-gray-200">
                 <div className="p-4 space-y-6">
                     {/* Header */}
                     <div className="border-b border-gray-200 pb-4">

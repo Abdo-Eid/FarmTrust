@@ -1,5 +1,5 @@
 # DECISIONS
-Purpose: append-only decision log that records the rationale behind truth.
+Purpose: curated decision log that records the rationale behind truth.
 
 ## Links
 - PROJECT section: <PROJECT §...>
@@ -12,14 +12,10 @@ Why: <reasoning / constraints>
 Alternatives: <A/B/C considered>
 Consequences: <implications / tradeoffs>
 Links: <PROJECT §... | ENGINEERING §... | PLAN: P-xx>
+Supersedes: <optional previous date/title>
+Refines: <optional previous date/title>
 
 ---
-
-YYYY-MM-DD — Decision: ...
-Why: ...
-Alternatives: ...
-Consequences: ...
-Links: ...
 
 2026-01-25 — Decision: Satellite-only assessment (no ground sensors/field visits)
 Why: Core constraint for speed, scale, and cost in early deployment.
@@ -50,12 +46,6 @@ Why: Aligns early delivery with trust, coverage, and operational simplicity.
 Alternatives: Pilot-only geography; larger plot size bounds; request-centric workflow; aggressive flags.
 Consequences: National scope with 1–200 feddan focus; lands-only portal; conservative risk flags; weak-label validation with optional public-area review.
 Links: PROJECT §MVP scope
-
-2026-01-25 — Decision: Data sources use Sentinel-2 with Landsat fallback
-Why: Improves continuity while staying on open data sources.
-Alternatives: Sentinel-2 only; add commercial sources.
-Consequences: Handle cross-sensor consistency in processing and confidence.
-Links: ENGINEERING §Data & signals
 
 2026-01-27 — Decision: Phase A repo layout with shared contracts folder
 Why: Enables parallel work while keeping schema truth centralized.
@@ -127,4 +117,25 @@ Links: ENGINEERING §Repo structure | DECISIONS 2026-03-07 (farmtrust_core singl
 Why: The first lender-facing Phase A output must prioritize trust, explainability, and interval-level evidence over breadth. Crop category is weaker than land status, trend, season performance, and risk signals with the current validation level.
 Alternatives: Keep broad crop category in Phase A; add more categories before the assessment layer is stable.
 Consequences: Phase A now focuses on smoothed metric evidence, season count, interval-based land status, trend, latest-season performance, conservative risk flags, and confidence. Crop/category output is deferred until stronger validation exists.
-Links: PROJECT §Outputs (what the user sees) | PROJECT §MVP scope (what we ship first) | ENGINEERING §Phase A assessment contract
+Links: PROJECT §Outputs (what the user sees) | PROJECT §MVP scope (what we ship first) | ENGINEERING §Land assessment artifact
+Refines: 2026-01-25 — Include broad crop category in MVP; yield bands deferred | 2026-01-27 — Phase A indicator set locked to minimal outputs
+
+2026-05-18 — Decision: Phase A preprocessing does not interpolate or synthesize timestamps
+Why: Preserve observation truth and make gaps explicit for downstream confidence, seasonal interpretation, and lender-facing explanations.
+Alternatives: Keep light interpolation as the Phase A default; resample to canonical monthly timestamps.
+Consequences: Preprocessing smooths usable observations and reports gap diagnostics; downstream scoring must reason about observation count, long gaps, and confidence instead of assuming contiguous time series.
+Links: ENGINEERING §Pipeline | PLAN: Phase A Workstreams §Time-Series Preprocessing
+Refines: 2026-01-25 — MVP gap handling uses smoothing + light interpolation with confidence penalty
+
+2026-05-18 — Decision: Document current implementation separately from intended product behavior
+Why: Some current Phase A code is still mock/dev oriented, while the product direction remains user-drawn polygon input, a 24-month assessment window, and later satellite-source exploration.
+Alternatives: Rewrite docs to match only current code; leave future-facing docs unchanged.
+Consequences: Workstream docs must clearly label current implementation versus intended behavior. Current implemented source is Sentinel-2; Landsat and other sources are future exploration topics. Current CLI AOI input is bbox/config; intended product AOI input is a drawn polygon.
+Links: PROJECT §MVP scope | ENGINEERING §Data & signals | PLAN: Phase A Workstreams
+
+2026-05-18 — Decision: Remove unused STAC query cache, keep scene/chip reuse
+Why: The expensive ingestion work is chip download, COG reads, and index computation. The active pipeline already skips those through `scenes_index.json`, fingerprint checks, and chip completeness checks. A TTL-based STAC query-result cache risks stale scene lists and was not wired into the active pipeline.
+Alternatives: Keep the unused helper for later; wire the STAC query cache into the active pipeline now.
+Consequences: STAC is queried on each ingestion run. Local scene/chip reuse remains active and continues to skip download/reprocessing for matching completed scenes. If STAC search becomes a proven bottleneck later, revisit with explicit freshness and invalidation rules.
+Links: ENGINEERING §Pipeline | PLAN: Phase A Workstreams
+Supersedes: 2026-01-25 — Data sources use Sentinel-2 with Landsat fallback

@@ -83,7 +83,7 @@ export default function LandProcessingPage({
 
             <PageHeader
                 title={land.name}
-                subtitle="Analysis in progress"
+                subtitle="Satellite analysis in progress"
                 meta={[
                     { icon: "location_on", value: land.governorate },
                     {

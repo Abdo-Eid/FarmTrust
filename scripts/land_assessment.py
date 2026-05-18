@@ -1,4 +1,4 @@
-"""Run the Phase A interval-based land assessment for one AOI."""
+"""Run the interval-based land assessment for one AOI."""
 
 from __future__ import annotations
 
@@ -7,11 +7,11 @@ import logging
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from farmtrust_core.scoring import build_phase_a_assessment, write_phase_a_assessment
+from farmtrust_core.scoring import build_land_assessment, write_land_assessment
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Build the Phase A land assessment from preprocess and seasonal outputs."
+        description="Build the land assessment from preprocess and seasonal outputs."
     )
     parser.add_argument("--aoi-id", required=True, help="AOI identifier")
     parser.add_argument("--ingest-dir", default=None, help="Directory containing run_metadata.json")
@@ -48,15 +48,15 @@ def main() -> int:
     logging.info("Seasonal directory: %s", seasonal_dir)
     logging.info("Output directory: %s", output_dir)
 
-    payload = build_phase_a_assessment(
+    payload = build_land_assessment(
         run_metadata_path=run_metadata_path,
         smoothed_csv_path=smoothed_csv_path,
         quality_metrics_path=quality_metrics_path,
         season_payload_path=season_payload_path,
     )
-    output_path = write_phase_a_assessment(output_dir=output_dir, payload=payload)
+    output_path = write_land_assessment(output_dir=output_dir, payload=payload)
 
-    logging.info("Wrote Phase A assessment to: %s", output_path)
+    logging.info("Wrote land assessment to: %s", output_path)
     return 0
 
 

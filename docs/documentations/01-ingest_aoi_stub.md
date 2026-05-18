@@ -7,7 +7,7 @@ This script queries Sentinel-2 L2A scenes via STAC (Planetary Computer), **downl
 * a per-scene time-series CSV, and
 * a **global JSON index** mapping scenes → local chip files + stats.
 
-**Chips are the canonical local dataset** used by downstream roles. The script implements **true caching** by skipping scenes if chips already exist for the same configuration.
+**Chips are the canonical local dataset** used by downstream roles. The script implements local scene/chip reuse by skipping scenes if chips already exist for the same configuration. STAC search results are not cached; the pipeline queries STAC each run, then decides which returned scenes can skip download/reprocessing.
 
 ## Run (UV)
 
@@ -107,7 +107,7 @@ This file is a single JSON object that stores:
 * `spacecraft`: normalized spacecraft ID (`"S2A"`, `"S2B"`, `"S2C"`)
 * `aoi_geometry`: the AOI bbox as a GeoJSON Polygon — load with `shapely.geometry.shape(scenes_index["aoi_geometry"])` for coverage or containment calculations
 
-### Caching behavior (“skip if chip exists”)
+### Local reuse behavior (“skip if chip exists”)
 
 On reruns with the **same config fingerprint**, the script will:
 
@@ -116,6 +116,8 @@ On reruns with the **same config fingerprint**, the script will:
 * still ensuring CSV rows can be produced (from the global index).
 
 Use `--force-rerun` to wipe and rebuild everything.
+
+This is not a STAC query-result cache. The removed STAC TTL/env-var cache helper is no longer part of the codebase.
 
 ## How roles use the outputs
 

@@ -14,7 +14,7 @@ Outputs are designed for fast, explainable financing review, not automated decis
 Constraints / non-goals: Satellite-only; no ground sensors or field visits. Not optimizing for
 best-possible model accuracy in the MVP, only to prove the approach is viable.
 
-This repo uses **Aha!Kit** — a project-first documentation + execution kit with:
+This repo uses a project-first documentation workflow with:
 
 - one product truth (`docs/PROJECT.md`)
 - one engineering truth (`docs/ENGINEERING.md`)
@@ -80,7 +80,7 @@ Dependency split model:
 - Main dependencies: minimal runtime dependencies required by `farmtrust_core` code.
 - Optional extra `data`: ingestion and geospatial stack.
 - Optional extra `ml`: placeholder for future ML framework decision (intentionally empty).
-- Dev group: notebook and local developer tooling.
+- Dev group: local developer tooling.
 
 Setup commands:
 

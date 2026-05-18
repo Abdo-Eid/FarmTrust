@@ -1,14 +1,13 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import dynamic from "next/dynamic";
 import { TopBar } from "@/components/layout/TopBar";
 import { Button } from "@/components/ui/Button";
 import { FormField, Input, Select, Textarea } from "@/components/ui/FormField";
 import { GOVERNORATES } from "@/lib/constants";
 import { api } from "@/lib/api";
+import { calcPolygonAreaFeddan, formatFeddan } from "@/lib/geo";
 
 const GeoMap = dynamic(
     () => import("@/components/map/Map").then((m) => m.Map),
@@ -27,82 +26,101 @@ const GeoMap = dynamic(
     },
 );
 
-const schema = z.object({
-    name: z.string().min(2, "Name must be at least 2 characters"),
-    governorate: z.string().min(1, "Select a governorate"),
-    district: z.string().optional(),
-    method: z.enum(["point_area", "geojson"]),
-    area_feddan: z.coerce
-        .number()
-        .min(1, "Minimum 1 feddan")
-        .max(200, "Maximum 200 feddan"),
-    notes: z.string().optional(),
-});
-
-type FormData = z.infer<typeof schema>;
+interface FormData {
+    name: string;
+    governorate: string;
+    district?: string;
+    notes?: string;
+}
 
 export default function AddLandPage() {
     const router = useRouter();
     const [submitting, setSubmitting] = useState(false);
-    const [geojson, setGeojson] = useState<GeoJSON.FeatureCollection | null>(
+    const [drawKey, setDrawKey] = useState(0);
+    const [drawnPolygon, setDrawnPolygon] = useState<GeoJSON.Polygon | null>(
         null,
     );
-    const [fileError, setFileError] = useState<string | null>(null);
+    const [formData, setFormData] = useState<Partial<FormData>>({});
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
-    const [formData, setFormData] = useState<Partial<FormData>>({
-        method: "point_area",
-        area_feddan: 10,
-    });
+    const calculatedArea = useMemo(() => {
+        if (!drawnPolygon) return null;
+        return calcPolygonAreaFeddan(
+            drawnPolygon.coordinates[0] as [number, number][],
+        );
+    }, [drawnPolygon]);
 
-    const method = formData.method;
+    const areaError =
+        calculatedArea !== null &&
+        (calculatedArea < 1 || calculatedArea > 200)
+            ? calculatedArea < 1
+                ? "Minimum 1 feddan"
+                : "Maximum 200 feddan"
+            : null;
 
-    const handleFileUpload = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            setFileError(null);
+    const canSubmit =
+        !!drawnPolygon &&
+        calculatedArea !== null &&
+        calculatedArea >= 1 &&
+        calculatedArea <= 200 &&
+        !!formData.name?.trim() &&
+        !!formData.governorate;
 
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                try {
-                    const parsed = JSON.parse(ev.target?.result as string);
-                    if (parsed.type !== "FeatureCollection") {
-                        setFileError(
-                            "File must be a GeoJSON FeatureCollection",
-                        );
-                        return;
-                    }
-                    setGeojson(parsed);
-                } catch {
-                    setFileError("Invalid JSON file");
-                }
-            };
-            reader.readAsText(file);
-        },
-        [],
-    );
+    const handlePolygonChange = useCallback((p: GeoJSON.Polygon | null) => {
+        setDrawnPolygon(p);
+    }, []);
+
+    const handleClear = useCallback(() => {
+        setDrawnPolygon(null);
+        setDrawKey((k) => k + 1);
+    }, []);
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!canSubmit) return;
         setSubmitting(true);
+        setSubmitError(null);
         try {
             const land = await api.lands.create({
-                name: formData.name || "",
-                governorate: formData.governorate || "",
+                name: formData.name!,
+                governorate: formData.governorate!,
                 district: formData.district,
-                area_feddan: formData.area_feddan || 10,
-                method: formData.method || "point_area",
-                geometry: geojson?.features[0]?.geometry ?? null,
                 notes: formData.notes,
+                method: "polygon",
+                geometry: drawnPolygon,
+                area_feddan: calculatedArea!,
             });
             router.push(`/lands/${land.id}`);
         } catch {
+            setSubmitError("Submission failed. Please try again.");
             setSubmitting(false);
         }
     };
 
+    // AOI status strip appearance
+    const aoiStatus = drawnPolygon
+        ? areaError
+            ? {
+                  bg: "bg-red-50 border-red-100",
+                  text: "text-red-700",
+                  icon: "error",
+                  label: `${formatFeddan(calculatedArea!)} — ${areaError}`,
+              }
+            : {
+                  bg: "bg-teal-50 border-teal-100",
+                  text: "text-teal-700",
+                  icon: "check_circle",
+                  label: `${formatFeddan(calculatedArea!)} drawn`,
+              }
+        : {
+              bg: "bg-gray-50 border-gray-100",
+              text: "text-gray-500",
+              icon: "draw",
+              label: "No polygon drawn — click corners on the map above",
+          };
+
     return (
-        <div className="min-h-full bg-sand">
+        <div className="min-h-full bg-sand flex flex-col">
             <TopBar
                 breadcrumbs={[
                     { label: "Lands", href: "/lands" },
@@ -120,19 +138,56 @@ export default function AddLandPage() {
                 }
             />
 
-            <div className="flex h-[calc(100vh-49px)]">
-                {/* Left: Form */}
-                <div className="w-1/2 flex flex-col border-r border-gray-200 bg-white overflow-y-auto">
+            {/* Two-column layout: map top/right, form bottom/left */}
+            <div className="flex flex-col md:flex-row md:flex-1 md:h-[calc(100vh-49px)] md:overflow-hidden">
+                {/* Map — top on mobile, right on desktop */}
+                <div className="order-1 md:order-2 h-64 md:h-auto md:flex-1 relative bg-gray-100 flex-shrink-0">
+                    <div className="absolute inset-0">
+                        <GeoMap
+                            mode="draw"
+                            drawKey={drawKey}
+                            onPolygonChange={handlePolygonChange}
+                            showLayerControls
+                            defaultLayerMode="satellite"
+                        />
+                    </div>
+                    {/* Clear button */}
+                    <button
+                        type="button"
+                        onClick={handleClear}
+                        className="absolute top-3 left-3 z-[1000] bg-white border border-gray-200 rounded-md px-3 py-1.5 shadow-panel text-xs text-gray-600 flex items-center gap-1.5 hover:bg-gray-50 transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-sm text-gray-400">
+                            restart_alt
+                        </span>
+                        Clear
+                    </button>
+                </div>
+
+                {/* Form — bottom on mobile, left on desktop */}
+                <div className="order-2 md:order-1 w-full md:w-[440px] flex-shrink-0 bg-white border-t md:border-t-0 md:border-r border-gray-200 flex flex-col md:overflow-y-auto">
+                    {/* Header */}
                     <div className="px-6 py-5 border-b border-gray-100">
                         <h2 className="text-base font-semibold text-gray-900">
                             New Land Submission
                         </h2>
                         <p className="text-xs text-gray-500 mt-0.5">
-                            Submit an Area of Interest (AOI) for satellite land
-                            assessment. Area must be 1–200 feddan.
+                            Draw the land boundary on the map, then fill in the
+                            details below.
                         </p>
                     </div>
 
+                    {/* AOI status strip */}
+                    <div
+                        className={`px-6 py-3 border-b text-xs flex items-center gap-2 ${aoiStatus.bg} ${aoiStatus.text}`}
+                    >
+                        <span className="material-symbols-outlined text-sm flex-shrink-0">
+                            {aoiStatus.icon}
+                        </span>
+                        {aoiStatus.label}
+                    </div>
+
+                    {/* Form fields */}
                     <form
                         onSubmit={onSubmit}
                         className="flex-1 px-6 py-5 space-y-5"
@@ -184,114 +239,6 @@ export default function AddLandPage() {
                             </FormField>
                         </div>
 
-                        <FormField label="AOI Method" required>
-                            <div className="flex gap-3">
-                                {(["point_area", "geojson"] as const).map(
-                                    (m) => (
-                                        <label
-                                            key={m}
-                                            className="flex items-center gap-2 cursor-pointer"
-                                        >
-                                            <input
-                                                type="radio"
-                                                value={m}
-                                                checked={formData.method === m}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        method: e.target
-                                                            .value as
-                                                            | "point_area"
-                                                            | "geojson",
-                                                    })
-                                                }
-                                                className="accent-teal-700"
-                                            />
-                                            <span className="text-sm text-gray-700">
-                                                {m === "point_area"
-                                                    ? "Point + Area"
-                                                    : "Upload GeoJSON"}
-                                            </span>
-                                        </label>
-                                    ),
-                                )}
-                            </div>
-                        </FormField>
-
-                        {method === "point_area" && (
-                            <FormField
-                                label="Area (Feddan)"
-                                hint="1 feddan = 4,200 m². Valid range: 1–200 feddan."
-                                required
-                            >
-                                <Input
-                                    type="number"
-                                    min={1}
-                                    max={200}
-                                    step={0.5}
-                                    placeholder="e.g. 45"
-                                    value={formData.area_feddan || 10}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            area_feddan: parseFloat(
-                                                e.target.value,
-                                            ),
-                                        })
-                                    }
-                                />
-                            </FormField>
-                        )}
-
-                        {method === "geojson" && (
-                            <FormField
-                                label="GeoJSON File"
-                                hint="Upload a FeatureCollection with a single Polygon or MultiPolygon."
-                            >
-                                <div className="border-2 border-dashed border-gray-200 rounded-md p-4 text-center hover:border-teal-400 transition-colors">
-                                    <input
-                                        type="file"
-                                        accept=".json,.geojson"
-                                        onChange={handleFileUpload}
-                                        className="hidden"
-                                        id="geojson-upload"
-                                    />
-                                    <label
-                                        htmlFor="geojson-upload"
-                                        className="cursor-pointer"
-                                    >
-                                        <span className="material-symbols-outlined text-gray-300 text-3xl block mb-1">
-                                            upload_file
-                                        </span>
-                                        <span className="text-sm text-teal-700 font-medium">
-                                            Click to upload
-                                        </span>
-                                        <span className="text-xs text-gray-400 block">
-                                            .json or .geojson
-                                        </span>
-                                    </label>
-                                    {geojson && (
-                                        <p className="text-xs text-green-600 mt-2 flex items-center justify-center gap-1">
-                                            <span className="material-symbols-outlined text-sm">
-                                                check_circle
-                                            </span>
-                                            GeoJSON loaded (
-                                            {geojson.features.length} feature
-                                            {geojson.features.length !== 1
-                                                ? "s"
-                                                : ""}
-                                            )
-                                        </p>
-                                    )}
-                                    {fileError && (
-                                        <p className="text-xs text-red-600 mt-1">
-                                            {fileError}
-                                        </p>
-                                    )}
-                                </div>
-                            </FormField>
-                        )}
-
                         <FormField label="Notes">
                             <Textarea
                                 placeholder="Any additional context for the analyst..."
@@ -306,6 +253,15 @@ export default function AddLandPage() {
                             />
                         </FormField>
 
+                        {submitError && (
+                            <p className="text-xs text-red-600 flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-sm">
+                                    error
+                                </span>
+                                {submitError}
+                            </p>
+                        )}
+
                         <div className="pt-2 border-t border-gray-100">
                             <Button
                                 type="submit"
@@ -314,27 +270,19 @@ export default function AddLandPage() {
                                 loading={submitting}
                                 icon="send"
                                 className="w-full"
+                                disabled={!canSubmit}
                             >
                                 Submit for Analysis
                             </Button>
                             <p className="text-xs text-gray-400 text-center mt-2">
-                                Analysis typically completes in 5–15 minutes.
+                                {!drawnPolygon
+                                    ? "Draw the land boundary on the map to continue."
+                                    : areaError
+                                      ? areaError
+                                      : "Analysis typically completes in 5–15 minutes."}
                             </p>
                         </div>
                     </form>
-                </div>
-
-                {/* Right: Map */}
-                <div className="w-1/2 relative bg-gray-100">
-                    <div className="absolute inset-0">
-                        <GeoMap geojson={geojson} showLayerControls={true} />
-                    </div>
-                    <div className="absolute top-3 left-3 bg-white border border-gray-200 rounded-md px-3 py-1.5 shadow-panel text-xs text-gray-600 flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-teal-600 text-sm">
-                            location_on
-                        </span>
-                        Egypt — Restricted to registered AOIs
-                    </div>
                 </div>
             </div>
         </div>

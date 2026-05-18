@@ -52,7 +52,7 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 ### Financing Review (New Land)
 
 1. Enter the system and open the **Lands List** (primary hub).
-2. Start a new land analysis and define AOI (polygon or point + area).
+2. Start a new land analysis and define AOI by drawing a polygon on the map.
 3. Submit; land appears in the list with **Processing** status.
 4. When complete, open **Land Summary**; review decision outputs, confidence, and drivers.
 5. Drill into **Evidence** if needed; export **PDF**; return to list.
@@ -85,9 +85,10 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 
 ### AOI Submission
 
-* **Loading:** inline validation for Egypt boundary + area limits; allow edits.
-* **Error:** show exact constraint violated and a clear fix path; block submission.
-* **Success:** confirm submission; return to Lands List with new item in Processing.
+* **Drawing:** user clicks land corners on the map; clicking near the first corner closes the polygon.
+* **Editing:** before submission, user can drag polygon corners or clear and redraw the AOI.
+* **Validation:** calculated polygon area must be within 1–200 feddan; block submission until the polygon is closed and valid.
+* **Success:** submit the drawn polygon geometry and calculated area; the land enters the processing flow.
 
 ### Analysis Run (Asynchronous)
 
@@ -113,7 +114,7 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 ### Screens Designed (9 total) — Quick Reference
 
 1. **Lands List Control Hub** — Primary operational hub; sidebar, stat cards, lands table with status/risk/confidence columns.
-2. **Add Land AOI Input** — AOI capture; two-column form (left: fields, right: map preview). Methods: polygon upload or point+area. Validates 1–200 feddan.
+2. **Add Land AOI Input** — AOI capture; draw-only polygon input. On desktop, form is left and map is right; on mobile, map appears above the form. Method: click land corners on the map, click near the first corner to close, drag corners before submit, and validate calculated area against 1–200 feddan.
 3. **Land Processing Status** — Job progress display; circular progress (left), pipeline timeline (right). Steps: AOI Validation ✓, Satellite Data ✓, Vegetation Analysis ⏳, Risk Modeling ⏳.
 4. **Geospatial Evidence Workbench** — Analyst deep-dive; map canvas (left 70%) + analytical sidebar (right 30%) with NDVI chart, anomalies, notes.
 5. **System Admin Control** — User management table; left nav (User Management selected), main panel with 5 admin users, roles, status, actions.
@@ -145,7 +146,8 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 
 **Purpose:** capture land definition and trigger analysis.
 **Decisions:** AOI shape & area; ensure constraints met.
-**Information required:** polygon coordinates or point + area; constraint confirmation.
+**Information required:** polygon coordinates from drawn map corners; calculated feddan area; constraint confirmation.
+**Current portal behavior:** draw polygon only; point+area and GeoJSON upload are not primary flows. The mock API keeps existing fixture lands and returns newly submitted lands as queued until backend processing is connected.
 
 ### Land Status Detail (Within a Land)
 
@@ -206,7 +208,7 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 
 * Entry/Login → Lands List: auth success + list loaded.
 * Lands List → Add Land: new analysis initiated.
-* Add Land → Lands List: land created as Processing.
+* Add Land → Land Status: land created as queued/processing, then summary becomes available when analysis succeeds.
 * Lands List → Land Status: open Processing/Failed item for progress/error details.
 * Lands List → Land Summary: open Review Ready/Monitoring item.
 * Land Summary → Evidence: drill down to validate drivers.
@@ -218,17 +220,19 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 * One combined list centered on lands; analysis runs are recorded inside each land’s history.
 * One summary screen; role emphasis changes content prominence, not layout.
 * Lands List stays a **control surface**, not a map canvas.
+* Mock fixture lands remain in the portal to present all states; only newly submitted polygon inputs are intended to flow into real processing once backend integration is connected.
 
 
-# Visual Design Brief — Geospatial Financial Intelligence Style (Updated)
+# Visual Design Brief — Current Portal Style
 
-## Design Tokens (From Stitch Implementation) — Quick Reference
+## Design Tokens (Current Portal Implementation) — Quick Reference
 
 **Colors:**
-- **Primary:** `#3D5A4B` (Deep Moss Green) — sidebar, active nav, primary buttons
-- **Secondary:** `#D4A373` (Gold/Sand) — highlights, interactive elements
+- **Primary:** `#16A085` / `#1ABC9C` (Teal) — primary buttons, active controls, analytical accents
+- **Dark Primary:** `#0D2B27` (Dark Teal) — sidebar and authority zones
+- **Secondary:** `#D4A373` (Gold/Sand) — optional highlights and secondary accents
 - **Background Light:** `#F3F1EB` (Warm Sand) — page background
-- **Background Dark:** `#1A2321` (Very Dark Green) — dark mode background
+- **Background Dark:** `#082420` / `#0D2B27` (Very Dark Teal) — dark mode and deep navigation surfaces
 - **Surfaces Light:** `#FFFFFF` (White) — panels, cards, tables
 - **Surfaces Dark:** `#2C3A35` (Dark Green) — dark mode work areas
 - **Table Headers:** `#E8E6DF` (light) / `#25302C` (dark) — section dividers
@@ -244,38 +248,39 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 
 Create an interface for a **geospatial land risk intelligence system for financial institutions**.
 It must communicate: **institutional trust, analytical clarity, engineered reliability, evidence-first decisions**.
-Avoid: consumer farming aesthetic, generic AI gradients, marketing analytics SaaS vibes.
+The current portal expresses this through a warm sand workspace, dark teal navigation, white report panels, compact tables, thin Material Symbols icons, and teal analytical actions.
 
 ## 2. Overall Visual Personality
 
-**Tone:** controlled, modern, structured, authoritative.
+**Tone:** controlled, modern, structured, institutional.
 **Feel:** “monitoring control surface” + “financial dossier”.
-**Energy:** introduce *engineered geometry and a focal zone* so it doesn’t feel dusty or buried.
+**Energy:** teal accents and compact analytical panels keep the interface active without becoming playful.
 
 ## 3. Layout System
 
 * Strong grid alignment and clear zones.
-* Sections behave like **structured panels**, not floating bubbly cards.
+* Sections behave like **structured panels** using white surfaces, thin borders, and restrained shadows.
 * Lands List: data-forward queue; no map panel inside list.
-* Use **contained surfaces + subtle technical background motifs** (thin arcs/lines) to signal system intelligence.
+* Page background uses warm sand; work areas use white cards/panels; navigation uses dark teal.
 
 ## 4. Shape Language
 
-* Minimal rounding (0–4px), no pill-heavy UI.
+* Minimal-to-moderate rounding: most surfaces use 2–4px; status/risk chips may use pill shapes for quick scanning.
 * Thin borders, restrained shadows.
-* Geometric header planes/overlays allowed (subtle, structured).
+* Header bands and top bars may use teal identity treatments, but content panels remain calm and structured.
 
-## 5. Color System (Rebalanced: less “earth”, more “system”)
+## 5. Color System (Current Portal)
 
 **Primary Palette:**
-- **Primary accent:** Deep Moss Green (`#3D5A4B`) — sidebar, active states, authority zones.
-- **Secondary accent:** Gold/Sand (`#D4A373`) — highlights, interactive elements, secondary buttons.
+- **Primary accent:** Teal (`#16A085`, `#1ABC9C`) — buttons, links, active controls, analytical highlights.
+- **Dark navigation:** Dark Teal (`#0D2B27`, `#082420`) — sidebar and deep authority zones.
+- **Secondary accent:** Gold/Sand (`#D4A373`) — optional highlights and secondary emphasis.
 - **Light background:** Warm Sand (`#F3F1EB`) — page background, neutral comfort.
-- **Dark background:** Very Dark Green (`#1A2321`) — dark mode, deep atmospheric.
+- **Dark background:** Very Dark Teal (`#082420`) — deep navigation/dark surfaces.
 - **Work surfaces:** White (`#FFFFFF`) / Dark Green (`#2C3A35`) — panels, tables, primary areas.
 - **Status signals:** Green/Amber/Red — stable/processing/risk indicators only.
 
-**Rule:** Institutional warm neutrals for comfort; moss-green authority accents for rigor; minimal color for functional signals.
+**Rule:** Warm neutrals carry the workspace; teal carries product identity and action; green/amber/red are reserved for status, confidence, and risk meaning.
 
 ## 6. Typography
 
@@ -317,7 +322,7 @@ Neon AI gradients, bubbly cards, excessive rounding, playful color blocking, sta
 
 ## 12. Final Style Positioning Statement
 
-**Institutional geospatial financial intelligence interface: warm neutral surfaces for comfort, slate/black analytical contrast for rigor, deep moss authority accents, and subtle engineered geometry to signal system intelligence—without drifting into generic SaaS or AI aesthetics.**
+**Institutional geospatial financial intelligence interface: warm neutral surfaces, dark teal navigation, white report panels, compact analytical tables, and teal action accents. The interface should feel structured and operational, not consumer-farming or marketing-led.**
 
 ## 13. Visual Priority Hierarchy (Non-Negotiable)
 
@@ -329,13 +334,13 @@ All screens must preserve this visual dominance order:
 4. Data & Evidence Access
 5. Interface Chrome
 
-Constraint: interface chrome (panels, headers, navigation, framing elements) must never visually overpower decision content.
+Constraint: interface chrome (sidebar, top bar, panels, headers, framing elements) must never visually overpower decision content.
 
 ## 14. Expressive Zone Limitation
 
-The geometric header band is the only expressive or atmospheric zone in the interface.
+The page header band and dark teal navigation are the primary identity zones in the interface.
 
-Constraint: all non-header surfaces must remain calm, neutral, structured, and free from decorative treatment.
+Constraint: all main content surfaces must remain calm, neutral, structured, and free from decorative treatment.
 
 ## 15. Surface Contrast Levels
 

@@ -2,7 +2,7 @@
 
 This document is the detailed implementation reference for the current FarmTrust Phase A pipeline.
 It describes the live end-to-end path from ingestion to preprocessing to seasonal analysis to the
-final assessment output that the notebook review flow now uses.
+final assessment output.
 
 ## Purpose
 
@@ -132,15 +132,14 @@ Important season fields:
 - `gap_overlap_risk`
 - `evidence_summary`
 
-Season boundaries are reviewed visually with a single separator line between adjacent seasons in the
-story notebook, rather than duplicated start/end boundary markers.
+Season boundaries should be reviewed with clear separation between adjacent seasons rather than duplicated start/end boundary markers.
 
-### 4. Phase A assessment
+### 4. Land assessment
 
 Entrypoint:
 
 ```powershell
-python scripts/phase_a_assessment.py --aoi-id <aoi_id>
+python scripts/land_assessment.py --aoi-id <aoi_id>
 ```
 
 Primary responsibilities:
@@ -154,13 +153,19 @@ Primary responsibilities:
 
 Main code:
 
-- `scripts/phase_a_assessment.py`
+- `scripts/land_assessment.py`
 - `farmtrust_core/scoring/rules.py`
 - `farmtrust_core/scoring/evidence.py`
 
 Main output:
 
-- `data/assessment/<aoi_id>/phase_a_assessment.json`
+- `data/assessment/<aoi_id>/land_assessment.json`
+
+Backend handoff:
+
+- `land_assessment.json` is an internal pipeline artifact.
+- FastAPI runs or triggers the pipeline, reads this artifact, maps it into API response DTOs, and sends those shaped responses to the portal.
+- The frontend should not depend on the raw file path or file name.
 
 Top-level fields:
 
@@ -241,22 +246,6 @@ Current labels:
 - `interrupted`
 - `weak`
 
-## Notebook review flow
-
-The Phase A review path now centers on these notebooks:
-
-1. `notebooks/01-preprocessing_ndvi.ipynb`
-2. `notebooks/02-seasonal_review.ipynb`
-3. `notebooks/03-phase_a_assessment_story.ipynb`
-
-The final notebook is the best overall review artifact because it shows:
-
-- summary outputs
-- explicit gap diagnostics
-- season overlays
-- supporting smoothed metrics
-- season evidence and risk flags
-
 ## Recommended execution order
 
 For a clean AOI rerun:
@@ -265,18 +254,12 @@ For a clean AOI rerun:
 uv run ingest-aoi --config scripts/ingest_demo.json
 python scripts/preprocess_timeseries.py --aoi-id aoi_demo_01
 python scripts/seasonal_analysis.py --aoi-id aoi_demo_01
-python scripts/phase_a_assessment.py --aoi-id aoi_demo_01
+python scripts/land_assessment.py --aoi-id aoi_demo_01
 ```
-
-Then review:
-
-- `notebooks/03-phase_a_assessment_story.ipynb`
 
 ## What was intentionally removed
 
-The repo previously contained older exploratory notebooks around ingestion path exploration, Landsat
-fallback exploration, and ad hoc diagnostics. Those were useful during early experimentation, but
-they are not part of the current canonical Phase A path.
+The repo previously contained older exploratory artifacts around ingestion path exploration, satellite fallback exploration, and ad hoc diagnostics. Those were useful during early experimentation, but they are not part of the current canonical Phase A path.
 
 The current Phase A surface should stay focused on:
 
@@ -284,7 +267,6 @@ The current Phase A surface should stay focused on:
 - one preprocessing entrypoint
 - one seasonal entrypoint
 - one assessment entrypoint
-- one staged notebook review flow
 
 ## Current limitations
 

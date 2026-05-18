@@ -1,8 +1,10 @@
 'use client'
 
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useLand } from '@/hooks/useLand'
+import { TopBar } from '@/components/layout/TopBar'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { DataTable } from '@/components/ui/DataTable'
 import { NDVITimeseriesChart } from '@/components/evidence/NDVITimeseriesChart'
@@ -56,15 +58,16 @@ function downloadCSV(data: Record<string, unknown>[], filename: string) {
 
 export default function EvidencePage() {
   const params = useParams()
+  const router = useRouter()
   const id = params.id as string
   const { data: land, isLoading } = useLand(id)
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-full bg-sand">
         <PageHeader title="Evidence & Data" subtitle="Loading..." />
         <div className="flex items-center justify-center h-96">
-          <div className="text-gray-500">Loading evidence data...</div>
+          <div className="text-gray-500 text-sm">Loading evidence data...</div>
         </div>
       </div>
     )
@@ -72,10 +75,10 @@ export default function EvidencePage() {
 
   if (!land) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-full bg-sand">
         <PageHeader title="Evidence & Data" subtitle="Land parcel not found" />
         <div className="flex items-center justify-center h-96">
-          <div className="text-gray-500">Unable to load land data</div>
+          <div className="text-gray-500 text-sm">Unable to load land data</div>
         </div>
       </div>
     )
@@ -153,7 +156,35 @@ export default function EvidencePage() {
       : 0
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-full bg-sand">
+      <TopBar
+        breadcrumbs={[
+          { label: 'Lands', href: '/lands' },
+          { label: land.name, href: `/lands/${land.id}/summary` },
+          { label: 'Evidence' },
+        ]}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              icon="summarize"
+              onClick={() => router.push(`/lands/${land.id}/summary`)}
+            >
+              Summary
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon="download"
+              onClick={() => router.push(`/lands/${land.id}/report`)}
+            >
+              Export PDF
+            </Button>
+          </div>
+        }
+      />
+
       <PageHeader title={land.name} subtitle="Evidence & Data" />
 
       <div className="p-6">
@@ -372,7 +403,14 @@ export default function EvidencePage() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Neighboring Land Parcels</CardTitle>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <CardTitle>Comparable Parcels (Sample)</CardTitle>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Sample data for illustration — will be replaced with real comparable parcels when backend is connected.
+                      </p>
+                    </div>
+                  </div>
                 </CardHeader>
                 <DataTable
                   columns={comparableColumns}
@@ -381,7 +419,7 @@ export default function EvidencePage() {
                 />
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <p className="text-xs text-gray-500">
-                    Comparable data sourced from same governorate, ±20% area range
+                    Comparables sourced from same governorate, ±20% area range
                   </p>
                 </div>
               </Card>

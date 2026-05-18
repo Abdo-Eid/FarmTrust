@@ -13,7 +13,7 @@ export const api = {
   lands: {
     list: ()            => request<import('./types').LandResult[]>('/lands'),
     get:  (id: string)  => request<import('./types').LandResult>(`/lands/${id}`),
-    create: (body: unknown) => request<import('./types').LandResult>('/lands', {
+    create: (body: import('./types').CreateLandPayload) => request<import('./types').LandResult>('/lands', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

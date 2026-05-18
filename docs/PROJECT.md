@@ -34,8 +34,8 @@ Purpose: single place for product truth (vision, scope, roadmap, open questions,
 - PDF report export for lender review.
 
 ## MVP scope (what we ship first)
-- Satellite-only assessment for a single land polygon or point+area input.
-- AOI input via polygon draw or point + approximate area.
+- Satellite-only assessment for a single land polygon.
+- AOI input via polygon draw: the user clicks land corners on a map to define the analysis area.
 - Geography: Egypt national coverage in MVP.
 - Plot size bounds: 1–200 feddan.
 - Two-year behavior + trend indicators and last-season performance summary.
@@ -71,7 +71,7 @@ Problem this solves: frequent back-and-forth and overlapping work cause drift, r
 
 ## Big picture (end-to-end)
 Inputs → Processing → Outputs → Workflow.
-- Inputs: land polygon (drawn) or point + approximate area; time window (last 24 months).
+- Inputs: land polygon drawn on a map; time window (last 24 months).
 - Processing: satellite time-series indicators → interpretation rules → confidence scoring.
 - Outputs: land status, trend, season performance, risk flags, report.
 - Workflow: pre-financing review → monitoring during financing → post-season review.

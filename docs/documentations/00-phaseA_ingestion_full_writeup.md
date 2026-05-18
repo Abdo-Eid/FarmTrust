@@ -63,8 +63,8 @@ STAC provides:
 - **Item**: one scene/acquisition (datetime, geometry, cloud cover, etc.)
 - **Assets**: URLs (bands, QA layers, metadata files)
 
-We query STAC by:
-- AOI (`bbox` or `intersects`)
+We currently query STAC by:
+- AOI bbox in the active CLI/config path; polygon/intersects support is the intended product direction
 - time window (`datetime=start/end`)
 - optional metadata filter `eo:cloud_cover`
 
@@ -72,7 +72,7 @@ We query STAC by:
 
 ## 4) Pipeline Summary (what we built)
 For each AOI:
-1) Define AOI (bbox or polygon)
+1) Define AOI (current CLI/config path uses bbox; intended product path uses a drawn polygon)
 2) STAC search (Sentinel-2 L2A)
 3) Sort items by datetime
 4) For each item:

@@ -37,6 +37,18 @@ export interface SeasonRecord {
   anomaly?: string
 }
 
+export type AOIMethod = 'polygon'
+
+export interface CreateLandPayload {
+  name: string
+  governorate: string
+  district?: string
+  notes?: string
+  method: AOIMethod
+  geometry: GeoJSON.Geometry | null
+  area_feddan: number
+}
+
 export interface LandResult {
   id: string
   name: string

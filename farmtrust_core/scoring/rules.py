@@ -476,7 +476,7 @@ def _derive_risk_flags(
     return flags
 
 
-def build_phase_a_assessment(
+def build_land_assessment(
     *,
     run_metadata_path: Path,
     smoothed_csv_path: Path,
@@ -556,8 +556,8 @@ def build_phase_a_assessment(
     }
 
 
-def write_phase_a_assessment(output_dir: Path, payload: dict[str, Any]) -> Path:
+def write_land_assessment(output_dir: Path, payload: dict[str, Any]) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "phase_a_assessment.json"
+    output_path = output_dir / "land_assessment.json"
     safe_write_text(output_path, json.dumps(payload, indent=2, sort_keys=True))
     return output_path
