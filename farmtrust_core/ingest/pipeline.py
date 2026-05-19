@@ -9,13 +9,17 @@ import shutil
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
+
+
+class PipelineCancelledError(Exception):
+    """Raised when the pipeline is cancelled by the user."""
 
 import numpy as np
 import planetary_computer as pc
 import pystac_client
 
-from farmtrust_core.ingest.config import default_dates
+from farmtrust_core.ingest.config import default_dates, geometry_to_bbox, normalize_geometry
 from farmtrust_core.ingest.dedup import normalize_spacecraft, pre_deduplicate_items
 from farmtrust_core.ingest.processor import SceneResult, process_one_scene
 from farmtrust_core.ingest.scene_index import load_scenes_index, save_scenes_index, should_skip_scene
@@ -34,6 +38,9 @@ def write_outputs(
     log_signed_hrefs: bool,
     deduplicate: bool = True,
     max_workers: int = 4,
+    geometry: Optional[Dict[str, Any]] = None,
+    on_progress: Optional[Callable[[int, int], None]] = None,
+    cancel_check: Optional[Callable[[], bool]] = None,
 ) -> None:
     """Run full ingestion for one AOI: STAC search → dedup → download chips → compute indices → write outputs.
 
@@ -47,6 +54,9 @@ def write_outputs(
     Pass deduplicate=False (--no-dedupe) to process all STAC results for debugging.
     """
     logger = logging.getLogger(__name__)
+    normalized_geometry = normalize_geometry(geometry) if geometry else None
+    if normalized_geometry:
+        bbox = geometry_to_bbox(normalized_geometry)
 
     if output_dir.exists() and force_rerun:
         logger.info(f"Clearing existing output directory: {output_dir}")
@@ -67,6 +77,7 @@ def write_outputs(
     fingerprint_payload = {
         "aoi_id": aoi_id,
         "bbox": bbox,
+        "geometry": normalized_geometry,
         "start_date": start_date,
         "end_date": end_date,
         "max_cloud": float(max_cloud),
@@ -82,8 +93,8 @@ def write_outputs(
     scenes_index["fingerprint"] = fingerprint  # current run fingerprint (for reference)
 
     minx, miny, maxx, maxy = bbox
-    # Store bbox as GeoJSON Polygon so downstream code can load it with shapely.geometry.shape() for coverage calculations
-    scenes_index.setdefault("aoi_geometry", {
+    # Store AOI geometry so downstream code can load it for coverage calculations.
+    scenes_index.setdefault("aoi_geometry", normalized_geometry or {
         "type": "Polygon",
         "coordinates": [[[minx, miny], [maxx, miny], [maxx, maxy], [minx, maxy], [minx, miny]]],
     })
@@ -147,6 +158,8 @@ def write_outputs(
         f"(workers={max_workers})"
     )
 
+    total_scenes = len(cached_items) + len(items_to_process)
+
     # Lock protects the two shared resources: scenes_index dict and CSV file handle
     index_lock = threading.Lock()
     rows_written = 0
@@ -169,7 +182,9 @@ def write_outputs(
         handle.flush()
 
         # Cache hits: read stats from scenes_index and write CSV rows sequentially (instant, no I/O)
-        for item in cached_items:
+        for cache_idx, item in enumerate(cached_items):
+            if cancel_check and cancel_check():
+                raise PipelineCancelledError("Pipeline cancelled by user")
             item_id = item.id
             scene = scenes_index["scenes"][item_id]
             # Backfill platform fields for scenes processed before this feature was added
@@ -199,28 +214,38 @@ def write_outputs(
             handle.flush()
             rows_written += 1
             logger.info(f"Skipping {item_id} (chips already exist for this config)")
+            if on_progress:
+                on_progress(cache_idx + 1, total_scenes)
 
         # New scenes: submit all to thread pool, collect results as they complete
+        scenes_downloaded = 0
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {
                 executor.submit(
                     process_one_scene,
                     item, bbox, chips_root, output_dir, fingerprint,
-                    invalid_scl_classes, log_signed_hrefs, logger,
+                    invalid_scl_classes, log_signed_hrefs, logger, normalized_geometry,
                 ): item
                 for item in items_to_process
             }
             for future in as_completed(futures):
+                if cancel_check and cancel_check():
+                    executor.shutdown(wait=False, cancel_futures=True)
+                    raise PipelineCancelledError("Pipeline cancelled by user")
                 result = future.result()
                 logger.info(f"Completed {result.item_id} → {result.status}")
                 # Write to shared state under lock (index + CSV)
                 with index_lock:
                     _write_result(result)
+                scenes_downloaded += 1
+                if on_progress:
+                    on_progress(len(cached_items) + scenes_downloaded, total_scenes)
 
     # Run metadata
     run_metadata = {
         "aoi_id": aoi_id,
         "bbox": bbox,
+        "geometry": normalized_geometry,
         "start_date": start_date,
         "end_date": end_date,
         "max_cloud": float(max_cloud),

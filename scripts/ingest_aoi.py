@@ -26,7 +26,15 @@ import argparse
 import logging
 from pathlib import Path
 
-from farmtrust_core.ingest.config import default_dates, load_config, normalize_bbox, parse_bbox
+from farmtrust_core.ingest.config import (
+    default_dates,
+    geometry_to_bbox,
+    load_config,
+    normalize_bbox,
+    normalize_geometry,
+    parse_bbox,
+    parse_geometry,
+)
 from farmtrust_core.ingest.pipeline import write_outputs
 
 
@@ -40,6 +48,7 @@ def main() -> int:
     parser.add_argument("--config", default=None, help="Path to JSON config file")
     parser.add_argument("--aoi-id", required=False, help="Stable identifier for the AOI")
     parser.add_argument("--bbox", required=False, type=parse_bbox, help="min_lon,min_lat,max_lon,max_lat in EPSG:4326")
+    parser.add_argument("--geometry", required=False, type=parse_geometry, help="GeoJSON Polygon JSON string or file path")
     parser.add_argument("--start-date", default=None, help="YYYY-MM-DD")
     parser.add_argument("--end-date", default=None, help="YYYY-MM-DD")
     parser.add_argument("--max-cloud", type=float, default=None, help="Cloud cover threshold (0-100)")
@@ -63,11 +72,18 @@ def main() -> int:
 
     aoi_id = args.aoi_id or config.get("aoi_id")
     bbox_raw = args.bbox or config.get("bbox")
+    geometry_raw = args.geometry or config.get("geometry")
 
-    if not aoi_id or bbox_raw is None:
-        raise ValueError("aoi_id and bbox are required (via args or config)")
+    if not aoi_id or (bbox_raw is None and geometry_raw is None):
+        raise ValueError("aoi_id and either bbox or geometry are required (via args or config)")
 
-    bbox = bbox_raw if isinstance(bbox_raw, list) else normalize_bbox(bbox_raw)
+    geometry = normalize_geometry(geometry_raw) if geometry_raw is not None else None
+    if geometry is not None:
+        bbox = geometry_to_bbox(geometry)
+    elif bbox_raw is not None:
+        bbox = bbox_raw if isinstance(bbox_raw, list) else normalize_bbox(bbox_raw)
+    else:
+        raise ValueError("bbox or geometry is required")
 
     start_date = args.start_date or config.get("start_date")
     end_date = args.end_date or config.get("end_date")
@@ -99,6 +115,7 @@ def main() -> int:
         log_signed_hrefs=args.log_signed_hrefs,
         deduplicate=not args.no_dedupe,
         max_workers=args.workers if args.workers is not None else config.get("workers", 4),
+        geometry=geometry,
     )
 
     logging.getLogger(__name__).info(f"Ingestion complete for {aoi_id}")

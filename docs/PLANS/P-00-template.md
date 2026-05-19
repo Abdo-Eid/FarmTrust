@@ -8,10 +8,6 @@ This plan will change while working; refine it over time. Findings and learnings
 * ENGINEERING: `<ENGINEERING §...>`
 * DECISIONS: `<YYYY-MM-DD — Decision: ...>`
 
-## Ownership & boundaries
-
-**Owner:** <role or person>
-
 ## Overview of my task
 
 <1–2 short paragraphs in narrative style: what you'll deliver, why it matters, how it fits>

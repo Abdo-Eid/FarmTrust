@@ -8,10 +8,11 @@ from typing import Any, List, Optional, Tuple
 
 import numpy as np
 import rasterio
+from rasterio.features import geometry_mask
 from pyproj import Transformer
 from rasterio.enums import Resampling
 from rasterio.windows import Window, from_bounds
-from rasterio.warp import reproject
+from rasterio.warp import reproject, transform_geom
 
 
 def bbox_to_scene_crs(bbox_lonlat: List[float], dst_crs: str, src_crs: str = "EPSG:4326") -> List[float]:
@@ -75,6 +76,18 @@ def read_window_with_grid(asset_href: str, bbox_lonlat: List[float]) -> Tuple[np
         arr = src.read(1, window=window)
         win_transform = src.window_transform(window)
         return arr, src.crs, win_transform
+
+
+def polygon_mask_for_grid(geometry_lonlat: dict[str, Any], dst_grid: ChipGrid) -> np.ndarray:
+    """Return a boolean mask where pixels inside the polygon are True."""
+    geometry_dst = transform_geom("EPSG:4326", dst_grid.crs_wkt, geometry_lonlat)
+    outside_mask = geometry_mask(
+        [geometry_dst],
+        out_shape=(dst_grid.height, dst_grid.width),
+        transform=dst_grid.transform,
+        invert=False,
+    )
+    return ~outside_mask
 
 
 def reproject_to_grid(

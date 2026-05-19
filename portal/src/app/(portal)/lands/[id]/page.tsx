@@ -1,9 +1,10 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import { useLand } from "@/hooks/useLand";
 import { useJobPolling } from "@/hooks/useJobPolling";
+import { useJobEvents } from "@/hooks/useJobEvents";
 import { TopBar } from "@/components/layout/TopBar";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { JobProgressRing } from "@/components/processing/JobProgressRing";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { PIPELINE_PHASES } from "@/lib/constants";
 import { formatFeddan } from "@/lib/geo";
+import { api } from "@/lib/api";
 
 export default function LandProcessingPage({
     params,
@@ -21,8 +23,25 @@ export default function LandProcessingPage({
 }) {
     const { id } = use(params);
     const router = useRouter();
+    const [cancelling, setCancelling] = useState(false);
     const { data: land, isLoading: landLoading } = useLand(id);
-    const { data: job } = useJobPolling(land?.job_id);
+    // SSE-first: open a streaming connection to the backend for real jobs.
+    // useJobEvents writes updates into the TanStack Query cache directly.
+    // useJobPolling is kept as fallback (mock jobs, SSE not available).
+    const { connected: eventsConnected } = useJobEvents(land?.job_id);
+    const { data: job } = useJobPolling(land?.job_id, { disabled: eventsConnected });
+
+    const handleCancel = async () => {
+        if (!land?.job_id || cancelling) return;
+        setCancelling(true);
+        try {
+            await api.jobs.cancel(land.job_id);
+        } catch {
+            // backend will mark it cancelled; SSE/polling will reflect it
+        } finally {
+            setCancelling(false);
+        }
+    };
 
     useEffect(() => {
         if (job?.status === "succeeded") {
@@ -33,6 +52,14 @@ export default function LandProcessingPage({
             return () => clearTimeout(timer);
         }
     }, [job?.status, id, router]);
+
+    const isActive = job?.status === "running" || job?.status === "queued";
+    const sceneProgressLabel =
+        isActive &&
+        job?.phase === "satellite_fetch" &&
+        job?.scene_total
+            ? `${job.scene_done ?? 0} / ${job.scene_total} scenes`
+            : null;
 
     const currentPhaseLabel = job?.phase
         ? PIPELINE_PHASES.find((p) => p.phase === job.phase)?.label
@@ -116,6 +143,24 @@ export default function LandProcessingPage({
                     </div>
                 )}
 
+                {/* Cancelled state */}
+                {job?.status === "cancelled" && (
+                    <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-md flex items-start gap-3">
+                        <span className="material-symbols-outlined text-gray-400 text-xl mt-0.5">
+                            cancel
+                        </span>
+                        <div>
+                            <p className="text-sm font-semibold text-gray-700">
+                                Analysis Cancelled
+                            </p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                                The pipeline was stopped before completion. You
+                                can resubmit this land for a new analysis.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Succeeded — redirect notice */}
                 {job?.status === "succeeded" && (
                     <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md flex items-center gap-3">
@@ -135,6 +180,7 @@ export default function LandProcessingPage({
                             percent={job?.progress ?? 0}
                             status={job?.status ?? "queued"}
                             phase={currentPhaseLabel}
+                            sceneProgress={sceneProgressLabel ?? undefined}
                         />
                         {job?.started_at && (
                             <div className="text-center">
@@ -149,6 +195,18 @@ export default function LandProcessingPage({
                                     })}
                                 </p>
                             </div>
+                        )}
+                        {isActive && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                icon="stop_circle"
+                                loading={cancelling}
+                                onClick={handleCancel}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                                Stop Pipeline
+                            </Button>
                         )}
                     </div>
 

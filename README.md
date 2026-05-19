@@ -57,10 +57,6 @@ Only propose doc updates if it changes shared scope or technical truth.
 
 ## Where to write/read
 
-- Inbox source docs: `docs/inbox/*.md` except `docs/inbox/README.md` (use metadata)
-- Keep verbatim docs only: set `keep_as_user: true`
-- Working docs lifecycle: `stage: added -> adapted|discussed|clarification`, then delete after promotion/extraction
-- Legacy raw archive: `docs/inbox.md` (read-only except promotion pointer append)
 - Product truth: `docs/PROJECT.md`
 - Engineering truth: `docs/ENGINEERING.md`
 - Decisions: `docs/DECISIONS.md`
@@ -106,12 +102,33 @@ Team-safe sync (frozen lock):
 uv sync --frozen --extra data
 ```
 
-## Dev workflow
+## Running locally
 
-Common commands:
+**Backend** (FastAPI + pipeline, port 8000):
 
 ```bash
+uv run fastapi dev
+```
+
+**Frontend** (Next.js portal, port 3000):
+
+```bash
+cd portal && bun dev
+```
+
+Both must be running for the portal to work. The portal proxies API calls to `http://localhost:8000` via `portal/.env.local`.
+
+## Dev commands
+
+```bash
+# Run the standalone ingestion script
 uv run ingest-aoi --config scripts/ingest_demo.json
+
+# Type-check backend
+uv run python -m compileall farmtrust_core scripts api -q
+
+# Type-check frontend
+cd portal && bun run typecheck
 ```
 
 Note: README stays short. The source of truth lives in `/docs`.

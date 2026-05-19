@@ -6,6 +6,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   })
   if (!res.ok) throw new Error(`API error ${res.status}: ${await res.text()}`)
+  if (res.status === 204) return undefined as unknown as T
   return res.json() as Promise<T>
 }
 
@@ -17,8 +18,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+    delete: (id: string) => request<void>(`/lands/${id}`, { method: 'DELETE' }),
   },
   jobs: {
-    get:  (id: string)  => request<import('./types').JobState>(`/jobs/${id}`),
+    get:    (id: string) => request<import('./types').JobState>(`/jobs/${id}`),
+    cancel: (id: string) => request<import('./types').JobState>(`/jobs/${id}/cancel`, { method: 'POST' }),
   },
 }

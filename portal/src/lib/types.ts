@@ -4,7 +4,7 @@ export type SeasonPerformance = 'good' | 'interrupted' | 'weak'
 export type ConfidenceLevel = 'high' | 'medium' | 'low'
 export type RiskTier = 'low' | 'medium' | 'high'
 export type RiskFlag = 'waterlogging' | 'salinity' | 'abandonment' | 'encroachment'
-export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed'
+export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled'
 export type JobPhase = 'aoi_validation' | 'satellite_fetch' | 'vegetation_analysis' | 'risk_modeling' | 'report_generation'
 
 export interface Confidence {
@@ -47,6 +47,7 @@ export interface CreateLandPayload {
   method: AOIMethod
   geometry: GeoJSON.Geometry | null
   area_feddan: number
+  lookback_days?: number
 }
 
 export interface LandResult {
@@ -77,6 +78,8 @@ export interface JobState {
   status: JobStatus
   phase?: JobPhase
   progress: number
+  scene_total?: number
+  scene_done?: number
   started_at?: string
   completed_at?: string
   error?: string

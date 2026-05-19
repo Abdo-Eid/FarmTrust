@@ -5,8 +5,11 @@ description = "Satellite time-series pipeline for explainable land assessment si
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi[standard]>=0.115",
     "numpy>=2.4.3",
     "pandas>=3.0.1",
+    "sqlmodel>=0.0.21",
+    "uvicorn[standard]>=0.30",
 ]
 
 [project.scripts]
@@ -43,4 +46,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["farmtrust_core*", "scripts*"]
+include = ["farmtrust_core*", "scripts*", "api*"]
+
+[tool.fastapi]
+entrypoint = "api.main:app"

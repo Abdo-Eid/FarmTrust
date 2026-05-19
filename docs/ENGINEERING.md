@@ -47,6 +47,7 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
 ## Contracts (source of truth)
 
 - JSON Schema in `contracts/schemas/` is authoritative.
+- Phase A schemas now exist for `land-create`, `land-result`, and `job-state`.
 - Required fields in outputs: schema_version, pipeline_version.
 - API validates requests/responses with jsonschema; internal models use Pydantic.
 - Portal generates TS types from schemas; generated code is disposable.

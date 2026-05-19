@@ -26,11 +26,22 @@ const GeoMap = dynamic(
     },
 );
 
+const LOOKBACK_OPTIONS = [
+    { label: "6 months", days: 180 },
+    { label: "1 year", days: 365 },
+    { label: "2 years (recommended)", days: 730 },
+    { label: "3 years", days: 1095 },
+] as const;
+
+const MIN_AREA_FEDDAN = 1 / 24;
+const MAX_AREA_FEDDAN = 200;
+
 interface FormData {
     name: string;
     governorate: string;
     district?: string;
     notes?: string;
+    lookback_days: number;
 }
 
 export default function AddLandPage() {
@@ -40,7 +51,7 @@ export default function AddLandPage() {
     const [drawnPolygon, setDrawnPolygon] = useState<GeoJSON.Polygon | null>(
         null,
     );
-    const [formData, setFormData] = useState<Partial<FormData>>({});
+    const [formData, setFormData] = useState<Partial<FormData>>({ lookback_days: 730 });
     const [submitError, setSubmitError] = useState<string | null>(null);
 
     const calculatedArea = useMemo(() => {
@@ -52,17 +63,17 @@ export default function AddLandPage() {
 
     const areaError =
         calculatedArea !== null &&
-        (calculatedArea < 1 || calculatedArea > 200)
-            ? calculatedArea < 1
-                ? "Minimum 1 feddan"
+        (calculatedArea < MIN_AREA_FEDDAN || calculatedArea > MAX_AREA_FEDDAN)
+            ? calculatedArea < MIN_AREA_FEDDAN
+                ? "Minimum 1/24 feddan"
                 : "Maximum 200 feddan"
             : null;
 
     const canSubmit =
         !!drawnPolygon &&
         calculatedArea !== null &&
-        calculatedArea >= 1 &&
-        calculatedArea <= 200 &&
+        calculatedArea >= MIN_AREA_FEDDAN &&
+        calculatedArea <= MAX_AREA_FEDDAN &&
         !!formData.name?.trim() &&
         !!formData.governorate;
 
@@ -89,6 +100,7 @@ export default function AddLandPage() {
                 method: "polygon",
                 geometry: drawnPolygon,
                 area_feddan: calculatedArea!,
+                lookback_days: formData.lookback_days ?? 730,
             });
             router.push(`/lands/${land.id}`);
         } catch {
@@ -251,6 +263,27 @@ export default function AddLandPage() {
                                     })
                                 }
                             />
+                        </FormField>
+
+                        <FormField
+                            label="Satellite Lookback Period"
+                            hint="How far back to search for Sentinel-2 imagery"
+                        >
+                            <Select
+                                value={String(formData.lookback_days ?? 730)}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        lookback_days: Number(e.target.value),
+                                    })
+                                }
+                            >
+                                {LOOKBACK_OPTIONS.map((opt) => (
+                                    <option key={opt.days} value={opt.days}>
+                                        {opt.label}
+                                    </option>
+                                ))}
+                            </Select>
                         </FormField>
 
                         {submitError && (

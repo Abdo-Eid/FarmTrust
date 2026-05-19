@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://farmtrust.local/contracts/land-result.json",
+  "title": "LandResult",
+  "type": "object",
+  "required": ["id", "name", "governorate", "area_feddan", "submitted_at", "job_id", "job_status"],
+  "additionalProperties": true,
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "governorate": { "type": "string" },
+    "district": { "type": "string" },
+    "area_feddan": { "type": "number" },
+    "submitted_at": { "type": "string", "format": "date-time" },
+    "job_id": { "type": "string" },
+    "job_status": { "enum": ["queued", "running", "succeeded", "failed"] },
+    "geometry": { "type": "object" },
+    "land_status": { "enum": ["active", "intermittent", "inactive", "encroachment"] },
+    "trend_2y": { "enum": ["improving", "stable", "declining"] },
+    "season_performance": { "enum": ["good", "interrupted", "weak"] },
+    "flags": {
+      "type": "array",
+      "items": { "enum": ["waterlogging", "salinity", "abandonment", "encroachment"] }
+    },
+    "confidence": {
+      "type": "object",
+      "required": ["status", "rationale"],
+      "properties": {
+        "status": { "enum": ["high", "medium", "low"] },
+        "rationale": { "type": "string" }
+      }
+    },
+    "risk_tier": { "enum": ["low", "medium", "high"] },
+    "indicators": { "type": "object" },
+    "report_summary": { "type": "string" },
+    "ndvi_series": { "type": "array" },
+    "season_records": { "type": "array" }
+  }
+}

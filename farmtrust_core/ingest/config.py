@@ -6,7 +6,7 @@ import argparse
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 
 def parse_bbox(value: str) -> List[float]:
@@ -37,6 +37,54 @@ def normalize_bbox(value: object) -> List[float]:
     if isinstance(value, str):
         return parse_bbox(value)
     raise ValueError("bbox must be a list or a comma-separated string")
+
+
+def parse_geometry(value: str) -> dict[str, Any]:
+    """Parse a GeoJSON geometry from a JSON string or JSON file path."""
+    candidate = Path(value)
+    if candidate.exists():
+        data = json.loads(candidate.read_text(encoding="utf-8"))
+    else:
+        data = json.loads(value)
+    return normalize_geometry(data)
+
+
+def normalize_geometry(value: object) -> dict[str, Any]:
+    """Validate and normalize a GeoJSON Polygon geometry."""
+    if not isinstance(value, dict):
+        raise ValueError("geometry must be a GeoJSON object")
+
+    geometry = value.get("geometry") if value.get("type") == "Feature" else value
+    if not isinstance(geometry, dict):
+        raise ValueError("geometry must be a GeoJSON Polygon or Feature")
+    if geometry.get("type") != "Polygon":
+        raise ValueError("geometry must be a GeoJSON Polygon")
+
+    coordinates = geometry.get("coordinates")
+    if not isinstance(coordinates, list) or not coordinates:
+        raise ValueError("Polygon geometry must include coordinates")
+    exterior = coordinates[0]
+    if not isinstance(exterior, list) or len(exterior) < 4:
+        raise ValueError("Polygon exterior ring must contain at least four points")
+    for point in exterior:
+        if not isinstance(point, list) or len(point) < 2:
+            raise ValueError("Polygon points must be [lon, lat] pairs")
+        float(point[0])
+        float(point[1])
+
+    return {
+        "type": "Polygon",
+        "coordinates": coordinates,
+    }
+
+
+def geometry_to_bbox(geometry: dict[str, Any]) -> List[float]:
+    """Compute EPSG:4326 bbox from a normalized GeoJSON Polygon."""
+    normalized = normalize_geometry(geometry)
+    points = normalized["coordinates"][0]
+    lons = [float(point[0]) for point in points]
+    lats = [float(point[1]) for point in points]
+    return [min(lons), min(lats), max(lons), max(lats)]
 
 
 def default_dates() -> tuple[str, str]:

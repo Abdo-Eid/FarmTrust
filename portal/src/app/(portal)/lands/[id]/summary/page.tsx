@@ -1,12 +1,14 @@
 "use client";
-import { use } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useLand } from "@/hooks/useLand";
 import { TopBar } from "@/components/layout/TopBar";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { SkeletonCard } from "@/components/ui/Skeleton";
+import { api } from "@/lib/api";
 import { RiskFlagList } from "@/components/lands/RiskFlagList";
 import { DecisionBrief } from "@/components/summary/DecisionBrief";
 import { ConfidenceSection } from "@/components/summary/ConfidenceSection";
@@ -21,7 +23,26 @@ export default function LandSummaryPage({
 }) {
     const { id } = use(params);
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { data: land, isLoading } = useLand(id);
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+
+    async function handleDelete() {
+        if (!confirm('Delete this land and all its pipeline data? This cannot be undone.')) return;
+        setDeleting(true);
+        setDeleteError(null);
+        try {
+            await api.lands.delete(id);
+            await queryClient.invalidateQueries({ queryKey: ['lands'] });
+            router.push('/lands');
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : 'Delete failed';
+            const match = msg.match(/API error \d+: (.+)/);
+            setDeleteError(match ? (() => { try { return JSON.parse(match[1]).detail } catch { return match[1] } })() : msg);
+            setDeleting(false);
+        }
+    }
 
     if (isLoading) {
         return (
@@ -59,6 +80,17 @@ export default function LandSummaryPage({
                 actions={
                     <div className="flex items-center gap-2">
                         <Button
+                            variant="ghost"
+                            size="sm"
+                            icon="delete"
+                            loading={deleting}
+                            onClick={handleDelete}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                            Delete
+                        </Button>
+                        <div className="w-px h-4 bg-gray-200" />
+                        <Button
                             variant="secondary"
                             size="sm"
                             icon="map"
@@ -91,6 +123,16 @@ export default function LandSummaryPage({
                     </div>
                 }
             />
+
+            {deleteError && (
+                <div className="mx-6 mt-4 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-md px-4 py-3 text-sm">
+                    <span className="material-symbols-outlined text-base">error</span>
+                    <span>{deleteError}</span>
+                    <button onClick={() => setDeleteError(null)} className="ml-auto text-red-400 hover:text-red-600">
+                        <span className="material-symbols-outlined text-base">close</span>
+                    </button>
+                </div>
+            )}
 
             {/* Identity header band — teal gradient (only here) */}
             <PageHeader

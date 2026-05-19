@@ -23,6 +23,7 @@ from farmtrust_core.ingest.indices import (
 from farmtrust_core.ingest.utils import safe_write_text, utc_now_iso
 from farmtrust_core.ingest.window_read import (
     ChipGrid,
+    polygon_mask_for_grid,
     read_window_with_grid,
     reproject_to_grid,
     write_geotiff,
@@ -49,6 +50,7 @@ def process_one_scene(
     invalid_scl_classes: set,
     log_signed_hrefs: bool,
     logger: logging.Logger,
+    geometry: Optional[Dict[str, Any]] = None,
     max_retries: int = 3,
 ) -> SceneResult:
     """Download, compute indices, and write chips for one scene. Thread-safe.
@@ -104,8 +106,23 @@ def process_one_scene(
 
             scl_arr = scl_arr_raw.astype(np.uint8)
             invalid_mask = np.isin(scl_arr, list(invalid_scl_classes))
-            valid_mask = ~invalid_mask
-            valid_fraction = float(valid_mask.sum() / valid_mask.size)
+            aoi_mask = polygon_mask_for_grid(geometry, grid) if geometry else np.ones(scl_arr.shape, dtype=bool)
+            valid_mask = (~invalid_mask) & aoi_mask
+            denominator = int(aoi_mask.sum())
+            if denominator <= 0:
+                logger.warning(f"Polygon does not overlap chip grid for {item_id}, skipping")
+                return SceneResult(
+                    item_id=item_id,
+                    status="empty_aoi",
+                    scene_record={
+                        "item_id": item_id,
+                        "status": "empty_aoi",
+                        "fingerprint": fingerprint,
+                        "timestamp": item.datetime.isoformat() if item.datetime else None,
+                        "updated_at": utc_now_iso(),
+                    },
+                )
+            valid_fraction = float(valid_mask.sum() / denominator)
 
             # 2) Read other bands and reproject to SCL grid
             def read_band_to_grid(asset_key: str, resampling: Resampling) -> np.ndarray:
@@ -130,6 +147,13 @@ def process_one_scene(
             b04 = read_band_to_grid("B04", Resampling.bilinear) / 10000.0
             b08 = read_band_to_grid("B08", Resampling.bilinear) / 10000.0
             b11 = read_band_to_grid("B11", Resampling.bilinear) / 10000.0
+
+            scl_arr = np.where(aoi_mask, scl_arr, 0).astype(np.uint8)
+            b02 = np.where(aoi_mask, b02, np.nan)
+            b03 = np.where(aoi_mask, b03, np.nan)
+            b04 = np.where(aoi_mask, b04, np.nan)
+            b08 = np.where(aoi_mask, b08, np.nan)
+            b11 = np.where(aoi_mask, b11, np.nan)
 
             # 3) Compute indices
             ndvi_mean, ndvi_p95 = compute_ndvi(b04, b08, valid_mask)
@@ -157,6 +181,7 @@ def process_one_scene(
                 "mgrs_tile": mgrs_tile,
                 "eo_cloud_cover": eo_cloud_cover,
                 "aoi_bbox_epsg4326": bbox,
+                "aoi_geometry": geometry,
                 "chip_grid": {
                     "crs_wkt": grid.crs_wkt,
                     "width": grid.width,

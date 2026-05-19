@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
+import { useQueryClient } from '@tanstack/react-query'
 import { useLands } from '@/hooks/useLands'
 import { TopBar } from '@/components/layout/TopBar'
 import { DataTable } from '@/components/ui/DataTable'
@@ -13,16 +14,38 @@ import { TrendIndicator } from '@/components/lands/TrendIndicator'
 import { RISK_TIER_COLORS, RISK_TIER_LABELS } from '@/lib/constants'
 import type { LandResult, Column } from '@/lib/types'
 import { formatFeddan } from '@/lib/geo'
+import { api } from '@/lib/api'
 
 const STATUS_OPTIONS = ['all', 'active', 'intermittent', 'inactive', 'encroachment', 'processing', 'queued'] as const
 const CONFIDENCE_OPTIONS = ['all', 'high', 'medium', 'low'] as const
 
 export default function LandsPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const { data: lands = [], isLoading } = useLands()
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [confidenceFilter, setConfidenceFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  async function handleDelete(e: React.MouseEvent, id: string) {
+    e.stopPropagation()
+    if (!confirm('Delete this land and all its pipeline data? This cannot be undone.')) return
+    setDeletingId(id)
+    setDeleteError(null)
+    try {
+      await api.lands.delete(id)
+      await queryClient.invalidateQueries({ queryKey: ['lands'] })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Delete failed'
+      // Extract the FastAPI detail message if present
+      const match = msg.match(/API error \d+: (.+)/)
+      setDeleteError(match ? (() => { try { return JSON.parse(match[1]).detail } catch { return match[1] } })() : msg)
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const stats = useMemo(() => {
     const total     = lands.length
@@ -121,29 +144,44 @@ export default function LandsPage() {
     {
       key: 'id',
       label: 'Actions',
-      render: (_, row) => (
-        <div className="flex items-center gap-1">
-          {row.job_status === 'succeeded' ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={e => { e.stopPropagation(); router.push(`/lands/${row.id}/summary`) }}
-            >
-              Summary
-            </Button>
-          ) : row.job_status === 'running' || row.job_status === 'queued' ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={e => { e.stopPropagation(); router.push(`/lands/${row.id}`) }}
-            >
-              Status
-            </Button>
-          ) : (
-            <span className="text-xs text-gray-400">Failed</span>
-          )}
-        </div>
-      ),
+      render: (_, row) => {
+        const isActive = row.job_status === 'running' || row.job_status === 'queued'
+        const isMock = row.id.startsWith('mock-')
+        return (
+          <div className="flex items-center gap-1">
+            {row.job_status === 'succeeded' ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={e => { e.stopPropagation(); router.push(`/lands/${row.id}/summary`) }}
+              >
+                Summary
+              </Button>
+            ) : isActive ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={e => { e.stopPropagation(); router.push(`/lands/${row.id}`) }}
+              >
+                Status
+              </Button>
+            ) : (
+              <span className="text-xs text-gray-400">—</span>
+            )}
+            {!isMock && (
+              <Button
+                size="sm"
+                variant="ghost"
+                icon="delete"
+                loading={deletingId === row.id}
+                onClick={e => handleDelete(e, row.id)}
+                className={`text-red-500 hover:text-red-700 hover:bg-red-50 ${isActive ? 'opacity-40 pointer-events-none' : ''}`}
+                title={isActive ? 'Stop the pipeline before deleting' : 'Delete land'}
+              />
+            )}
+          </div>
+        )
+      },
     },
   ]
 
@@ -159,6 +197,15 @@ export default function LandsPage() {
       />
 
       <div className="p-6 space-y-5">
+        {deleteError && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-md px-4 py-3 text-sm">
+            <span className="material-symbols-outlined text-base">error</span>
+            <span>{deleteError}</span>
+            <button onClick={() => setDeleteError(null)} className="ml-auto text-red-400 hover:text-red-600">
+              <span className="material-symbols-outlined text-base">close</span>
+            </button>
+          </div>
+        )}
         {/* Stat row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label="Total Lands"     value={stats.total}    icon="grid_view"   color="default" />

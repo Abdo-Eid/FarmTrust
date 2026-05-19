@@ -51,9 +51,4 @@ feat(api): add job status endpoint (Closes #123)
 - Decisions -> `docs/DECISIONS.md` (curated with `Supersedes:` / `Refines:` references when needed)
 - Execution detail -> one `docs/PLANS/P-xx-*.md`
 
-## Not sure where to write?
-Use `docs/inbox/*.md` for new raw capture (except `docs/inbox/README.md`).
-Use metadata in front matter.
-Set `keep_as_user: true` only for docs that must stay verbatim.
-For working docs, move `stage: added -> adapted|discussed|clarification`, then delete after extraction/promotion.
-Treat `docs/inbox.md` as legacy archive (read-only except promotion pointer append).
+

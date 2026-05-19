@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://farmtrust.local/contracts/job-state.json",
+  "title": "JobState",
+  "type": "object",
+  "required": ["id", "land_id", "status", "progress", "logs"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string" },
+    "land_id": { "type": "string" },
+    "status": { "enum": ["queued", "running", "succeeded", "failed"] },
+    "phase": {
+      "enum": [
+        "aoi_validation",
+        "satellite_fetch",
+        "vegetation_analysis",
+        "risk_modeling",
+        "report_generation"
+      ]
+    },
+    "progress": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "started_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": "string", "format": "date-time" },
+    "error": { "type": "string" },
+    "logs": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}
