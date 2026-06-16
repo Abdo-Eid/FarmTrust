@@ -1,11 +1,13 @@
 # ENGINEERING
 
-Purpose: single place for engineering truth (architecture, pipeline, ops, interfaces, technical risks).
+Purpose: single place for engineering truth (architecture, stack, interfaces, ops, technical risks).
+Detailed pipeline runbook content lives in `PIPELINE.md`.
 
 ## Links
 
 - DECISIONS entry: <YYYY-MM-DD — Decision: ...>
 - PROJECT section: <PROJECT §...>
+- Pipeline reference: `PIPELINE.md`
 - PLAN: <P-xx — name>
 
 ## System overview
@@ -15,39 +17,27 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
 
 ## MVP stack
 
-- Data access: Sentinel-2 via cloud STAC (Planetary Computer or AWS Open Data).
+- Data access: Sentinel-2 via cloud STAC, currently Planetary Computer.
 - Processing: Python (xarray, rasterio, pystac-client) for time-series features.
-- API: FastAPI for job submission, results, and report export.
-- Storage: Postgres + PostGIS for AOIs and results; object storage for PDFs/rasters.
-- Portal: React/Next.js with MapLibre or Leaflet for AOI input and summaries.
-- Jobs: lightweight worker (Celery or cron-driven) for analysis runs.
+- API: FastAPI for job submission, results, job status, and mapped report DTOs.
+- Storage: SQLite for current-build lands/jobs plus local file artifacts under `data/`.
+- Portal: React/Next.js with Leaflet for AOI input and summaries.
+- Jobs: FastAPI background worker using a direct single-job path.
 
-## Repo structure (Phase A)
+## Repo structure (current build)
 
-- Root services with shared contracts:
-    - api/ (FastAPI)
-    - farmtrust_core/ (core pipeline package)
-    - scripts/ (CLI entry points)
-    - portal/ (Next.js)
-    - contracts/ (schemas)
-    - docs/ (documentation truth)
-- `farmtrust_core/` is the single importable top-level Python package for core pipeline logic reused by worker and API services.
-- `farmtrust_core/ingest/` submodules:
-    - `config.py` — bbox parsing, default dates
-    - `indices.py` — NDVI, EVI, NDMI, NDWI, MNDWI computation
-    - `stac_client.py` — STAC search with endpoint fallback and PC signing
-    - `utils.py` — fingerprint, safe_write_text, utc_now_iso
-    - `window_read.py` — ChipGrid, COG window reads, reprojection, write_geotiff
-    - `scene_index.py` — scenes_index.json CRUD + cache-skip logic
-    - `dedup.py` — pre-download dedup (one best per date/spacecraft)
-    - `processor.py` — SceneResult, process_one_scene (thread-safe worker)
-    - `pipeline.py` — write_outputs orchestrator
-- `farmtrust_core/io/` contains general I/O helpers only; the unused STAC query cache helper was removed.
+- `api/`: FastAPI service for lands, jobs, health, and report endpoints.
+- `farmtrust_core/`: single importable Python package for core pipeline logic reused by workers and scripts.
+- `scripts/`: CLI entrypoints for local/demo pipeline validation.
+- `portal/`: Next.js portal for AOI input, summaries, evidence, and report export.
+- `contracts/`: shared request/response schemas and generated client types.
+- `docs/`: documentation truth.
+- Pipeline stage implementation lives under `farmtrust_core/ingest/`, `farmtrust_core/preprocess/`, `farmtrust_core/seasonal/`, and `farmtrust_core/scoring/`; exact commands, artifacts, fields, and thresholds belong in `PIPELINE.md`.
 
 ## Contracts (source of truth)
 
 - JSON Schema in `contracts/schemas/` is authoritative.
-- Phase A schemas now exist for `land-create`, `land-result`, and `job-state`.
+- Current-build schemas now exist for `land-create`, `land-result`, and `job-state`.
 - Required fields in outputs: schema_version, pipeline_version.
 - API validates requests/responses with jsonschema; internal models use Pydantic.
 - Portal generates TS types from schemas; generated code is disposable.
@@ -55,18 +45,50 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
 ## Architecture
 
 - Components: ingest service, preprocessing + quality masking, feature extraction, scoring + rules,
-  storage, API for portal, job worker/queue.
+  storage, API for portal, and direct job worker.
 - Data flow: land input → imagery fetch → time-series build → smoothing/gap handling → indicators →
   scoring/flags → persisted results → API.
-- Persistence: plot geometry, time-series features, scores/flags, reports, job status.
+- Persistence: plot geometry and job status in SQLite; time-series features, scores, flags, and assessment artifacts in local files.
+
+### Current-build backend flow
+
+```text
+Browser
+  |
+  v
+Next.js Portal (port 3000)
+  |
+  |  GET  /api/lands      -> mock fixture lands + live lands from FastAPI
+  |  POST /api/lands      -> forward new real submissions to FastAPI
+  |  GET  /api/lands/{id} -> mock ID returns fixture; real ID proxies FastAPI
+  |  GET  /api/jobs/{id}  -> mock job returns fixture; real ID proxies FastAPI
+  v
+FastAPI (port 8000)
+  |
+  |-- POST /lands              -> store land in SQLite and launch background job
+  |-- GET  /lands              -> list real lands from SQLite
+  |-- GET  /lands/{id}         -> read land + assessment result
+  |-- GET  /lands/{id}/report  -> serve mapped assessment DTO
+  |-- GET  /jobs/{id}          -> poll job status and logs
+  |-- GET  /jobs/{id}/logs
+  `-- GET  /health
+       |
+       `-- Background worker thread
+             |
+             |-- 1. Ingest      -> farmtrust_core/ingest (GeoJSON polygon)
+             |-- 2. Preprocess  -> farmtrust_core/preprocess
+             |-- 3. Seasonal    -> farmtrust_core/seasonal
+             `-- 4. Score       -> farmtrust_core/scoring
+                                   -> data/assessment/<aoi_id>/land_assessment.json
+                                   -> FastAPI maps artifact to portal DTO
+```
 
 ## Data & signals
 
-- Sources: Sentinel-2 is the current implemented source. Broader satellite-source selection, including Landsat and when/why to use each source, remains a future exploration topic.
-- Key indicators/metrics: NDVI/EVI peak, AUC, cropping intensity, season timing, within-season
-  stability, mid-season shocks, spatial uniformity, NDMI, NDWI/MNDWI, trend vs neighbors.
+- Sources: Sentinel-2 is the current implemented source. Broader satellite-source strategy, including Landsat and when/why to use each source, remains unresolved and is tracked in `OPEN_ITEMS.md`.
+- Key indicators/metrics: NDVI/EVI peak, AUC, season timing, within-season stability, mid-season shocks, spatial uniformity, NDMI, and NDWI/MNDWI.
 - Confidence strategy: quality masks + observation count + season clarity; propagate to outputs.
-- Phase A indicator set (locked):
+- Current-build indicator set (locked):
     - Coverage (observation quality / cloud gaps)
     - Vegetation trend (2-year trend from NDVI/AUC)
     - Anomalies (mid-season drops / instability)
@@ -76,108 +98,46 @@ Purpose: single place for engineering truth (architecture, pipeline, ops, interf
 
 ## Modeling approach (by output)
 
-- Land activity/status (active/intermittent/inactive): rule-based time-series features (NDVI/EVI seasonality, AUC, threshold crossings), with classical ML (RF/XGBoost) on engineered features as labels improve.
-- Trend (improving/stable/declining): linear trend on peak NDVI/AUC; Theil-Sen or Mann-Kendall for robust trend estimation under gaps/outliers.
+- Land activity/status (active/intermittent/inactive): rule-based time-series features from NDVI/EVI seasonality, AUC, and threshold crossings.
+- Trend (improving/stable/declining): conservative comparison of season-level strength summaries such as peak NDVI and season AUC.
 - Season performance (good/interrupted/weak): change-point detection on NDVI curves and rule-based curve-shape classification (rise-peak-fall vs drop/flat).
 - Risk flags:
     - Waterlogging: NDWI/MNDWI frequency + spatial persistence.
     - Salinity likelihood: persistent low NDVI patches + bare-soil brightness indices (proxy).
     - Abandonment: long fallow periods + lack of seasonal cycles.
     - Encroachment: persistent non-vegetation + land-use change cues.
-    - Start rule-based; transition to ML-assisted scoring when labels are stable.
-- Broad crop category (season + water-demand class): deferred beyond the current land assessment contract and revisited only after stronger validation evidence exists.
-- Boundary refinement (later): segmentation model (U-Net/DeepLab) trained on public or weak labels to improve small-plot purity.
+    - Current build uses conservative rule-based scoring.
+- Crop category is not part of the current land assessment contract.
 
-## Pipeline
+## Pipeline boundary
 
-- Ingest: current CLI uses bbox/time-window input; intended product input is a user-drawn polygon. The pipeline deduplicates to one best scene per (date, spacecraft) before downloading and uses parallel COG window reads via thread pool (default 4 workers).
-  - Local reuse is scene/chip based: STAC is queried each run, then `scenes_index.json` + chip completeness + matching fingerprint determine which scenes can skip download/reprocessing.
-  - There is no active STAC query-result cache; the unused TTL/env-var STAC cache helper was removed to avoid stale scene lists and dead-code confusion.
-- Preprocess: cloud/shadow masking, compositing, smoothing/de-spiking, optional gap-fill.
-  - Current Phase A implementation exports merged daily raw + smoothed values for `ndvi`, `evi`, `ndmi`, and `ndwi` in `ndvi_smoothed.csv`.
-  - Preprocessing quality output now also includes explicit gap diagnostics such as `long_gap_count` and `long_gap_windows`.
-- Feature extraction: plot-level time series and spatial stats; neighbor comparison window.
-- Scoring / classification: conservative rule-based thresholds for land status, trend, season outcome, risks, and assessment confidence.
-- Seasonal detection policy (current): NDVI remains the primary detector (threshold crossing + backtracked onset + duration checks). Multi-index confirmation from EVI/NDMI/NDWI is applied as a secondary confidence/label adjustment layer.
-- Seasonal output now includes per-season gap-overlap diagnostics so reviewers can see whether a season window intersects one or more long observation gaps.
-  - The current overlap diagnostic records both severity and the dominant season stage touched by the gap (`onset`, `peak`, `tail`, or `multiple`).
-- Serving: persist results; expose summary and report endpoints for portal.
+- Current pipeline stages: ingest -> preprocess -> seasonal analysis -> score.
+- Product/API input is user-drawn polygon geometry; local/demo CLI fixtures may use bbox/config input for repeatable validation.
+- Stage handoffs remain file-based in the current build so each stage can be validated independently.
+- FastAPI runs or triggers the pipeline, reads the internal assessment artifact, maps it into API DTOs, and sends shaped responses to the portal.
+- Architecture commitments: Sentinel-2 current source, explicit gap diagnostics, no interpolation or synthetic timestamps, conservative rule-based scoring, NDVI-primary seasonal detection with EVI/NDMI/NDWI confirmation.
+- Local scene/chip reuse is supported to reduce repeated raster work; exact reuse rules belong in `PIPELINE.md`.
+- Detailed commands, runtime artifacts, field contracts, thresholds, and detector behavior belong in `PIPELINE.md`.
 
-## Land assessment artifact
+## Assessment artifact boundary
 
-- Purpose: produce the internal assessment artifact that summarizes preprocessing and seasonal evidence into lender-facing land status, trend, season performance, risk flags, confidence, and evidence.
-- Backend handoff: FastAPI runs or triggers the pipeline, reads `land_assessment.json`, maps it into API response DTOs, and sends those API responses to the portal. The frontend should not receive or depend on the raw file path or file name.
-- Input files:
-    - `data/<aoi_id>/run_metadata.json`
-    - `data/preprocess/<aoi_id>/ndvi_smoothed.csv`
-    - `data/preprocess/<aoi_id>/quality_metrics.json`
-    - `data/seasonal/<aoi_id>/season_windows.json`
-- Output file:
-    - `data/assessment/<aoi_id>/land_assessment.json`
-- Policy notes:
-    - `land_status` must be inferred from interval-level behavior across seasons and low-activity spans, not from one latest point.
-    - `trend_2y` is derived from season-level strength summaries such as peak NDVI and seasonal activity area.
-    - `latest_season_performance` uses the latest closed season when available; otherwise it uses the latest open season and marks it provisional.
-    - Risk flags stay conservative and should prefer `uncertain` or lower confidence when continuity or season clarity is weak.
-    - Assessment outputs should surface explicit gap diagnostics, not only a single `gap_risk` label.
-    - Assessment confidence now exposes component levels for continuity, season clarity, and signal strength in addition to the final level.
-    - Phase A skips crop category output.
+- `land_assessment.json` is an internal pipeline artifact, not a frontend contract.
+- The artifact summarizes preprocessing and seasonal evidence into lender-facing land status, trend, season performance, risk flags, confidence, and evidence.
+- Assessment logic must remain interval-based, evidence-preserving, conservative under weak continuity, and explicit about gap diagnostics.
+- FastAPI maps the artifact into versioned API response DTOs for the portal and report endpoints.
 
-## Model evolution plan (collapsed phases)
+## Exploration boundary
 
-Phase A — MVP Core
-
-- Land status: rule-based features from NDVI/EVI time series.
-- Trend: linear/robust trend tests on peak NDVI/AUC.
-- Season performance: curve-shape rules + change-point detection.
-- Risk flags: rule-based NDWI/NDMI + persistence checks.
-
-Phase B — Hardening + credit layer
-
-- Replace some rules with classical ML (RF/XGBoost) on engineered features.
-- Calibrate thresholds by region (Delta/Valley/Reclaimed).
-- Add confidence models (probability calibration + uncertainty bands).
-- Introduce credit readiness layer (risk tiers) as an aggregation of indicators.
-- Revisit broad crop category only if validation evidence and trust requirements are met.
-
-Phase C — Expansion + advanced modeling
-
-- Boundary refinement: segmentation model (U-Net/DeepLab) trained on weak labels + small manual set.
-- Encroachment detection: land-use change model with multi-year change maps.
-- Crop taxonomy with weak labels + domain adaptation.
-- Add water-demand class + season length class.
-- Yield potential bands using multi-year productivity proxies + regional calibration.
-- Multimodal fusion (optical + SAR + thermal).
-- Self-supervised pretraining on regional time series.
-- Teacher-student distillation for Egypt-specific models.
-
-## Teacher-student distillation (high-level)
-
-- Collect global datasets (crop maps, land-use, time-series) and remove non-Egypt patterns.
-- Train a large teacher model for generalized crop/behavior signals.
-- Generate high-confidence pseudo-labels for Egypt.
-- Train a smaller Egypt-specific student model (distillation).
-- Use student outputs to improve accuracy and build higher-quality local datasets.
-
-## Credit readiness layer (aggregation)
-
-- Purpose: aggregate indicators into a lender-facing risk tier (low/medium/high) before a numeric score.
-- Inputs: land status, trend, season performance, risk flags, confidence, neighbor comparison, irrigation stability.
-- Approach: start as weighted rules; transition to ML when outcome labels are available.
-- Note: this is decision support, not an automated financing decision.
-
-## R&D exploration note
-
-- The model evolution plan and distillation work are exploratory and may change as evidence accumulates.
+- Non-committed model, credit, crop, yield, and expansion ideas are parked in `FUTURE.md`; they are not architecture truth until promoted by decision.
 
 ## Interfaces
 
-- Inputs: intended product input is polygon geometry drawn on a map; current Phase A CLI uses bbox/config input. Assessment window target is 24 months.
+- Inputs: intended product input is polygon geometry drawn on a map; current CLI uses bbox/config input. Assessment window target is 24 months.
 - Outputs (high-level schema): land_status, trend_2y, season_performance, flags[], confidence,
   indicators{...}, report_summary, evidence{...}, report_pdf_payload.
 - File-based land assessment output: `land_assessment.json` with interval summary, season summary, risk flags, and metric evidence summaries. FastAPI reads this internal artifact and returns shaped API responses to the portal.
 - Versioning notes: version indicators/thresholds to keep reports stable over time.
-- API endpoints (Phase A):
+- API endpoints (current build):
     - GET /health
     - GET /jobs/{id}
     - GET /jobs/{id}/logs
@@ -185,38 +145,35 @@ Phase C — Expansion + advanced modeling
     - GET /lands/{id}
     - GET /lands/{id}/report
 - Job states: queued -> running -> succeeded/failed
-- Job phases: fetching, processing, scoring, rendering
+- Job stage values: fetching, processing, scoring, rendering
 
 ## Ops & scaling
 
-- Jobs/queue: Phase A uses a direct worker execution path (single-job flow). Queue/broker integration is deferred to Phase B.
-- Retries and failures: simple status update to failed/succeeded; no multi-user reliability guarantees in Phase A.
-- Retries: bounded retries with backoff and alert on repeated failures.
+- Jobs/queue: The current build uses a direct worker execution path (single-job flow). Queue/broker integration is deferred until multi-user reliability is needed.
+- Retries and failures: simple status update to failed/succeeded; no multi-user reliability guarantees in the current build.
 - Monitoring: job success rate, data availability, anomaly rates, latency.
-- Performance: cache intermediate composites; batch neighbor comparisons.
-- Demo entry point (Phase A): scripts-driven (make demo or scripts/demo.ps1), no Docker requirement.
+- Performance: reuse local scene/chip outputs and cache intermediate artifacts where current code supports it.
+- Demo entry point (current build): scripts-driven (make demo or scripts/demo.ps1), no Docker requirement.
 
-## Dev workflow (Phase A)
+## Dev workflow (current build)
 
 - Environment manager: `uv` with a single repo-level `.venv`.
 - Dependency model:
     - Main deps: minimal shared runtime (`farmtrust_core`-level needs).
     - Extra `data`: ingestion/geospatial dependencies.
-    - Extra `ml`: reserved placeholder for later ML framework selection (empty in Phase A).
+    - Extra `ml`: reserved placeholder for later ML framework selection (empty in the current build).
     - Dev group: local analysis and developer tooling.
 - Role setup:
     - Core/API work: `uv sync`
     - Ingestion/geospatial work: `uv sync --extra data`
     - Team reproducibility install: `uv sync --frozen --extra data`
-- Scripts in `scripts/` import pipeline logic from `farmtrust_core`.
-- Standard ingestion command: `uv run ingest-aoi --config scripts/ingest_demo.json`.
+- Scripts in `scripts/` import pipeline logic from `farmtrust_core`; local validation commands are documented in `PIPELINE.md`.
 - Integration path: portal -> API -> worker, used for demo validation.
 
-## Phase scope notes
+## Scope notes
 
-- Phase A: minimal persistence only; no cross-run comparability requirements.
-- Phase B: add schema governance, QA gates, metadata/versioning, and reproducibility discipline.
-- Phase B: introduce queue/broker for multi-user concurrency and reliability.
+- Current Build: minimal persistence only; no cross-run comparability requirements.
+- Non-current technical ideas are parked in `FUTURE.md` and must be re-evaluated before becoming architecture or a live plan.
 
 ## Technical risks
 

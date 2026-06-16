@@ -1,6 +1,6 @@
 # Notebooks
 
-This folder contains exploration and verification notebooks for the FarmTrust Phase A pipeline.
+This folder contains exploration and verification notebooks for the FarmTrust current-build pipeline.
 
 ## Recommended reading order
 
@@ -13,7 +13,7 @@ This folder contains exploration and verification notebooks for the FarmTrust Ph
     - It shows the full Sentinel-2 ingestion flow: scene search, AOI window reads, masking, index computation, and expected pipeline outputs.
 
 3. `03-land_assessment_story.ipynb`
-    - Use this after an end-to-end Phase A run exists in `data/`.
+    - Use this after an end-to-end current-build run exists in `data/`.
     - It reviews the final assessment output, supporting evidence, and gap diagnostics.
 
 4. `00-landsat8_exploration.ipynb`
@@ -27,7 +27,7 @@ This folder contains exploration and verification notebooks for the FarmTrust Ph
 - `00-sentinel2_ingestion_timeseries.ipynb`
     - Main ingestion exploration notebook for Sentinel-2 AOI processing.
 - `03-land_assessment_story.ipynb`
-    - End-to-end assessment review notebook for the Phase A output and supporting evidence.
+    - End-to-end assessment review notebook for the current-build output and supporting evidence.
 - `00-landsat8_exploration.ipynb`
     - Landsat-specific exploration notebook for fallback and sensor-specific behavior.
 - `diagnose.py`
@@ -43,7 +43,7 @@ This folder contains exploration and verification notebooks for the FarmTrust Ph
 
 - Use notebooks for exploration, diagnostics, validation stories, and reviewer-facing evidence.
 - Use `farmtrust_core/` for shared pipeline behavior that should be reused by scripts, API workers, or future runs.
-- Use scripts/API runs to produce canonical Phase A artifacts under `data/`.
+- Use scripts/API runs to produce canonical current-build artifacts under `data/`.
 - Use notebooks to read and explain those artifacts when reviewing ingestion, preprocessing, seasonal analysis, and assessment results.
 - When notebook exploration produces a useful method, promote the logic into `farmtrust_core/`, then regenerate artifacts through the normal pipeline path.
 
@@ -55,7 +55,7 @@ This folder contains exploration and verification notebooks for the FarmTrust Ph
 
 ## Data Access
 
-- Current assessment review notebooks read from the Phase A artifact layout in `data/`:
+- Current assessment review notebooks read from the current-build artifact layout in `data/`:
     - `data/<aoi_id>/run_metadata.json`
     - `data/preprocess/<aoi_id>/ndvi_smoothed.csv`
     - `data/preprocess/<aoi_id>/quality_metrics.json`

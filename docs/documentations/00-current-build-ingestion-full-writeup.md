@@ -1,7 +1,7 @@
-# Phase A Ingestion (Sentinel-2 via Planetary Computer STAC) — Full Write-up
+# Current Build Ingestion (Sentinel-2 via Planetary Computer STAC) — Full Write-up
 
 ## 1) Objective
-Build an **AOI-first** ingestion pipeline for land/farm assessment to support financing decisions. The ingestion phase must:
+Build an **AOI-first** ingestion pipeline for land/farm assessment to support financing decisions. The ingestion stage must:
 
 - Fetch **Sentinel-2 L2A** scenes for an AOI within a time window (e.g., last month for testing, last 24 months for full runs).
 - Avoid full-tile downloads by reading **only AOI windows** from remote **COG** assets.
@@ -173,7 +173,7 @@ AOI windows are typically < 1% of a tile. Reading only windows keeps:
 - pandas `to_parquet` fails due to missing `pyarrow` or `fastparquet`.
 
 **Solution**
-- For Phase A, export **CSV + JSON metadata** (simplest).
+- For the current build, export **CSV + JSON metadata** (simplest).
 - Add parquet engine later only if required.
 
 ### 8.3 403 errors (signed URLs expired)
@@ -204,7 +204,7 @@ These are the practical defaults we converged on:
 - **AOI input**: bbox in EPSG:4326 (lon/lat).
 - **Time windows**:
   - Use **1 month** while iterating/debugging
-  - Use **24 months** for the full Phase A dataset
+  - Use **24 months** for the full current-build dataset
 - **Cloud filtering**:
   - Use metadata filter `eo:cloud_cover < X` as a coarse pre-filter (X often 20–30)
   - Trust AOI-quality more via `valid_fraction` from SCL
@@ -212,7 +212,7 @@ These are the practical defaults we converged on:
 - **Scene quality thresholds**:
   - `usable_thresh = 0.7`
   - `excellent_thresh = 0.9`
-- **Storage for Phase A**:
+- **Storage for the current build**:
   - CSV for the time-series stats
   - JSON for run metadata
   - Avoid parquet until pyarrow is standardized in the env
@@ -222,7 +222,7 @@ These are the practical defaults we converged on:
 ## 10) What ingestion does NOT do (by design)
 - Does **not** download full tiles.
 - Does **not** produce a regular monthly grid (that’s preprocessing/resampling).
-- Does **not** do smoothing, interpolation, or gap filling (preprocessing phase).
+- Does **not** do smoothing, interpolation, or gap filling (preprocessing stage).
 - Does **not** attempt to build a full “pixel cube” dataset unless explicitly requested (that is a separate storage design: GeoTIFF chips / Zarr / NetCDF).
 
 ---
@@ -293,7 +293,7 @@ This ensures:
 - Each spacecraft contributes at most one scene per day.
 - The time series remains clean while preserving dual-satellite observations (S2A and S2B on the same date are both valid and kept).
 
-### 12.4 Future consideration: mosaic edge case
+### 12.4 Deferred edge case: mosaic before filtering
 
 If the AOI is only partially covered by individual tiles on a given date and full spatial coverage is required, the pre-deduplication scenes may need to be mosaicked before filtering. This is deferred until full spatial continuity becomes a strict downstream requirement.
 

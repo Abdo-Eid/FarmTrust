@@ -53,7 +53,7 @@ Only propose doc updates if it changes shared scope or technical truth.
 ```
 
 5. Create a plan:
-    - Copy `docs/PLANS/P-00-template.md` → `P-01-<name>.md`
+    - Copy `docs/PLANS/P-00-template.md` → `P-XX-<name>.md`
 
 ## Where to write/read
 
@@ -65,7 +65,7 @@ Only propose doc updates if it changes shared scope or technical truth.
 
 ## Plans
 
-Create a plan by copying `docs/PLANS/P-00-template.md` → `P-01-<name>.md`.
+Create a plan by copying `docs/PLANS/P-00-template.md` → `P-XX-<name>.md`. `docs/PLANS/` contains only active or pending work; closed plans are removed after durable knowledge is promoted.
 
 ## Python environment (uv)
 
@@ -75,7 +75,7 @@ Dependency split model:
 
 - Main dependencies: minimal runtime dependencies required by `farmtrust_core` code.
 - Optional extra `data`: ingestion and geospatial stack.
-- Optional extra `ml`: placeholder for future ML framework decision (intentionally empty).
+- Optional extra `ml`: placeholder for a later ML framework decision (intentionally empty).
 - Dev group: local developer tooling.
 
 Setup commands:
