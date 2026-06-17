@@ -16,9 +16,9 @@ from farmtrust_core.ingest.utils import safe_write_text
 REQUIRED_PREPROCESS_COLUMNS = (
     "timestamp",
     "ndvi_smoothed",
-    "evi_raw",
-    "ndmi_raw",
-    "ndwi_raw",
+    "evi_smoothed",
+    "ndmi_smoothed",
+    "ndwi_smoothed",
     "is_usable",
     "valid_fraction",
     "source_row_count",
@@ -47,9 +47,9 @@ NDWI_CONFIRMATION_MAX = 0.20
 class SeasonalObservation:
     timestamp: datetime
     ndvi_smoothed: float
-    evi_raw: float
-    ndmi_raw: float
-    ndwi_raw: float
+    evi_smoothed: float
+    ndmi_smoothed: float
+    ndwi_smoothed: float
     valid_fraction: float
     source_row_count: int
 
@@ -124,14 +124,20 @@ def load_preprocess_observations(csv_path: Path) -> list[SeasonalObservation]:
                 continue
             if not row["ndvi_smoothed"].strip():
                 continue
+            if not row["evi_smoothed"].strip():
+                continue
+            if not row["ndmi_smoothed"].strip():
+                continue
+            if not row["ndwi_smoothed"].strip():
+                continue
 
             observations.append(
                 SeasonalObservation(
                     timestamp=_parse_timestamp(row["timestamp"]),
                     ndvi_smoothed=float(row["ndvi_smoothed"]),
-                    evi_raw=float(row["evi_raw"]),
-                    ndmi_raw=float(row["ndmi_raw"]),
-                    ndwi_raw=float(row["ndwi_raw"]),
+                    evi_smoothed=float(row["evi_smoothed"]),
+                    ndmi_smoothed=float(row["ndmi_smoothed"]),
+                    ndwi_smoothed=float(row["ndwi_smoothed"]),
                     valid_fraction=float(row["valid_fraction"]),
                     source_row_count=int(row["source_row_count"]),
                 )
@@ -268,9 +274,9 @@ def _append_open_note(
 
 
 def _compute_multi_index_confirmation(segment: list[SeasonalObservation]) -> tuple[str, str]:
-    evi_peak = max(row.evi_raw for row in segment)
-    ndmi_median = float(median(row.ndmi_raw for row in segment))
-    ndwi_median = float(median(row.ndwi_raw for row in segment))
+    evi_peak = max(row.evi_smoothed for row in segment)
+    ndmi_median = float(median(row.ndmi_smoothed for row in segment))
+    ndwi_median = float(median(row.ndwi_smoothed for row in segment))
 
     checks = [
         evi_peak >= EVI_CONFIRMATION_MIN,

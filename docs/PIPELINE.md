@@ -166,8 +166,14 @@ Processing behavior:
 - negative weights are clamped to `0`; when total weight is `0`, a simple arithmetic mean is used
 - usable observations require `valid_fraction >= 0.90`
 - non-usable rows remain in the output for review, but do not receive smoothed values
-- smoothing is applied only to usable values
-- the current smoothing method is `rolling_median_3_then_mean_3`
+- smoothing is applied only to real usable observations
+- the current smoothing method is `gap_aware_local_median_weighted_mean`
+- usable-observation gaps greater than `12` days break smoothing continuity; gaps exactly `12` days remain continuous
+- local smoothing uses a `±12` day window inside each continuous segment
+- smoothing uses a local median pass followed by a weighted-mean pass
+- weighted mean uses `valid_fraction / (1 + abs(delta_days) / 12.0)`
+- observations with fewer than `2` usable neighbors inside the same segment/window keep raw values
+- 1-point and 2-point continuous segments keep raw values
 - no synthetic timestamps are created
 - no interpolation is performed
 
@@ -209,6 +215,14 @@ Important quality fields:
 - `max_gap_days`
 - `median_gap_days`
 - `smoothing_method`
+- `max_smoothing_gap_days`
+- `local_window_days`
+- `minimum_local_neighbors`
+- `minimum_local_neighbors_excludes_center`
+- `weighting_policy`
+- `interpolation_policy`
+- `creates_synthetic_timestamps`
+- `smooths_only_usable_observations`
 - `usable_valid_fraction_threshold`
 - `gap_risk`
 - `confidence_penalty`
