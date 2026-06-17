@@ -1,4 +1,4 @@
-import type { LandStatus, Trend2Y, SeasonPerformance, ConfidenceLevel, RiskTier, RiskFlag, JobPhase } from './types'
+import type { LandStatus, Trend2Y, SeasonPerformance, ConfidenceLevel, SatelliteEvidenceCoverageStatus, RiskTier, RiskFlag, JobPhase } from './types'
 
 export const LAND_STATUS_LABELS: Record<LandStatus, string> = {
   active: 'Active',
@@ -45,9 +45,9 @@ export const SEASON_COLORS: Record<SeasonPerformance, string> = {
 }
 
 export const CONFIDENCE_LABELS: Record<ConfidenceLevel, string> = {
-  high: 'High Confidence',
-  medium: 'Medium Confidence',
-  low: 'Low Confidence',
+  high: 'High Assessment Confidence',
+  medium: 'Medium Assessment Confidence',
+  low: 'Low Assessment Confidence',
 }
 
 export const CONFIDENCE_BORDER_COLORS: Record<ConfidenceLevel, string> = {
@@ -60,6 +60,20 @@ export const CONFIDENCE_BG_COLORS: Record<ConfidenceLevel, string> = {
   high: 'bg-green-50',
   medium: 'bg-amber-50',
   low: 'bg-red-50',
+}
+
+export const SATELLITE_EVIDENCE_LABELS: Record<SatelliteEvidenceCoverageStatus, string> = {
+  good: 'Good Coverage',
+  fair: 'Fair Coverage',
+  limited: 'Limited Coverage',
+  insufficient: 'Insufficient Evidence',
+}
+
+export const SATELLITE_EVIDENCE_COLORS: Record<SatelliteEvidenceCoverageStatus, string> = {
+  good: 'bg-green-100 text-green-800 border-green-200',
+  fair: 'bg-blue-100 text-blue-800 border-blue-200',
+  limited: 'bg-amber-100 text-amber-800 border-amber-200',
+  insufficient: 'bg-red-100 text-red-800 border-red-200',
 }
 
 export const RISK_TIER_LABELS: Record<RiskTier, string> = {

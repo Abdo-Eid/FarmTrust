@@ -4,14 +4,14 @@ Purpose: curated decision log that records the rationale behind truth.
 ## Links
 - PROJECT section: <PROJECT §...>
 - ENGINEERING section: <ENGINEERING §...>
-- PLAN: <P-xx — name>
+- TASK: <T-xx — name>
 
 ## Format
 YYYY-MM-DD — Decision: <what we chose>
 Why: <reasoning / constraints>
 Alternatives: <A/B/C considered>
 Consequences: <implications / tradeoffs>
-Links: <PROJECT §... | ENGINEERING §... | PLAN: P-xx>
+Links: <PROJECT §... | ENGINEERING §... | TASK: T-xx>
 Supersedes: <optional previous date/title>
 Refines: <optional previous date/title>
 
@@ -20,19 +20,19 @@ Refines: <optional previous date/title>
 2026-01-25 — Decision: Satellite-only assessment (no ground sensors/field visits)
 Why: Core constraint for speed, scale, and cost in early deployment.
 Alternatives: Add field surveys; hybrid satellite + IoT sensing.
-Consequences: Higher uncertainty in some indicators; must include confidence and conservative flags.
+Consequences: Higher uncertainty in some indicators; must include assessment confidence and conservative flags.
 Links: PROJECT §MVP scope | ENGINEERING §Data & signals
 
 2026-01-25 — Decision: MVP is decision support, not automated financing
 Why: Trust and interpretability are required; early models may be imperfect.
 Alternatives: Automated approval/rejection rules.
-Consequences: Outputs must explain reasons and confidence; users remain in control.
+Consequences: Outputs must explain reasons and assessment confidence; users remain in control.
 Links: PROJECT §Outputs (what the user sees)
 
-2026-01-25 — Decision: MVP gap handling uses smoothing + light interpolation with confidence penalty
+2026-01-25 — Decision: MVP gap handling uses smoothing + light interpolation with assessment-confidence penalty
 Why: Simple, fast, explainable approach for early deployment.
 Alternatives: Multi-source fusion or model-based imputation.
-Consequences: Long gaps may still mislead; confidence must be conservative.
+Consequences: Long gaps may still mislead; assessment confidence must be conservative.
 Links: ENGINEERING §Pipeline
 
 2026-01-25 — Decision: MVP scope boundaries and workflow
@@ -110,28 +110,28 @@ Links: ENGINEERING §Repo structure | DECISIONS 2026-03-07 (farmtrust_core singl
 2026-05-13 — Decision: Current build skips crop category and upgrades to interval-based land assessment
 Why: The first lender-facing current-build output must prioritize trust, explainability, and interval-level evidence over breadth. Crop category is weaker than land status, trend, season performance, and risk signals with the current validation level.
 Alternatives: Keep broad crop category in the current build; add more categories before the assessment layer is stable.
-Consequences: The current build now focuses on smoothed metric evidence, season count, interval-based land status, trend, latest-season performance, conservative risk flags, and confidence. Crop/category output is deferred until stronger validation exists.
+Consequences: The current build now focuses on smoothed metric evidence, season count, interval-based land status, trend, latest-season performance, conservative risk flags, satellite evidence coverage, and assessment confidence. Crop/category output is deferred until stronger validation exists.
 Links: PROJECT §Outputs (what the user sees) | PROJECT §MVP scope (what we ship first) | ENGINEERING §Land assessment artifact
 Refines: 2026-01-27 — Current-build indicator set locked to minimal outputs
 
 2026-05-18 — Decision: Current-build preprocessing does not interpolate or synthesize timestamps
-Why: Preserve observation truth and make gaps explicit for downstream confidence, seasonal interpretation, and lender-facing explanations.
+Why: Preserve observation truth and make gaps explicit for downstream assessment confidence, seasonal interpretation, and lender-facing explanations.
 Alternatives: Keep light interpolation as the current-build default; resample to canonical monthly timestamps.
-Consequences: Preprocessing smooths usable observations and reports gap diagnostics; downstream scoring must reason about observation count, long gaps, and confidence instead of assuming contiguous time series.
-Links: ENGINEERING §Pipeline | PLAN: Current Build Workstreams §Time-Series Preprocessing
-Refines: 2026-01-25 — MVP gap handling uses smoothing + light interpolation with confidence penalty
+Consequences: Preprocessing smooths usable observations and reports gap diagnostics; downstream scoring must reason about observation count, long gaps, satellite evidence coverage, and assessment confidence instead of assuming contiguous time series.
+Links: PIPELINE §Preprocessing | ENGINEERING §Pipeline boundary
+Refines: 2026-01-25 — MVP gap handling uses smoothing + light interpolation with assessment-confidence penalty
 
 2026-05-18 — Decision: Document current implementation separately from intended product behavior
 Why: Some current-build code is still mock/dev oriented, while the product direction remains user-drawn polygon input, a 24-month assessment window, and unresolved satellite-source strategy.
 Alternatives: Rewrite docs to match only current code; leave non-current ideas embedded in canonical docs.
 Consequences: Workstream docs must clearly label current implementation versus intended behavior. Current implemented source is Sentinel-2; Landsat and other source choices are unresolved and tracked outside product scope. Current CLI AOI input is bbox/config; intended product AOI input is a drawn polygon.
-Links: PROJECT §MVP scope | ENGINEERING §Data & signals | PLAN: Current Build Workstreams
+Links: PROJECT §MVP scope | ENGINEERING §Data & signals | PIPELINE §Boundaries and handoffs
 
 2026-05-18 — Decision: Remove unused STAC query cache, keep scene/chip reuse
 Why: The expensive ingestion work is chip download, COG reads, and index computation. The active pipeline already skips those through `scenes_index.json`, fingerprint checks, and chip completeness checks. A TTL-based STAC query-result cache risks stale scene lists and was not wired into the active pipeline.
 Alternatives: Keep the unused helper for later; wire the STAC query cache into the active pipeline now.
 Consequences: STAC is queried on each ingestion run. Local scene/chip reuse remains active and continues to skip download/reprocessing for matching completed scenes. If STAC search becomes a proven bottleneck later, revisit with explicit freshness and invalidation rules.
-Links: ENGINEERING §Pipeline | PLAN: Current Build Workstreams
+Links: PIPELINE §Local reuse behavior | ENGINEERING §Pipeline boundary
 Supersedes: 2026-01-25 — Data sources use Sentinel-2 with Landsat fallback
 
 2026-06-16 — Decision: Isolate non-committed future ideas in `FUTURE.md`
@@ -139,3 +139,10 @@ Why: Detailed future ideas in product or engineering truth bias later brainstorm
 Alternatives: Keep non-committed ideas embedded in `PROJECT.md` and `ENGINEERING.md`; delete parked ideas entirely.
 Consequences: `PROJECT.md` and `ENGINEERING.md` stay focused on current truth. `FUTURE.md` preserves ideas but is not scope, roadmap, or architecture truth; items must be re-evaluated before promotion.
 Links: PROJECT §Future ideas | ENGINEERING §Exploration boundary | FUTURE.md
+
+2026-06-17 — Decision: Gap diagnostics describe evidence coverage, not land risk
+Why: Cloud gaps and weak satellite coverage are data limitations, not farmer or land failures. User-facing outputs must not make evidence gaps look like land risk.
+Alternatives: Expose internal `gap_risk` directly; hide gap diagnostics entirely; treat gaps as land risk flags.
+Consequences: User-facing surfaces should use satellite evidence coverage and assessment confidence. Internal fields such as `gap_risk` may remain pipeline helpers, but they must map to evidence limitations, not land/farmer problems. Land risk flags remain reserved for land-condition signals such as waterlogging, salinity likelihood, abandonment, and encroachment / land-use change.
+Links: PROJECT §Outputs (what the user sees) | PROJECT §Big picture (end-to-end) | PIPELINE §Evidence coverage interpretation
+Refines: 2026-05-18 — Current-build preprocessing does not interpolate or synthesize timestamps

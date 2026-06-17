@@ -22,6 +22,14 @@
       "type": "array",
       "items": { "enum": ["waterlogging", "salinity", "abandonment", "encroachment"] }
     },
+    "satellite_evidence_coverage": {
+      "type": "object",
+      "required": ["status", "rationale"],
+      "properties": {
+        "status": { "enum": ["good", "fair", "limited", "insufficient"] },
+        "rationale": { "type": "string" }
+      }
+    },
     "confidence": {
       "type": "object",
       "required": ["status", "rationale"],

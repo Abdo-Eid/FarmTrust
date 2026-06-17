@@ -299,10 +299,10 @@ def _derive_confidence(
     gap_risk = str(quality_metrics["gap_risk"])
     if gap_risk == "high":
         continuity_score -= 1.5
-        reasons.append("Gap risk is high, so timing and boundary confidence are reduced.")
+        reasons.append("Satellite evidence coverage is limited, so timing and boundary confidence are reduced.")
     elif gap_risk == "moderate":
         continuity_score -= 0.75
-        reasons.append("Gap risk is moderate, so some season interpretation remains cautious.")
+        reasons.append("Satellite evidence coverage is fair, so some season interpretation remains cautious.")
     else:
         reasons.append("Gap continuity is strong enough for a confident baseline.")
 
@@ -364,6 +364,27 @@ def _derive_confidence(
     return payload
 
 
+def _derive_satellite_evidence_coverage(quality_metrics: dict[str, Any]) -> dict[str, str]:
+    gap_risk = str(quality_metrics["gap_risk"])
+    usable_count = int(quality_metrics["usable_observation_count"])
+    reason = str(quality_metrics.get("gap_risk_reason", "")).strip()
+
+    if usable_count < 10:
+        status = "insufficient"
+        rationale = "Too few usable satellite observations for a complete automated assessment."
+    elif gap_risk == "high" or usable_count < 30:
+        status = "limited"
+        rationale = reason or "Large observation gaps limit satellite evidence coverage."
+    elif gap_risk == "moderate" or usable_count < 60:
+        status = "fair"
+        rationale = reason or "Some observation gaps are present, but evidence remains usable."
+    else:
+        status = "good"
+        rationale = reason or "Satellite observations are continuous enough for the assessment window."
+
+    return {"status": status, "rationale": rationale}
+
+
 def _score_to_level(score: float) -> str:
     if score >= 2.5:
         return "high"
@@ -380,28 +401,6 @@ def _derive_risk_flags(
     land_status: str,
 ) -> list[dict[str, str]]:
     flags: list[dict[str, str]] = []
-    gap_risk = str(quality_metrics["gap_risk"])
-    gap_reason = str(quality_metrics.get("gap_risk_reason", "")).strip()
-    if gap_risk in {"moderate", "high"}:
-        flags.append(
-            build_risk_flag(
-                "continuity_gap_risk",
-                gap_risk,
-                gap_reason or "Observation gaps may distort timing or seasonal interpretation.",
-            )
-        )
-
-    if latest_season.gap_overlap_risk in {"moderate", "high"}:
-        flags.append(
-            build_risk_flag(
-                "season_gap_overlap_risk",
-                latest_season.gap_overlap_risk,
-                (
-                    f"The latest interpreted season overlaps {latest_season.gap_overlap_count} "
-                    f"long gap window(s) near {latest_season.gap_overlap_stage}."
-                ),
-            )
-        )
 
     if any(season.quality_label == "interrupted" for season in season_metrics):
         flags.append(
@@ -500,6 +499,7 @@ def build_land_assessment(
     trend_2y, trend_basis = _derive_trend(season_metrics)
     latest_season_payload, latest_season = _latest_season_payload(season_metrics)
     confidence = _derive_confidence(quality_metrics, latest_season)
+    satellite_evidence_coverage = _derive_satellite_evidence_coverage(quality_metrics)
     risk_flags = _derive_risk_flags(
         quality_metrics,
         season_metrics,
@@ -518,6 +518,7 @@ def build_land_assessment(
         "season_count": int(season_payload["season_count"]),
         "latest_season_performance": latest_season_payload,
         "risk_flags": risk_flags,
+        "satellite_evidence_coverage": satellite_evidence_coverage,
         "confidence": confidence,
         "evidence": {
             "land_status_basis": land_status_basis,

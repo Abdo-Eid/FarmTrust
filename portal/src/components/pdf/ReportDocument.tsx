@@ -37,6 +37,13 @@ const TREND_LABELS: Record<string, string> = {
     declining: "Declining",
 };
 
+const SATELLITE_EVIDENCE_LABELS: Record<string, string> = {
+    good: "Good Coverage",
+    fair: "Fair Coverage",
+    limited: "Limited Coverage",
+    insufficient: "Insufficient Evidence",
+};
+
 const NEIGHBOR_LABELS: Record<string, string> = {
     above_avg: "Above Average",
     avg: "Average",
@@ -334,7 +341,19 @@ export function ReportDocument({
                     </View>
                 </View>
 
-                {/* Confidence Block */}
+                {/* Satellite Evidence Coverage */}
+                {land.satellite_evidence_coverage && (
+                    <View style={styles.confidenceBlock}>
+                        <Text style={styles.confidenceStatus}>
+                            Satellite Evidence Coverage: {SATELLITE_EVIDENCE_LABELS[land.satellite_evidence_coverage.status]}
+                        </Text>
+                        <Text style={styles.confidenceRationale}>
+                            {land.satellite_evidence_coverage.rationale}
+                        </Text>
+                    </View>
+                )}
+
+                {/* Assessment Confidence Block */}
                 {land.confidence && (
                     <View style={styles.confidenceBlock}>
                         <Text
@@ -348,7 +367,7 @@ export function ReportDocument({
                                           : "#dc2626",
                             }}
                         >
-                            Confidence: {land.confidence.status.toUpperCase()}
+                            Assessment Confidence: {land.confidence.status.toUpperCase()}
                         </Text>
                         <Text style={styles.confidenceRationale}>
                             {land.confidence.rationale}

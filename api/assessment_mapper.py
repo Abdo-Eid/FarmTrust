@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from api.models import Job, Land
-from api.schemas import Confidence, Indicators, LandResponse, NDVIPoint, SeasonRecord
+from api.schemas import Confidence, Indicators, LandResponse, NDVIPoint, SatelliteEvidenceCoverage, SeasonRecord
 from farmtrust_core.io.paths import land_assessment_path, season_windows_path, smoothed_timeseries_path
 
 
@@ -60,7 +60,11 @@ def _risk_flags(assessment: dict[str, Any]) -> list[str]:
 
 
 def _risk_tier(assessment: dict[str, Any]) -> str:
-    severities = [str(flag.get("severity", "low")) for flag in assessment.get("risk_flags", [])]
+    severities = [
+        str(flag.get("severity", "low"))
+        for flag in assessment.get("risk_flags", [])
+        if not str(flag.get("code", "")).startswith(("continuity_gap", "season_gap_overlap", "provisional"))
+    ]
     if "high" in severities:
         return "high"
     if "moderate" in severities:
@@ -75,6 +79,16 @@ def _confidence(assessment: dict[str, Any]) -> Confidence | None:
     reasons = raw.get("reasons", [])
     rationale = " ".join(str(reason) for reason in reasons) if isinstance(reasons, list) else str(reasons)
     return Confidence(status=str(raw.get("level", "medium")), rationale=rationale)
+
+
+def _satellite_evidence_coverage(assessment: dict[str, Any]) -> SatelliteEvidenceCoverage | None:
+    raw = assessment.get("satellite_evidence_coverage")
+    if not isinstance(raw, dict):
+        return None
+    return SatelliteEvidenceCoverage(
+        status=str(raw.get("status", "fair")),
+        rationale=str(raw.get("rationale", "Satellite evidence coverage was assessed from usable observations.")),
+    )
 
 
 def _indicators(assessment: dict[str, Any]) -> Indicators:
@@ -158,6 +172,7 @@ def map_land_response(land: Land, job: Job) -> LandResponse:
                 "trend_2y": assessment.get("trend_2y") if assessment.get("trend_2y") in VALID_TRENDS else None,
                 "season_performance": latest_label if latest_label in VALID_SEASON_LABELS else None,
                 "flags": _risk_flags(assessment),
+                "satellite_evidence_coverage": _satellite_evidence_coverage(assessment),
                 "confidence": _confidence(assessment),
                 "risk_tier": _risk_tier(assessment),
                 "indicators": _indicators(assessment),

@@ -23,8 +23,9 @@ This product is a **geospatial financial intelligence system**. It treats agricu
 * status (stable / risk / uncertain)
 * trend over time
 * last-season performance
-* explicit risk flags
-* confidence with rationale
+* explicit land risk flags
+* satellite evidence coverage
+* assessment confidence with rationale
 * a shareable PDF record
 
 The UI should feel like a **monitoring control surface + financial dossier**, not a farming app and not a generic AI dashboard.
@@ -36,8 +37,9 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 * Land Status
 * 2-Year Trend
 * Last-Season Performance
-* Risk Flags
-* Confidence (band + rationale)
+* Land Risk Flags
+* Satellite Evidence Coverage
+* Assessment Confidence (band + rationale)
 * PDF Export
 
 ## Primary User Goals
@@ -54,7 +56,7 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 1. Enter the system and open the **Lands List** (primary hub).
 2. Start a new land analysis and define AOI by drawing a polygon on the map.
 3. Submit; land appears in the list with **Processing** status.
-4. When complete, open **Land Summary**; review decision outputs, confidence, and drivers.
+4. When complete, open **Land Summary**; review decision outputs, satellite evidence coverage, assessment confidence, and drivers.
 5. Drill into **Evidence** if needed; export **PDF**; return to list.
 
 ### Monitoring (Existing Land)
@@ -99,8 +101,8 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 ### Summary and Evidence
 
 * **Loading:** show partial data if available; allow return to list.
-* **Error/Partial:** show known values; mark gaps; explain confidence impact and what is missing.
-* **Success:** decision outputs visible; confidence explicit; evidence accessible to validate or challenge.
+* **Error/Partial:** show known values; mark evidence limitations; explain assessment-confidence impact and what is missing.
+* **Success:** decision outputs visible; satellite evidence coverage and assessment confidence explicit; evidence accessible to validate or challenge.
 
 ### PDF Export
 
@@ -113,7 +115,7 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 
 ### Screens Designed (9 total) — Quick Reference
 
-1. **Lands List Control Hub** — Primary operational hub; sidebar, stat cards, lands table with status/risk/confidence columns.
+1. **Lands List Control Hub** — Primary operational hub; sidebar, stat cards, lands table with status, land risk, satellite evidence coverage, and assessment-confidence columns.
 2. **Add Land AOI Input** — AOI capture; draw-only polygon input. On desktop, form is left and map is right; on mobile, map appears above the form. Method: click land corners on the map, click near the first corner to close, drag corners before submit, and validate calculated area against 1–200 feddan.
 3. **Land Processing Status** — Job progress display; circular progress (left), pipeline timeline (right). Steps: AOI Validation ✓, Satellite Data ✓, Vegetation Analysis ⏳, Risk Modeling ⏳.
 4. **Geospatial Evidence Workbench** — Analyst deep-dive; map canvas (left 70%) + analytical sidebar (right 30%) with NDVI chart, anomalies, notes.
@@ -138,7 +140,7 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 * Area (feddan), governorate
 * Lifecycle status (Processing, Review Ready, Monitoring, Failed)
 * Last update
-* High-level risk signal + confidence band (at-a-glance)
+* High-level land risk signal + satellite evidence coverage + assessment-confidence band (at-a-glance)
 
 **Important:** Lands List should not be a map view. It is a **queue/control list**.
 
@@ -165,20 +167,22 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 * Land Status
 * Trend (2-year)
 * Last-season performance
-* Risk flags (with drivers)
-* Confidence band + rationale
+* Land risk flags (with drivers)
+* Satellite evidence coverage
+* Assessment-confidence band + rationale
 * Evidence entry points
 
 #### Decision Support Rules
 
 * Outputs are consistent and generic: **Proceed**, **Hold**, **Decline**, **Monitor-Only**.
-* Recommendation is tied to explicit drivers: status, trend shifts, risk flags, confidence band.
-* **Low confidence or missing evidence defaults to Hold**, with a clear reason and what to review.
+* Recommendation is tied to explicit drivers: status, trend shifts, land risk flags, satellite evidence coverage, and assessment-confidence band.
+* **Low assessment confidence or missing evidence defaults to Hold**, with a clear reason and what to review.
 
-#### Confidence & Uncertainty Handling
+#### Assessment Confidence & Evidence Handling
 
-* Confidence displayed as a band with a brief rationale.
-* Missing/weak data is surfaced inline and tagged to impacted outputs.
+* Assessment confidence is displayed as a band with a brief rationale; it means confidence in FarmTrust's assessment, not confidence in the land itself.
+* Satellite evidence coverage is displayed separately from land risk flags.
+* Missing/weak satellite evidence is surfaced inline and tagged to impacted outputs.
 * Uncertainty alters the recommended action and highlights the evidence to inspect.
 
 ### Evidence / Data (Optional Surface)
@@ -189,14 +193,14 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 
 #### Escalation & Exception Rules
 
-* Evidence is surfaced proactively when risk flags are new/worsening or conflict with summary.
+* Evidence is surfaced proactively when land risk flags are new/worsening or conflict with summary.
 * If evidence contradicts recommendation, shift to **Hold** and request review.
 
 ### Report Export (PDF)
 
 **Purpose:** portable record for sharing/archival.
 **Decisions:** export now/later; attach to case.
-**Information required:** summary outputs + key evidence highlights + confidence rationale.
+**Information required:** summary outputs + key evidence highlights + satellite evidence coverage + assessment-confidence rationale.
 
 ### Admin / Settings (Minimal)
 
@@ -366,7 +370,7 @@ Allowed usage:
 
 * status labels
 * risk icons
-* confidence bands
+* assessment-confidence bands
 
 Disallowed usage:
 

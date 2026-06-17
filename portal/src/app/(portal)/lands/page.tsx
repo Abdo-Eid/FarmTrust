@@ -9,7 +9,7 @@ import { DataTable } from '@/components/ui/DataTable'
 import { Button } from '@/components/ui/Button'
 import { StatCard } from '@/components/lands/StatCard'
 import { LandStatusBadge } from '@/components/lands/LandStatusBadge'
-import { ConfidenceBand } from '@/components/lands/ConfidenceBand'
+import { SatelliteEvidenceBadge } from '@/components/lands/SatelliteEvidenceBadge'
 import { TrendIndicator } from '@/components/lands/TrendIndicator'
 import { RISK_TIER_COLORS, RISK_TIER_LABELS } from '@/lib/constants'
 import type { LandResult, Column } from '@/lib/types'
@@ -109,7 +109,7 @@ export default function LandsPage() {
     },
     {
       key: 'confidence',
-      label: 'Confidence',
+      label: 'Assessment Confidence',
       render: (_, row) => {
         if (!row.confidence) return <span className="text-gray-300 text-xs">—</span>
         const colors = { high: 'text-green-600', medium: 'text-amber-600', low: 'text-red-600' }
@@ -120,6 +120,11 @@ export default function LandsPage() {
           </span>
         )
       },
+    },
+    {
+      key: 'satellite_evidence_coverage',
+      label: 'Evidence Coverage',
+      render: (_, row) => <SatelliteEvidenceBadge coverage={row.satellite_evidence_coverage} />,
     },
     {
       key: 'risk_tier',
@@ -243,7 +248,7 @@ export default function LandsPage() {
             onChange={e => setConfidenceFilter(e.target.value)}
             className="text-sm bg-transparent border-0 focus:outline-none text-gray-600 cursor-pointer"
           >
-            <option value="all">All Confidence</option>
+            <option value="all">All Assessment Confidence</option>
             {CONFIDENCE_OPTIONS.filter(c => c !== 'all').map(c => (
               <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
             ))}

@@ -17,7 +17,8 @@ The current-build output focuses on:
 - 2-year trend
 - latest-season performance
 - conservative risk flags
-- confidence and supporting evidence
+- satellite evidence coverage
+- assessment confidence and supporting evidence
 - explicit gap diagnostics
 
 The current build does **not** currently output crop category.
@@ -79,6 +80,17 @@ AOI and window notes:
 - demo and smoke-test runs may use shorter configured windows to validate code paths quickly
 - metadata includes `window` and `lookback_months`
 - one row is emitted per scene timestamp in the current build
+- STAC search currently uses the AOI bbox
+- COG reads use the bbox as a rectangular raster window for efficient HTTP range reads
+- when polygon geometry is provided, the pipeline applies a polygon mask inside that COG window
+- index statistics and `valid_fraction` are computed only over pixels inside the polygon mask
+- for bbox-only CLI fixtures, the whole bbox window is treated as the AOI
+
+`valid_fraction` meaning:
+
+- polygon AOI: usable pixels inside polygon / all pixels inside polygon
+- bbox-only AOI: usable pixels inside bbox window / all pixels inside bbox window
+- usable pixels are pixels not excluded by the current scene classification mask
 
 Satellite access notes:
 
@@ -130,6 +142,7 @@ Primary responsibilities:
 - filter usable observations with `valid_fraction >= 0.90`
 - smooth core vegetation and moisture signals
 - compute continuity metrics and gap diagnostics
+- interpret satellite evidence coverage separately from land condition
 
 Main code:
 
@@ -208,6 +221,33 @@ Important quality fields:
 threshold logic. This is intentionally visible output, not hidden internal state.
 
 `gap_ratio` is the sum of gap days beyond expected cadence divided by the usable-series span, bounded to `[0, 1]`.
+
+Evidence coverage interpretation:
+
+- Raw gap metrics describe satellite observation quality, not land or farmer quality.
+- Internal fields such as `gap_risk`, `confidence_penalty`, and `gap_risk_reason` are pipeline interpretation helpers; they should not be shown as land risk flags.
+- User-facing wording should use `satellite_evidence_coverage`, `evidence limitations`, and `assessment confidence`.
+- Assessment confidence means confidence in FarmTrust's conclusion, given satellite coverage, observation continuity, season clarity, and signal strength. It does not mean confidence in the land itself.
+- Cloud gaps or weak coverage can lower assessment confidence, but they should not by themselves create a land risk flag such as abandonment, salinity, waterlogging, or encroachment.
+
+Interpretation layers:
+
+- Raw metrics: `valid_fraction`, `total_observation_count`, `usable_observation_count`, `dropped_observation_count`, `max_gap_days`, `median_gap_days`, `gap_ratio`, `long_gap_count`, `long_gap_windows`.
+- Internal continuity classification: `gap_risk`, `confidence_penalty`, and `gap_risk_reason` describe how observation gaps affect evidence reliability.
+- User-facing interpretation: `satellite_evidence_coverage` should be communicated as `good`, `fair`, `limited`, or `insufficient`.
+- Assessment reliability: assessment confidence should be communicated as `high`, `medium`, or `low`, with a short reason tied to evidence coverage, season clarity, and signal strength.
+
+Current interpretation policy:
+
+- `good` coverage: enough usable observations and no important long gaps; proceed normally.
+- `fair` coverage: some gaps exist but they do not dominate the assessment window; proceed with normal labels and clear evidence notes.
+- `limited` coverage: important gaps exist; proceed only with caution wording and lower assessment confidence.
+- `insufficient` coverage: usable observations are too sparse or gaps dominate critical periods; assessment should be incomplete, retried with a different window/source, or sent to manual review.
+
+Threshold note:
+
+- The current code classifies continuity with `gap_risk` thresholds below.
+- Final thresholds for user-facing `satellite_evidence_coverage` and the `insufficient` branch still need product/validation review before they become portal/report contract fields.
 
 Operational notes:
 
@@ -298,10 +338,10 @@ Season boundaries should be reviewed with clear separation between adjacent seas
 
 Gap context:
 
-- gap risk does not directly change season boundaries
+- observation gap classification does not directly change season boundaries
 - seasonal outputs record whether season windows overlap long observation gaps
 - overlap diagnostics include severity and dominant touched stage: `onset`, `peak`, `tail`, or `multiple`
-- interpretation should become more cautious when continuity risk is moderate or high
+- interpretation should become more cautious when satellite evidence coverage is limited or when long gaps overlap important season stages
 
 ### 4. Land assessment
 
@@ -318,7 +358,7 @@ Primary responsibilities:
 - classify interval-level `trend_2y`
 - determine `latest_season_performance`
 - emit conservative `risk_flags`
-- compute assessment `confidence`
+- compute assessment confidence, meaning confidence in the assessment reliability
 
 Main code:
 
@@ -361,8 +401,9 @@ Assessment policy notes:
 - `land_status` is inferred from interval-level behavior across seasons and low-activity spans, not from one latest point
 - `trend_2y` is derived from season-level strength summaries such as peak NDVI and season AUC
 - `latest_season_performance` uses the latest closed season when available; otherwise it uses the latest open season and marks it provisional
-- risk flags stay conservative and should prefer `uncertain` or lower confidence when continuity or season clarity is weak
-- confidence surfaces component levels for continuity, season clarity, and signal strength in addition to the final level
+- risk flags stay conservative and should prefer `uncertain` or lower assessment confidence when continuity or season clarity is weak
+- assessment confidence surfaces component levels for satellite evidence coverage, season clarity, and signal strength in addition to the final level
+- satellite evidence limitations should be documented as evidence limitations, not as land/farmer problems
 - crop category is skipped in the current build
 
 Important assessment diagnostics:
@@ -374,7 +415,9 @@ Important assessment diagnostics:
 
 ## Current decision rules
 
-### Gap risk
+### Observation continuity classification
+
+`gap_risk` is the current internal field name for observation continuity classification. It describes satellite evidence reliability, not land risk.
 
 Current preprocessing cadence assumption:
 
@@ -389,7 +432,8 @@ Current classification logic:
 Important note:
 
 - the system does **not** blindly fill long gaps in the current build
-- instead, it exposes them explicitly and lowers confidence conservatively
+- instead, it exposes them explicitly and lowers assessment confidence conservatively
+- user-facing surfaces should not label this as `gap risk`; they should explain satellite evidence coverage and assessment reliability
 
 ### Land status
 

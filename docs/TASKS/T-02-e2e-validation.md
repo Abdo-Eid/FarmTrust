@@ -1,4 +1,4 @@
-# P-02 — End-to-End Validation
+# T-02 — End-to-End Validation
 
 ## Goal
 
@@ -28,7 +28,7 @@ OUT:
 
 Run one focused validation pass using existing current-build architecture: portal routes proxy real submissions to FastAPI, FastAPI launches the direct worker path, and the worker produces `land_assessment.json` for mapped API responses.
 
-## Build Plan
+## Task List
 
 - [ ] Polygon ingestion smoke test: run demo AOI as GeoJSON polygon input and confirm output structure.
 - [ ] Backend E2E: start FastAPI, POST a real land, poll job until `succeeded` or actionable failure, then GET land result.
@@ -37,7 +37,7 @@ Run one focused validation pass using existing current-build architecture: porta
 
 ## Feedback Log
 
-- 2026-06-16: User chose one follow-up plan for the remaining unchecked E2E verification items from the completed backend implementation work.
+- 2026-06-16: User chose one follow-up task for the remaining unchecked E2E verification items from the completed backend implementation work.
 
 ## Decisions
 
@@ -49,7 +49,7 @@ Run one focused validation pass using existing current-build architecture: porta
 
 ## Knowledge to Keep
 
-- Current-build architecture diagram lives in `ENGINEERING.md`; this plan should not duplicate long-lived architecture truth.
+- Current-build architecture diagram lives in `ENGINEERING.md`; this task should not duplicate long-lived architecture truth.
 - `OPEN_ITEMS.md` is for unresolved questions/decisions, not unchecked implementation tasks.
 
 ## Done Summary

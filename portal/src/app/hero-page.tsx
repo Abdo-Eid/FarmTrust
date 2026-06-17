@@ -110,7 +110,7 @@ export function HeroPage() {
                         {
                             icon: "analytics",
                             title: "Activity Scoring",
-                            desc: "Objective cultivation, fallow, and confidence scores per land parcel.",
+                            desc: "Objective cultivation, fallow, evidence coverage, and assessment confidence per land parcel.",
                         },
                         {
                             icon: "description",
@@ -170,7 +170,7 @@ export function HeroPage() {
                             {
                                 step: "03",
                                 title: "Report & Decide",
-                                desc: "Consolidated scores, trends, and confidence bands are delivered via portal or PDF.",
+                                desc: "Consolidated scores, trends, evidence coverage, and assessment-confidence bands are delivered via portal or PDF.",
                             },
                         ].map((item) => (
                             <div key={item.step} className="text-center">

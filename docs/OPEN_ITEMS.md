@@ -19,19 +19,20 @@ Resolution target:
 - Update `docs/ENGINEERING.md` with the chosen source strategy.
 - Update `docs/DECISIONS.md` if the decision changes or refines the current satellite-source decision.
 
-## Gap Diagnostics Usage
+## Evidence Coverage Thresholds
 
-Status: unresolved
+Status: partially resolved
 
-Current output contracts include gap diagnostics under "plus gap diagnostics." We need to decide how the pipeline should use them.
+Gap diagnostics are now interpreted as satellite evidence limitations, not land/farmer risk. The remaining work is to choose validated thresholds and contract fields for user-facing evidence coverage.
 
 Topics to resolve:
-- Which stages consume `long_gap_count` and `long_gap_windows`.
-- How seasonal analysis should interpret long gaps and gap overlap.
-- How scoring/confidence should use `gap_overlap_count`, `gap_overlap_risk`, and `gap_overlap_stage`.
-- How these diagnostics should appear in final lender-facing evidence.
-- Whether gap diagnostics only lower confidence or can also change labels/flags.
+- Thresholds for `satellite_evidence_coverage`: good / fair / limited / insufficient.
+- Minimum usable observation count for a complete assessment.
+- Maximum allowed gap size or `gap_ratio` before an assessment becomes incomplete.
+- How strongly `gap_overlap_count`, `gap_overlap_risk`, and `gap_overlap_stage` affect assessment confidence.
+- Exact API/report fields for satellite evidence coverage and assessment-confidence rationale.
 
 Resolution target:
-- Update `docs/ENGINEERING.md` with the chosen pipeline behavior.
-- Update `docs/DECISIONS.md` if this becomes a committed policy.
+- Update `docs/PIPELINE.md` with chosen thresholds and interpretation rules.
+- Update `docs/ENGINEERING.md` if API/interface contracts change.
+- Update `docs/DECISIONS.md` if threshold policy becomes a durable commitment.

@@ -49,6 +49,5 @@ feat(api): add job status endpoint (Closes #123)
 - Product/scope/roadmap/options/open questions -> `docs/PROJECT.md`
 - Architecture/ops/interfaces/pipeline/risks -> `docs/ENGINEERING.md`
 - Decisions -> `docs/DECISIONS.md` (curated with `Supersedes:` / `Refines:` references when needed)
-- Execution detail -> one `docs/PLANS/P-xx-*.md`
-
+- Execution detail -> one `docs/TASKS/T-xx-*.md`
 

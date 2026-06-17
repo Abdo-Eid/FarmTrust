@@ -2,6 +2,7 @@ export type LandStatus = 'active' | 'intermittent' | 'inactive' | 'encroachment'
 export type Trend2Y = 'improving' | 'stable' | 'declining'
 export type SeasonPerformance = 'good' | 'interrupted' | 'weak'
 export type ConfidenceLevel = 'high' | 'medium' | 'low'
+export type SatelliteEvidenceCoverageStatus = 'good' | 'fair' | 'limited' | 'insufficient'
 export type RiskTier = 'low' | 'medium' | 'high'
 export type RiskFlag = 'waterlogging' | 'salinity' | 'abandonment' | 'encroachment'
 export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled'
@@ -9,6 +10,11 @@ export type JobPhase = 'aoi_validation' | 'satellite_fetch' | 'vegetation_analys
 
 export interface Confidence {
   status: ConfidenceLevel
+  rationale: string
+}
+
+export interface SatelliteEvidenceCoverage {
+  status: SatelliteEvidenceCoverageStatus
   rationale: string
 }
 
@@ -64,6 +70,7 @@ export interface LandResult {
   trend_2y?: Trend2Y
   season_performance?: SeasonPerformance
   flags?: RiskFlag[]
+  satellite_evidence_coverage?: SatelliteEvidenceCoverage
   confidence?: Confidence
   risk_tier?: RiskTier
   indicators?: Indicators

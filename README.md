@@ -43,29 +43,29 @@ You are onboarding to FarmTrust. Read `docs/PROJECT.md`, `docs/ENGINEERING.md`,
 Ask me to confirm my role if unclear.
 ```
 
-4. Then use this role-specific plan prompt:
+4. Then use this role-specific task prompt:
 
 ```
-I am the <ROLE> for FarmTrust. Based on this role, draft a short execution plan
+I am the <ROLE> for FarmTrust. Based on this role, draft a short execution task
 with milestones, dependencies, and risks, and include a role-specific checklist.
-Store the plan in a PLAN file.
+Store the task in a TASK file.
 Only propose doc updates if it changes shared scope or technical truth.
 ```
 
-5. Create a plan:
-    - Copy `docs/PLANS/P-00-template.md` → `P-XX-<name>.md`
+5. Create a task:
+    - Copy `docs/TASKS/T-00-template.md` → `T-XX-<name>.md`
 
 ## Where to write/read
 
 - Product truth: `docs/PROJECT.md`
 - Engineering truth: `docs/ENGINEERING.md`
 - Decisions: `docs/DECISIONS.md`
-- Plans: `docs/PLANS/P-xx.md`
+- Tasks: `docs/TASKS/T-xx.md`
 - Docs index: `docs/index.md`
 
-## Plans
+## Tasks
 
-Create a plan by copying `docs/PLANS/P-00-template.md` → `P-XX-<name>.md`. `docs/PLANS/` contains only active or pending work; closed plans are removed after durable knowledge is promoted.
+Create a task by copying `docs/TASKS/T-00-template.md` → `T-XX-<name>.md`. `docs/TASKS/` contains only active or pending work; closed tasks are removed after durable knowledge is promoted.
 
 ## Python environment (uv)
 

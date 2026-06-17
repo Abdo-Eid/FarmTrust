@@ -34,6 +34,11 @@ class Confidence(BaseModel):
     rationale: str
 
 
+class SatelliteEvidenceCoverage(BaseModel):
+    status: Literal["good", "fair", "limited", "insufficient"]
+    rationale: str
+
+
 class Indicators(BaseModel):
     ndvi_peak: Optional[float] = None
     ndvi_auc: Optional[float] = None
@@ -73,6 +78,7 @@ class LandResponse(BaseModel):
     trend_2y: Optional[Literal["improving", "stable", "declining"]] = None
     season_performance: Optional[Literal["good", "interrupted", "weak"]] = None
     flags: Optional[list[Literal["waterlogging", "salinity", "abandonment", "encroachment"]]] = None
+    satellite_evidence_coverage: Optional[SatelliteEvidenceCoverage] = None
     confidence: Optional[Confidence] = None
     risk_tier: Optional[Literal["low", "medium", "high"]] = None
     indicators: Optional[Indicators] = None

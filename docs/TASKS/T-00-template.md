@@ -1,6 +1,6 @@
-# P-XX — <Plan name>
+# T-XX — <Task name>
 
-This plan will change while working; refine it over time. Findings and learnings are for your own notes.
+This task will change while working; refine it over time. Findings and learnings are for your own notes.
 
 ## Links
 
@@ -44,7 +44,7 @@ This plan will change while working; refine it over time. Findings and learnings
 * <how you promote into production>
 * <time boxes or spike notes if needed>
 
-## Plan & milestones
+## Task milestones
 
 ### Milestone 1 — <name>
 

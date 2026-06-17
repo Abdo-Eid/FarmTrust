@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { api } from "@/lib/api";
 import { RiskFlagList } from "@/components/lands/RiskFlagList";
+import { SatelliteEvidenceBadge } from "@/components/lands/SatelliteEvidenceBadge";
 import { DecisionBrief } from "@/components/summary/DecisionBrief";
 import { ConfidenceSection } from "@/components/summary/ConfidenceSection";
 import { IndicatorsGrid } from "@/components/summary/IndicatorsGrid";
@@ -159,12 +160,24 @@ export default function LandSummaryPage({
                 {/* Priority 1: Decision Brief */}
                 <DecisionBrief land={land} />
 
-                {/* Priority 2: Confidence Band */}
+                {/* Priority 2: Satellite Evidence Coverage */}
+                {land.satellite_evidence_coverage && (
+                    <div>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                            Satellite Evidence Coverage
+                        </p>
+                        <div className="bg-white border border-gray-200 rounded-md px-4 py-3 shadow-panel">
+                            <SatelliteEvidenceBadge coverage={land.satellite_evidence_coverage} showRationale />
+                        </div>
+                    </div>
+                )}
+
+                {/* Priority 3: Assessment Confidence */}
                 {land.confidence && (
                     <ConfidenceSection confidence={land.confidence} />
                 )}
 
-                {/* Priority 3: Risk Flags */}
+                {/* Priority 4: Risk Flags */}
                 <div>
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
                         Risk Flags
@@ -174,17 +187,17 @@ export default function LandSummaryPage({
                     </div>
                 </div>
 
-                {/* Priority 4: Indicators */}
+                {/* Priority 5: Indicators */}
                 {land.indicators && (
                     <IndicatorsGrid indicators={land.indicators} />
                 )}
 
-                {/* Priority 5: Report Summary */}
+                {/* Priority 6: Report Summary */}
                 {land.report_summary && (
                     <ReportSummaryText text={land.report_summary} />
                 )}
 
-                {/* Priority 6: Evidence Links */}
+                {/* Priority 7: Evidence Links */}
                 <div className="bg-white border border-gray-200 rounded-md p-4 shadow-panel">
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
                         Further Analysis

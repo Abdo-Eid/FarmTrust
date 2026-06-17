@@ -14,6 +14,10 @@ export const MOCK_LANDS: LandResult[] = [
         trend_2y: "improving",
         season_performance: "good",
         flags: [],
+        satellite_evidence_coverage: {
+            status: "good",
+            rationale: "Dense usable satellite observations across the assessment window.",
+        },
         geometry: {
             type: "Polygon",
             coordinates: [
@@ -79,6 +83,10 @@ export const MOCK_LANDS: LandResult[] = [
         trend_2y: "stable",
         season_performance: "interrupted",
         flags: ["waterlogging"],
+        satellite_evidence_coverage: {
+            status: "fair",
+            rationale: "Moderate cloud cover reduced observation density in part of the window.",
+        },
         geometry: {
             type: "Polygon",
             coordinates: [
@@ -145,6 +153,10 @@ export const MOCK_LANDS: LandResult[] = [
         trend_2y: "declining",
         season_performance: "weak",
         flags: ["abandonment", "salinity"],
+        satellite_evidence_coverage: {
+            status: "good",
+            rationale: "High usable observation count supports the inactivity interpretation.",
+        },
         confidence: {
             status: "high",
             rationale:
@@ -199,6 +211,10 @@ export const MOCK_LANDS: LandResult[] = [
         trend_2y: "declining",
         season_performance: "weak",
         flags: ["encroachment", "abandonment"],
+        satellite_evidence_coverage: {
+            status: "good",
+            rationale: "Recent imagery has enough clear observations to support land-use interpretation.",
+        },
         confidence: {
             status: "high",
             rationale:
@@ -230,6 +246,10 @@ export const MOCK_LANDS: LandResult[] = [
         trend_2y: "improving",
         season_performance: "good",
         flags: [],
+        satellite_evidence_coverage: {
+            status: "good",
+            rationale: "Excellent clear-scene coverage with few continuity gaps.",
+        },
         confidence: {
             status: "high",
             rationale:
@@ -276,6 +296,10 @@ export const MOCK_LANDS: LandResult[] = [
         trend_2y: "stable",
         season_performance: "good",
         flags: [],
+        satellite_evidence_coverage: {
+            status: "fair",
+            rationale: "Some cloud gaps reduce peak timing evidence, but the series remains usable.",
+        },
         confidence: {
             status: "medium",
             rationale:
@@ -307,6 +331,10 @@ export const MOCK_LANDS: LandResult[] = [
         trend_2y: "declining",
         season_performance: "interrupted",
         flags: ["salinity"],
+        satellite_evidence_coverage: {
+            status: "limited",
+            rationale: "Observation gaps limit the seasonal timing evidence for part of the window.",
+        },
         confidence: {
             status: "medium",
             rationale:

@@ -1,5 +1,6 @@
 export { LandStatusBadge } from './LandStatusBadge'
 export { ConfidenceBand } from './ConfidenceBand'
+export { SatelliteEvidenceBadge } from './SatelliteEvidenceBadge'
 export { RiskFlagList } from './RiskFlagList'
 export { TrendIndicator } from './TrendIndicator'
 export { StatCard } from './StatCard'

@@ -114,7 +114,7 @@ export default function LoginPage() {
                             },
                             {
                                 icon: "analytics",
-                                text: "Risk scoring & confidence bands",
+                                text: "Risk scoring & assessment-confidence bands",
                             },
                             {
                                 icon: "description",

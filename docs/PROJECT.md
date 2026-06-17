@@ -4,7 +4,7 @@ Purpose: single place for product truth (vision, scope, current roadmap, open qu
 ## Links
 - DECISIONS entry: <YYYY-MM-DD — Decision: ...>
 - ENGINEERING section: <ENGINEERING §...>
-- PLAN: <P-xx — name>
+- TASK: <T-xx — name>
 
 ## Vision
 - Provide banks and agri-financiers with objective, explainable land visibility from satellite time
@@ -27,7 +27,8 @@ Purpose: single place for product truth (vision, scope, current roadmap, open qu
 - 2-year trend: improving / stable / declining.
 - Last-season performance: good / interrupted / weak, with short reasons.
 - Risk flags: waterlogging, salinity likelihood, abandonment, encroachment / land-use change.
-- Confidence level (high/medium/low) per output.
+- Satellite evidence coverage: good / fair / limited / insufficient.
+- Assessment confidence: high / medium / low, meaning confidence in FarmTrust's assessment reliability, not confidence in the land itself.
 - Smoothed evidence graphs for the most valuable time-series signals (NDVI, EVI, NDMI, NDWI).
 - Season count across the selected interval, with season boundaries explained visually.
 - PDF report export for lender review.
@@ -71,9 +72,70 @@ Problem this solves: frequent back-and-forth and overlapping work cause drift, r
 ## Big picture (end-to-end)
 Inputs → Processing → Outputs → Workflow.
 - Inputs: land polygon drawn on a map; time window (last 24 months).
-- Processing: satellite time-series indicators → interpretation rules → confidence scoring.
-- Outputs: land status, trend, season performance, risk flags, report.
+- Processing: satellite time-series indicators → evidence coverage check → interpretation rules → assessment confidence.
+- Outputs: land status, trend, season performance, land risk flags, satellite evidence coverage, assessment confidence, report.
 - Workflow: pre-financing review → monitoring during financing → post-season review.
+
+```mermaid
+flowchart TD
+    A[Financing request or land review starts]
+    B[Loan officer opens FarmTrust]
+    C[Create land assessment]
+    D[Draw land polygon on map]
+    E[Confirm plot area and basic land details]
+
+    A --> B --> C --> D --> E
+
+    E --> F{Is the polygon usable?}
+    F -- No --> F1[Fix boundary, area, or missing details]
+    F1 --> D
+    F -- Yes --> G[Submit assessment]
+
+    G --> H[FarmTrust reads satellite history for the land]
+    H --> I{Is there enough usable satellite evidence?}
+
+    I -- Good coverage --> J[Build vegetation, moisture, and activity signals]
+    I -- Partial coverage with gaps --> I1[Continue with evidence limitation noted]
+    I1 --> I2[Record satellite evidence limitations]
+    I2 --> I3[Adjust assessment confidence, not land status by itself]
+    I3 --> J
+    I -- Insufficient evidence --> I4[Mark assessment incomplete or route to manual review]
+
+    J --> K[Detect growing seasons and activity windows]
+    K --> L{Are seasons clear?}
+
+    L -- Clear season pattern --> M[Summarize season count and latest season performance]
+    L -- Interrupted or weak pattern --> M1[Mark season weak or interrupted with reasons]
+    L -- Unclear pattern --> M2[Mark interpretation uncertain and lower assessment confidence]
+
+    M --> N[Assess 2-year trend]
+    M1 --> N
+    M2 --> N
+
+    N --> O[Check conservative risk flags]
+    O --> O1[Waterlogging]
+    O --> O2[Salinity likelihood]
+    O --> O3[Abandonment]
+    O --> O4[Encroachment or land-use change]
+
+    O1 --> P[Combine evidence into land assessment]
+    O2 --> P
+    O3 --> P
+    O4 --> P
+
+    P --> Q{Assessment outcome}
+
+    Q -- Usable assessment confidence --> R[Portal shows status, trend, latest season, land risk flags, satellite evidence coverage, assessment confidence, and evidence graphs]
+    Q -- Low assessment confidence --> R1[Portal shows result with caution notes and evidence limitations]
+    Q -- Failed or incomplete --> R2[Portal shows failed or incomplete state and reason]
+
+    R --> S[Generate lender-facing PDF report]
+    R1 --> S
+    R2 --> T[Retry, adjust polygon, or review manually]
+
+    S --> U[Loan officer uses report for financing review]
+    U --> V[Bank can monitor the land again later]
+```
 
 ## Open questions
 - [clarification needed] Should season segmentation cap cycles per year (e.g., 1–3) or be fully data-driven?
@@ -84,7 +146,7 @@ Inputs → Processing → Outputs → Workflow.
 
 ## Roadmap
 - Current Build: land assessment + lands-only portal + PDF export; minimal persistence only; pilot validation with low confusion and very low false alarms.
-- Future ideas are intentionally isolated in `FUTURE.md` and must be re-evaluated before becoming scope or a live plan.
+- Future ideas are intentionally isolated in `FUTURE.md` and must be re-evaluated before becoming scope or a live task.
 
 ## Exploration Gate
 - MVP scope written

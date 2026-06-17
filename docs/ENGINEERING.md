@@ -8,11 +8,11 @@ Detailed pipeline runbook content lives in `PIPELINE.md`.
 - DECISIONS entry: <YYYY-MM-DD — Decision: ...>
 - PROJECT section: <PROJECT §...>
 - Pipeline reference: `PIPELINE.md`
-- PLAN: <P-xx — name>
+- TASK: <T-xx — name>
 
 ## System overview
 
-- Satellite time-series pipeline producing plot-level indicators, confidence, and risk flags.
+- Satellite time-series pipeline producing plot-level indicators, assessment confidence, satellite evidence coverage, and land risk flags.
 - Outputs stored for fast portal rendering and report export.
 
 ## MVP stack
@@ -87,12 +87,12 @@ FastAPI (port 8000)
 
 - Sources: Sentinel-2 is the current implemented source. Broader satellite-source strategy, including Landsat and when/why to use each source, remains unresolved and is tracked in `OPEN_ITEMS.md`.
 - Key indicators/metrics: NDVI/EVI peak, AUC, season timing, within-season stability, mid-season shocks, spatial uniformity, NDMI, and NDWI/MNDWI.
-- Confidence strategy: quality masks + observation count + season clarity; propagate to outputs.
+- Assessment confidence strategy: quality masks + observation count + season clarity; propagate as confidence in the assessment, not confidence in the land itself.
 - Current-build indicator set (locked):
     - Coverage (observation quality / cloud gaps)
     - Vegetation trend (2-year trend from NDVI/AUC)
     - Anomalies (mid-season drops / instability)
-    - Confidence (quality + gap penalty)
+    - Assessment confidence (quality + observation continuity impact)
     - Short reasons mapped to each output
     - Smoothed metric evidence charts for NDVI, EVI, NDMI, and NDWI
 
@@ -122,8 +122,8 @@ FastAPI (port 8000)
 ## Assessment artifact boundary
 
 - `land_assessment.json` is an internal pipeline artifact, not a frontend contract.
-- The artifact summarizes preprocessing and seasonal evidence into lender-facing land status, trend, season performance, risk flags, confidence, and evidence.
-- Assessment logic must remain interval-based, evidence-preserving, conservative under weak continuity, and explicit about gap diagnostics.
+- The artifact summarizes preprocessing and seasonal evidence into lender-facing land status, trend, season performance, land risk flags, satellite evidence coverage, assessment confidence, and evidence.
+- Assessment logic must remain interval-based, evidence-preserving, conservative under weak continuity, and explicit that gap diagnostics are evidence limitations rather than land/farmer problems.
 - FastAPI maps the artifact into versioned API response DTOs for the portal and report endpoints.
 
 ## Exploration boundary
@@ -133,8 +133,7 @@ FastAPI (port 8000)
 ## Interfaces
 
 - Inputs: intended product input is polygon geometry drawn on a map; current CLI uses bbox/config input. Assessment window target is 24 months.
-- Outputs (high-level schema): land_status, trend_2y, season_performance, flags[], confidence,
-  indicators{...}, report_summary, evidence{...}, report_pdf_payload.
+- Outputs (high-level schema): land_status, trend_2y, season_performance, flags[], satellite_evidence_coverage, assessment_confidence, indicators{...}, report_summary, evidence{...}, report_pdf_payload.
 - File-based land assessment output: `land_assessment.json` with interval summary, season summary, risk flags, and metric evidence summaries. FastAPI reads this internal artifact and returns shaped API responses to the portal.
 - Versioning notes: version indicators/thresholds to keep reports stable over time.
 - API endpoints (current build):
@@ -173,7 +172,7 @@ FastAPI (port 8000)
 ## Scope notes
 
 - Current Build: minimal persistence only; no cross-run comparability requirements.
-- Non-current technical ideas are parked in `FUTURE.md` and must be re-evaluated before becoming architecture or a live plan.
+- Non-current technical ideas are parked in `FUTURE.md` and must be re-evaluated before becoming architecture or a live task.
 
 ## Technical risks
 
