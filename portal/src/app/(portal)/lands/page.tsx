@@ -88,7 +88,7 @@ export default function LandsPage() {
       label: 'Status',
       sortable: true,
       render: (_, row) => (
-        <LandStatusBadge status={row.land_status} jobStatus={row.job_status} />
+        <LandStatusBadge status={row.land_status} jobStatus={row.job_status} assessmentStatus={row.assessment_status} />
       ),
     },
     {

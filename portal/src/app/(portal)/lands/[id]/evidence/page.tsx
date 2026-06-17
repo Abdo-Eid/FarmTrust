@@ -154,6 +154,7 @@ export default function EvidencePage() {
     totalSeasons > 0
       ? (land.season_records?.reduce((sum, r) => sum + r.ndvi_peak, 0) ?? 0) / totalSeasons
       : 0
+  const requiresManualReview = land.assessment_status === 'manual_review_required'
 
   return (
     <div className="min-h-full bg-sand">
@@ -307,7 +308,14 @@ export default function EvidencePage() {
                   <CardTitle>Risk Flags</CardTitle>
                 </CardHeader>
                 <div className="space-y-3">
-                  {land.flags && land.flags.length > 0 ? (
+                  {requiresManualReview ? (
+                    <div className="flex items-center gap-3 p-4 rounded-md border border-amber-200 bg-amber-50">
+                      <span className="material-symbols-outlined text-amber-700">fact_check</span>
+                      <p className="text-amber-800 text-sm font-medium">
+                        No final automated land risk flags issued
+                      </p>
+                    </div>
+                  ) : land.flags && land.flags.length > 0 ? (
                     land.flags.map((flag) => (
                       <div
                         key={flag}

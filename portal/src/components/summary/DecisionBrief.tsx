@@ -13,6 +13,7 @@ interface DecisionBriefProps {
 
 export function DecisionBrief({ land }: DecisionBriefProps) {
   const { land_status, trend_2y, season_performance, risk_tier } = land
+  const requiresManualReview = land.assessment_status === 'manual_review_required'
 
   return (
     <div className="bg-white border border-gray-200 rounded-md shadow-panel overflow-hidden">
@@ -22,7 +23,11 @@ export function DecisionBrief({ land }: DecisionBriefProps) {
           {/* Land Status — largest, most prominent */}
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Land Status</p>
-            {land_status ? (
+            {requiresManualReview ? (
+              <span className="inline-flex items-center px-4 py-1.5 rounded-full border text-sm font-semibold bg-amber-50 text-amber-800 border-amber-200">
+                Manual Review Required
+              </span>
+            ) : land_status ? (
               <span className={clsx(
                 'inline-flex items-center px-4 py-1.5 rounded-full border text-sm font-semibold',
                 LAND_STATUS_COLORS[land_status]
@@ -39,7 +44,9 @@ export function DecisionBrief({ land }: DecisionBriefProps) {
           {/* 2-Year Trend */}
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">2-Year Trend</p>
-            {trend_2y ? (
+            {requiresManualReview ? (
+              <span className="text-gray-400 text-sm">Not issued</span>
+            ) : trend_2y ? (
               <TrendIndicator trend={trend_2y} size="md" />
             ) : (
               <span className="text-gray-400 text-sm">—</span>
@@ -51,7 +58,9 @@ export function DecisionBrief({ land }: DecisionBriefProps) {
           {/* Season Performance */}
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Last Season</p>
-            {season_performance ? (
+            {requiresManualReview ? (
+              <span className="text-gray-400 text-sm">Not issued</span>
+            ) : season_performance ? (
               <span className={clsx(
                 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium',
                 SEASON_COLORS[season_performance]
@@ -68,7 +77,9 @@ export function DecisionBrief({ land }: DecisionBriefProps) {
           {/* Risk Tier */}
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Risk Tier</p>
-            {risk_tier ? (
+            {requiresManualReview ? (
+              <span className="text-gray-400 text-sm">Not issued</span>
+            ) : risk_tier ? (
               <span className={clsx(
                 'inline-flex items-center px-3 py-1 rounded-full border text-xs font-semibold',
                 RISK_TIER_COLORS[risk_tier]
@@ -85,10 +96,12 @@ export function DecisionBrief({ land }: DecisionBriefProps) {
       {/* Interpretation note */}
       <div className="px-6 py-3 bg-gray-50">
         <p className="text-xs text-gray-500">
-          Decision outputs derived from 24-month satellite observation window.
-          {risk_tier === 'low' && ' Suitable for standard financing consideration.'}
-          {risk_tier === 'medium' && ' Conditional financing — review risk flags before proceeding.'}
-          {risk_tier === 'high' && ' High risk — additional assessment recommended before financing.'}
+          {requiresManualReview
+            ? 'Satellite evidence is insufficient for a final automated assessment. Manual review is required.'
+            : 'Decision outputs derived from 24-month satellite observation window.'}
+          {!requiresManualReview && risk_tier === 'low' && ' Suitable for standard financing consideration.'}
+          {!requiresManualReview && risk_tier === 'medium' && ' Conditional financing - review risk flags before proceeding.'}
+          {!requiresManualReview && risk_tier === 'high' && ' High risk - additional assessment recommended before financing.'}
         </p>
       </div>
     </div>

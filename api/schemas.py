@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 
 JobStatus = Literal["queued", "running", "succeeded", "failed", "cancelled"]
+AssessmentStatus = Literal["complete", "manual_review_required"]
 JobPhase = Literal[
     "aoi_validation",
     "satellite_fetch",
@@ -73,6 +74,7 @@ class LandResponse(BaseModel):
     submitted_at: str
     job_id: str
     job_status: JobStatus
+    assessment_status: Optional[AssessmentStatus] = None
     geometry: Optional[dict[str, Any]] = None
     land_status: Optional[Literal["active", "intermittent", "inactive", "encroachment"]] = None
     trend_2y: Optional[Literal["improving", "stable", "declining"]] = None

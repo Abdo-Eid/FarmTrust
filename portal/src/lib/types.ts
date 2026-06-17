@@ -1,6 +1,7 @@
 export type LandStatus = 'active' | 'intermittent' | 'inactive' | 'encroachment'
 export type Trend2Y = 'improving' | 'stable' | 'declining'
 export type SeasonPerformance = 'good' | 'interrupted' | 'weak'
+export type AssessmentStatus = 'complete' | 'manual_review_required'
 export type ConfidenceLevel = 'high' | 'medium' | 'low'
 export type SatelliteEvidenceCoverageStatus = 'good' | 'fair' | 'limited' | 'insufficient'
 export type RiskTier = 'low' | 'medium' | 'high'
@@ -65,6 +66,7 @@ export interface LandResult {
   submitted_at: string
   job_id: string
   job_status: JobStatus
+  assessment_status?: AssessmentStatus
   geometry?: GeoJSON.Geometry
   land_status?: LandStatus
   trend_2y?: Trend2Y

@@ -183,7 +183,7 @@ export default function LandSummaryPage({
                         Risk Flags
                     </p>
                     <div className="bg-white border border-gray-200 rounded-md px-4 py-3 shadow-panel">
-                        <RiskFlagList flags={land.flags ?? []} />
+                        <RiskFlagList flags={land.flags ?? []} assessmentStatus={land.assessment_status} />
                     </div>
                 </div>
 

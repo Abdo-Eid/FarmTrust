@@ -38,40 +38,67 @@ Keep the current separation introduced in the codebase:
 
 Add a gate after evidence coverage is computed and before final API/report presentation. The gate should not rewrite land status for cloud/gap reasons. It should lower confidence, mark the result incomplete, or require review when evidence is insufficient.
 
+Approved policy:
+- Add `assessment_status: complete | manual_review_required`.
+- For `insufficient` evidence, use `assessment_status = manual_review_required`.
+- For `insufficient` evidence, public API/report must not present a final automated `land_status`, `risk_tier`, `trend_2y`, or `season_performance`.
+- Evidence/cloud gaps must never create land/farming risk flags.
+- `land_status` remains derived only from observed land signals.
+- Confidence caps by evidence coverage:
+  - `good`: no cap
+  - `fair`: max `medium`
+  - `limited`: max `low`
+  - `insufficient`: `low`
+
+Evidence coverage thresholds, ordered first match wins:
+- `insufficient`: `usable_observation_count < 12`, or `gap_ratio > 0.60`, or `max_gap_days > 90`, or `long_gap_count > 12`.
+- `limited`: `usable_observation_count < 30`, or `gap_risk == "high"`, or `gap_ratio > 0.30`, or `max_gap_days > 45`, or `long_gap_count > 6`.
+- `fair`: `usable_observation_count < 60`, or `gap_risk == "moderate"`, or `gap_ratio > 0.15`, or `max_gap_days > 10`, or `long_gap_count > 0`.
+- `good`: none of the above.
+
 ## Task List
 
-- [ ] Confirm the exact threshold policy for `good`, `fair`, `limited`, and `insufficient` using existing metrics: `usable_observation_count`, `gap_ratio`, `max_gap_days`, `long_gap_count`, and `gap_risk`.
-- [ ] Decide insufficient-evidence behavior: no final status, provisional status, or manual review required.
-- [ ] Update backend scoring so evidence coverage and completeness gates are deterministic and testable.
-- [ ] Update API schemas/contracts if the chosen behavior needs a field such as `assessment_status`, `review_required`, or `status_provisional`.
-- [ ] Update portal summary/table/PDF to render the chosen insufficient-evidence state without implying land risk.
-- [ ] Add focused backend fixtures/tests for good, limited, and insufficient coverage cases.
-- [ ] Add portal typecheck/build verification after UI contract changes.
+- [x] Confirm the exact threshold policy for `good`, `fair`, `limited`, and `insufficient` using existing metrics: `usable_observation_count`, `gap_ratio`, `max_gap_days`, `long_gap_count`, and `gap_risk`.
+- [x] Decide insufficient-evidence behavior: no final status, provisional status, or manual review required.
+- [x] Update backend scoring so evidence coverage and completeness gates are deterministic and testable.
+- [x] Update API schemas/contracts if the chosen behavior needs a field such as `assessment_status`, `review_required`, or `status_provisional`.
+- [x] Update portal summary/table/PDF to render the chosen insufficient-evidence state without implying land risk.
+- [x] Add focused backend fixtures/tests for good, limited, and insufficient coverage cases.
+- [x] Add portal typecheck/build verification after UI contract changes.
 
 ## Feedback Log
 
 - 2026-06-17: User asked whether the diagram point should remain; recommendation was to keep and enhance it because it prevents evidence gaps from being treated as land or farmer risk.
 - 2026-06-17: User clarified the concern is implementation behind the diagram, not only diagram wording.
 - 2026-06-17: User requested a dedicated task for this implementation point.
+- 2026-06-17: User approved manual-review-required behavior, explicit `assessment_status`, ordered evidence thresholds, and confidence caps by coverage band.
 
 ## Decisions
 
 - Existing policy direction: evidence gaps reduce assessment reliability, not land status by themselves.
 - Existing implementation baseline: backend emits `satellite_evidence_coverage`; portal displays it separately from assessment confidence; gap continuity is no longer mapped to land risk flags.
+- 2026-06-17: Insufficient evidence uses `assessment_status = manual_review_required`; public API/report suppresses final automated land status, risk tier, trend, and season performance.
+- 2026-06-17: Evidence coverage thresholds use ordered first-match rules over usable observation count, gap ratio, max gap days, long gap count, and internal gap risk.
+- 2026-06-17: Confidence is capped by evidence coverage: no cap for `good`, max `medium` for `fair`, max `low` for `limited`, and `low` for `insufficient`.
 
 ## Open Questions
 
-- [clarification needed] What exact thresholds define `good`, `fair`, `limited`, and `insufficient` evidence coverage?
-- [clarification needed] For `insufficient` evidence, should the backend return no `land_status`, a provisional `land_status`, or a manual-review-required result?
-- [clarification needed] Should the API expose assessment completeness as a separate field, for example `assessment_status: complete | provisional | incomplete`, or keep it implicit in `satellite_evidence_coverage` and `assessment_confidence`?
+- Resolved: thresholds are recorded in Chosen Approach.
+- Resolved: insufficient evidence returns a manual-review-required result.
+- Resolved: API exposes `assessment_status: complete | manual_review_required`.
 
 ## Knowledge to Keep
 
 - Missing observations are evidence limitations, not land/farmer risk.
 - `land_status` can change only when observed land signals support the change.
 - `satellite_evidence_coverage` and `assessment_confidence` should remain separate user-facing concepts.
-- Durable threshold and completeness decisions should be promoted to canonical docs after implementation.
+- Durable threshold and completeness decisions were promoted to `DECISIONS.md`.
+- Insufficient evidence suppresses final automated public status, trend, season performance, and risk tier while preserving evidence coverage and assessment confidence context.
+- Portal/report wording for manual-review results must not say "no risk" as if a final land-risk assessment was completed.
 
 ## Done Summary
 
-- Pending.
+- Implemented deterministic evidence coverage thresholds, confidence caps, and `assessment_status`.
+- Added manual-review-required handling for insufficient evidence in scoring, API mapping, contracts, portal summary/table/evidence/workbench labels, and PDF output.
+- Added backend tests for good, limited, insufficient, and public API manual-review suppression.
+- Verification: `uv run python -m unittest discover -s tests` passed; `bun run --cwd E:\projects\FarmTrust\portal typecheck` passed; `bun run --cwd E:\projects\FarmTrust\portal build -- --webpack` passed.

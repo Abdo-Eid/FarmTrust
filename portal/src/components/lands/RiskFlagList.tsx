@@ -1,13 +1,23 @@
 import { clsx } from 'clsx'
 import { FLAG_LABELS, FLAG_ICONS } from '@/lib/constants'
-import type { RiskFlag } from '@/lib/types'
+import type { AssessmentStatus, RiskFlag } from '@/lib/types'
 
 interface RiskFlagListProps {
   flags: RiskFlag[]
+  assessmentStatus?: AssessmentStatus
   className?: string
 }
 
-export function RiskFlagList({ flags, className }: RiskFlagListProps) {
+export function RiskFlagList({ flags, assessmentStatus, className }: RiskFlagListProps) {
+  if (assessmentStatus === 'manual_review_required') {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-amber-700">
+        <span className="material-symbols-outlined text-sm">fact_check</span>
+        No final automated risk flags issued
+      </span>
+    )
+  }
+
   if (flags.length === 0) {
     return (
       <span className="inline-flex items-center gap-1 text-xs text-green-600">

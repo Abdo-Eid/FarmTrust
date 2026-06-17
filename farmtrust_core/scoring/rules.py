@@ -35,6 +35,17 @@ REQUIRED_SEASON_PAYLOAD_KEYS = (
     "gap_risk",
     "seasons",
 )
+COVERAGE_CONFIDENCE_CAPS = {
+    "good": None,
+    "fair": "medium",
+    "limited": "low",
+    "insufficient": "low",
+}
+CONFIDENCE_RANK = {
+    "low": 1,
+    "medium": 2,
+    "high": 3,
+}
 
 
 @dataclass(frozen=True)
@@ -367,22 +378,101 @@ def _derive_confidence(
 def _derive_satellite_evidence_coverage(quality_metrics: dict[str, Any]) -> dict[str, str]:
     gap_risk = str(quality_metrics["gap_risk"])
     usable_count = int(quality_metrics["usable_observation_count"])
+    gap_ratio = float(quality_metrics.get("gap_ratio", 0.0))
+    max_gap_days = float(quality_metrics.get("max_gap_days", 0.0))
+    long_gap_count = int(quality_metrics.get("long_gap_count", 0))
     reason = str(quality_metrics.get("gap_risk_reason", "")).strip()
 
-    if usable_count < 10:
+    if usable_count < 12:
         status = "insufficient"
         rationale = "Too few usable satellite observations for a complete automated assessment."
-    elif gap_risk == "high" or usable_count < 30:
+    elif gap_ratio > 0.60:
+        status = "insufficient"
+        rationale = "Satellite evidence gaps dominate the assessment window."
+    elif max_gap_days > 90:
+        status = "insufficient"
+        rationale = "A very long satellite observation gap prevents a complete automated assessment."
+    elif long_gap_count > 12:
+        status = "insufficient"
+        rationale = "Too many long satellite observation gaps prevent a complete automated assessment."
+    elif usable_count < 30:
+        status = "limited"
+        rationale = "Usable satellite observations are sparse, so automated interpretation is limited."
+    elif gap_risk == "high":
         status = "limited"
         rationale = reason or "Large observation gaps limit satellite evidence coverage."
-    elif gap_risk == "moderate" or usable_count < 60:
+    elif gap_ratio > 0.30:
+        status = "limited"
+        rationale = "Satellite evidence gaps limit automated interpretation."
+    elif max_gap_days > 45:
+        status = "limited"
+        rationale = "A long satellite observation gap limits automated interpretation."
+    elif long_gap_count > 6:
+        status = "limited"
+        rationale = "Frequent long satellite observation gaps limit automated interpretation."
+    elif usable_count < 60:
+        status = "fair"
+        rationale = "Usable satellite observations are adequate but thinner than preferred."
+    elif gap_risk == "moderate":
         status = "fair"
         rationale = reason or "Some observation gaps are present, but evidence remains usable."
+    elif gap_ratio > 0.15:
+        status = "fair"
+        rationale = "Some satellite evidence gaps are present, but evidence remains usable."
+    elif max_gap_days > 10:
+        status = "fair"
+        rationale = "A moderate satellite observation gap is present, but evidence remains usable."
+    elif long_gap_count > 0:
+        status = "fair"
+        rationale = "One or more satellite observation gaps are present, but evidence remains usable."
     else:
         status = "good"
         rationale = reason or "Satellite observations are continuous enough for the assessment window."
 
     return {"status": status, "rationale": rationale}
+
+
+def _derive_assessment_status(satellite_evidence_coverage: dict[str, str]) -> str:
+    if satellite_evidence_coverage["status"] == "insufficient":
+        return "manual_review_required"
+    return "complete"
+
+
+def _cap_confidence_by_coverage(
+    confidence: dict[str, Any],
+    satellite_evidence_coverage: dict[str, str],
+) -> dict[str, Any]:
+    capped = dict(confidence)
+    reasons = list(capped.get("reasons", []))
+    coverage_status = satellite_evidence_coverage["status"]
+    cap = COVERAGE_CONFIDENCE_CAPS[coverage_status]
+    if cap is None:
+        capped["reasons"] = reasons
+        return capped
+
+    current_level = str(capped.get("level", "medium"))
+    if CONFIDENCE_RANK[current_level] > CONFIDENCE_RANK[cap]:
+        capped["level"] = cap
+        reasons.append(
+            f"Assessment confidence is capped at {cap} because satellite evidence coverage is {coverage_status}."
+        )
+    elif coverage_status == "insufficient" and current_level != "low":
+        capped["level"] = "low"
+        reasons.append("Assessment confidence is low because satellite evidence is insufficient.")
+    elif coverage_status == "insufficient":
+        reasons.append("Satellite evidence is insufficient, so automated assessment requires manual review.")
+
+    components = capped.get("components")
+    if isinstance(components, dict):
+        components = dict(components)
+        if coverage_status == "fair" and components.get("continuity") == "high":
+            components["continuity"] = "medium"
+        elif coverage_status in {"limited", "insufficient"}:
+            components["continuity"] = "low"
+        capped["components"] = components
+
+    capped["reasons"] = reasons
+    return capped
 
 
 def _score_to_level(score: float) -> str:
@@ -463,15 +553,6 @@ def _derive_risk_flags(
             )
         )
 
-    if latest_season.is_open:
-        flags.append(
-            build_risk_flag(
-                "provisional_latest_season",
-                "low",
-                "The latest season is still open at the right edge of the available series.",
-            )
-        )
-
     return flags
 
 
@@ -498,17 +579,29 @@ def build_land_assessment(
     )
     trend_2y, trend_basis = _derive_trend(season_metrics)
     latest_season_payload, latest_season = _latest_season_payload(season_metrics)
-    confidence = _derive_confidence(quality_metrics, latest_season)
     satellite_evidence_coverage = _derive_satellite_evidence_coverage(quality_metrics)
+    assessment_status = _derive_assessment_status(satellite_evidence_coverage)
+    confidence = _cap_confidence_by_coverage(
+        _derive_confidence(quality_metrics, latest_season),
+        satellite_evidence_coverage,
+    )
     risk_flags = _derive_risk_flags(
         quality_metrics,
         season_metrics,
         latest_season,
         land_status=land_status,
     )
+    if assessment_status == "manual_review_required":
+        land_status = None
+        land_status_basis = "Satellite evidence is insufficient for a final automated land-status assessment."
+        trend_2y = None
+        trend_basis = "Satellite evidence is insufficient for a final automated trend assessment."
+        latest_season_payload = None
+        risk_flags = []
 
     return {
         "aoi_id": str(quality_metrics["aoi_id"]),
+        "assessment_status": assessment_status,
         "interval": {
             "start_date": str(run_metadata.get("start_date", observations[0].timestamp.date().isoformat())),
             "end_date": str(run_metadata.get("end_date", observations[-1].timestamp.date().isoformat())),

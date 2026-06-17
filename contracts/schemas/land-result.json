@@ -14,6 +14,7 @@
     "submitted_at": { "type": "string", "format": "date-time" },
     "job_id": { "type": "string" },
     "job_status": { "enum": ["queued", "running", "succeeded", "failed"] },
+    "assessment_status": { "enum": ["complete", "manual_review_required"] },
     "geometry": { "type": "object" },
     "land_status": { "enum": ["active", "intermittent", "inactive", "encroachment"] },
     "trend_2y": { "enum": ["improving", "stable", "declining"] },
