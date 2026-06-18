@@ -11,7 +11,7 @@ export function SeasonTable({ records }: SeasonTableProps) {
   if (!records || records.length === 0) {
     return (
       <div className="p-6 text-center text-gray-500 text-sm bg-gray-50 rounded-md border border-gray-100">
-        No seasonal records available
+        No activity-window records available
       </div>
     )
   }
@@ -40,7 +40,7 @@ export function SeasonTable({ records }: SeasonTableProps) {
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-gray-50 text-gray-600 font-medium border-b border-gray-100">
-            <th className="px-4 py-3 text-left">Season</th>
+            <th className="px-4 py-3 text-left">Activity Window</th>
             <th className="px-4 py-3 text-left">Period</th>
             <th className="px-4 py-3 text-left">NDVI Peak</th>
             <th className="px-4 py-3 text-left">Outcome</th>

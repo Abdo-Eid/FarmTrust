@@ -1,11 +1,16 @@
-"""Season window detection utilities."""
+"""Vegetation activity-window detection utilities.
+
+The durable output file still uses season-oriented field names for API
+compatibility. In this module, a "season" record means a detected vegetation
+activity window from satellite observations, not an agronomic crop season.
+"""
 
 from __future__ import annotations
 
 import csv
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from statistics import median
 from pathlib import Path
 from typing import Any, Optional
@@ -31,13 +36,20 @@ REQUIRED_QUALITY_KEYS = (
     "gap_risk",
 )
 
-ACTIVITY_THRESHOLD = 0.18
-MIN_SEASON_DURATION_DAYS = 20.0
-MIN_SEASON_OBSERVATIONS = 4
+BASELINE_METHOD = "local_p20_smoothed_ndvi"
+BASELINE_WINDOW_DAYS = 90.0
+BASELINE_PERCENTILE = 20.0
+MIN_LOCAL_BASELINE_OBSERVATIONS = 5
+PEAK_METHOD = "max_smoothed_ndvi_in_candidate_window"
+ACTIVITY_BOUNDARY_AMPLITUDE_FRACTION = 0.35
+LOW_VEGETATION_FLOOR = 0.18
+ACTIVITY_THRESHOLD = LOW_VEGETATION_FLOOR
+MIN_ACTIVITY_AMPLITUDE = 0.08
+GOOD_ACTIVITY_AMPLITUDE = 0.12
+MIN_ACTIVITY_WINDOW_DURATION_DAYS = 20.0
+MIN_ACTIVITY_WINDOW_OBSERVATIONS = 4
 GOOD_PEAK_THRESHOLD = 0.30
-WEAK_PEAK_THRESHOLD = 0.24
 INTERRUPTED_DROP_THRESHOLD = 0.05
-GOOD_RISE_GAIN = 0.08
 EVI_CONFIRMATION_MIN = 0.20
 NDMI_CONFIRMATION_MIN = 0.05
 NDWI_CONFIRMATION_MAX = 0.20
@@ -70,6 +82,16 @@ class SeasonWindow:
     gap_overlap_count: int
     gap_overlap_risk: str
     gap_overlap_stage: str
+    window_type: str
+    provisional: bool
+    baseline_ndvi: float
+    amplitude_ndvi: float
+    boundary_threshold_ndvi: float
+    usable_observation_count: int
+    start_boundary_certainty: str
+    peak_certainty: str
+    end_boundary_certainty: str
+    internal_gap_count: int
 
 
 def _parse_timestamp(value: str) -> datetime:
@@ -160,6 +182,45 @@ def compute_activity_threshold(
     return activity_threshold
 
 
+def _percentile(values: list[float], percentile: float) -> float:
+    if not values:
+        raise ValueError("Cannot compute percentile without values")
+    ordered = sorted(values)
+    if len(ordered) == 1:
+        return float(ordered[0])
+
+    rank = (percentile / 100.0) * (len(ordered) - 1)
+    lower_index = int(rank)
+    upper_index = min(lower_index + 1, len(ordered) - 1)
+    fraction = rank - lower_index
+    lower_value = ordered[lower_index]
+    upper_value = ordered[upper_index]
+    return float(lower_value + (upper_value - lower_value) * fraction)
+
+
+def compute_local_baselines(observations: list[SeasonalObservation]) -> list[float]:
+    if not observations:
+        return []
+
+    global_baseline = _percentile(
+        [row.ndvi_smoothed for row in observations],
+        BASELINE_PERCENTILE,
+    )
+    baselines: list[float] = []
+    for observation in observations:
+        local_values = [
+            candidate.ndvi_smoothed
+            for candidate in observations
+            if abs((candidate.timestamp - observation.timestamp).total_seconds()) / 86400.0
+            <= BASELINE_WINDOW_DAYS
+        ]
+        if len(local_values) >= MIN_LOCAL_BASELINE_OBSERVATIONS:
+            baselines.append(_percentile(local_values, BASELINE_PERCENTILE))
+        else:
+            baselines.append(global_baseline)
+    return baselines
+
+
 def _segment_active_periods(
     observations: list[SeasonalObservation],
     *,
@@ -187,23 +248,6 @@ def _segment_active_periods(
     return segments
 
 
-def _backtrack_start_index(
-    observations: list[SeasonalObservation],
-    crossing_index: int,
-) -> int:
-    start_index = crossing_index
-
-    while start_index > 0:
-        previous = observations[start_index - 1]
-        current = observations[start_index]
-        if previous.ndvi_smoothed <= current.ndvi_smoothed:
-            start_index -= 1
-            continue
-        break
-
-    return start_index
-
-
 def _duration_days(observations: list[SeasonalObservation]) -> float:
     start = observations[0].timestamp
     end = observations[-1].timestamp
@@ -220,19 +264,24 @@ def _max_single_step_drop(values: list[float]) -> float:
 def _label_quality(
     segment: list[SeasonalObservation],
     *,
+    baseline_ndvi: float,
+    amplitude_ndvi: float,
     is_open: bool = False,
 ) -> tuple[str, str, str]:
     values = [row.ndvi_smoothed for row in segment]
     peak_row = max(segment, key=lambda row: row.ndvi_smoothed)
     peak_ndvi = peak_row.ndvi_smoothed
     duration_days = _duration_days(segment)
-    rise_gain = peak_ndvi - segment[0].ndvi_smoothed
     max_drop = _max_single_step_drop(values)
 
-    if peak_ndvi < WEAK_PEAK_THRESHOLD or duration_days < MIN_SEASON_DURATION_DAYS:
+    if duration_days < MIN_ACTIVITY_WINDOW_DURATION_DAYS or amplitude_ndvi < GOOD_ACTIVITY_AMPLITUDE:
         label = (
             "weak",
-            f"Weak season: peak_ndvi={peak_ndvi:.3f}, duration_days={duration_days:.1f}.",
+            (
+                "Weak vegetation activity window: "
+                f"peak_ndvi={peak_ndvi:.3f}, baseline_ndvi={baseline_ndvi:.3f}, "
+                f"amplitude_ndvi={amplitude_ndvi:.3f}, duration_days={duration_days:.1f}."
+            ),
         )
         quality_label, evidence_summary = _append_open_note(label, is_open=is_open)
         return quality_label, evidence_summary, "weak"
@@ -240,22 +289,30 @@ def _label_quality(
     if max_drop >= INTERRUPTED_DROP_THRESHOLD:
         label = (
             "interrupted",
-            f"Interrupted season: peak_ndvi={peak_ndvi:.3f}, max_drop={max_drop:.3f}.",
+            f"Interrupted vegetation activity window: peak_ndvi={peak_ndvi:.3f}, max_drop={max_drop:.3f}.",
         )
         quality_label, evidence_summary = _append_open_note(label, is_open=is_open)
         return quality_label, evidence_summary, "moderate"
 
-    if peak_ndvi >= GOOD_PEAK_THRESHOLD and rise_gain >= GOOD_RISE_GAIN:
+    if peak_ndvi >= GOOD_PEAK_THRESHOLD and amplitude_ndvi >= GOOD_ACTIVITY_AMPLITUDE:
         label = (
             "good",
-            f"Good season: peak_ndvi={peak_ndvi:.3f}, rise_gain={rise_gain:.3f}.",
+            (
+                "Good vegetation activity window: "
+                f"peak_ndvi={peak_ndvi:.3f}, baseline_ndvi={baseline_ndvi:.3f}, "
+                f"amplitude_ndvi={amplitude_ndvi:.3f}."
+            ),
         )
         quality_label, evidence_summary = _append_open_note(label, is_open=is_open)
         return quality_label, evidence_summary, "strong"
 
     label = (
         "weak",
-        f"Weak season: peak_ndvi={peak_ndvi:.3f}, rise_gain={rise_gain:.3f}.",
+        (
+            "Weak vegetation activity window: "
+            f"peak_ndvi={peak_ndvi:.3f}, baseline_ndvi={baseline_ndvi:.3f}, "
+            f"amplitude_ndvi={amplitude_ndvi:.3f}."
+        ),
     )
     quality_label, evidence_summary = _append_open_note(label, is_open=is_open)
     return quality_label, evidence_summary, "weak"
@@ -270,7 +327,7 @@ def _append_open_note(
         return label
 
     quality_label, evidence_summary = label
-    return quality_label, f"{evidence_summary[:-1]} Still active at end of available series."
+    return quality_label, f"{evidence_summary[:-1]} Still active at end of available observations; boundary is provisional."
 
 
 def _compute_multi_index_confirmation(segment: list[SeasonalObservation]) -> tuple[str, str]:
@@ -307,8 +364,8 @@ def _apply_confirmation_adjustment(
     confirmation_evidence: str,
 ) -> tuple[str, str]:
     adjusted_label = quality_label
-    if quality_label == "good" and confirmation_level == "weak":
-        adjusted_label = "interrupted"
+    if confirmation_level == "weak":
+        adjusted_label = "weak"
     elif quality_label == "interrupted" and confirmation_level == "strong" and base_level == "moderate":
         adjusted_label = "good"
 
@@ -318,9 +375,9 @@ def _apply_confirmation_adjustment(
 def _compute_gap_overlap(
     season_observations: list[SeasonalObservation],
     long_gap_windows: list[dict[str, Any]],
-) -> tuple[int, str, str, str]:
+) -> tuple[int, str, str, str, str, str, str, int, bool]:
     if not season_observations or not long_gap_windows:
-        return 0, "low", "none", "No long gaps overlap this season window."
+        return 0, "low", "none", "No long gaps overlap this activity window.", "clear", "clear", "clear", 0, False
 
     season_start = season_observations[0].timestamp
     season_end = season_observations[-1].timestamp
@@ -328,10 +385,12 @@ def _compute_gap_overlap(
     onset_end = season_start + (season_end - season_start) / 3
     tail_start = season_end - (season_end - season_start) / 3
     peak_row = max(season_observations, key=lambda row: row.ndvi_smoothed)
-    peak_start = peak_row.timestamp - (season_end - season_start) / 6
-    peak_end = peak_row.timestamp + (season_end - season_start) / 6
+    peak_half_window_days = max(6.0, season_span_days / 6.0)
+    peak_start = peak_row.timestamp - timedelta(days=peak_half_window_days)
+    peak_end = peak_row.timestamp + timedelta(days=peak_half_window_days)
     overlapping: list[dict[str, Any]] = []
     touched_stages: set[str] = set()
+    internal_gap_count = 0
 
     for window in long_gap_windows:
         start_value = window.get("start_timestamp")
@@ -343,16 +402,24 @@ def _compute_gap_overlap(
         gap_end = _parse_timestamp(end_value)
         if gap_start <= season_end and gap_end >= season_start:
             overlapping.append(window)
-            if gap_start <= onset_end and gap_end >= season_start:
+            if gap_start < onset_end and gap_end >= season_start:
                 touched_stages.add("onset")
             if gap_start <= peak_end and gap_end >= peak_start:
                 touched_stages.add("peak")
-            if gap_start <= season_end and gap_end >= tail_start:
+            if gap_start <= season_end and gap_end > tail_start:
                 touched_stages.add("tail")
+            touches_middle = (
+                gap_start > onset_end
+                and gap_end < tail_start
+                and not (gap_start <= peak_end and gap_end >= peak_start)
+            )
+            if touches_middle:
+                touched_stages.add("middle")
+                internal_gap_count += 1
 
     overlap_count = len(overlapping)
     if overlap_count == 0:
-        return 0, "low", "none", "No long gaps overlap this season window."
+        return 0, "low", "none", "No long gaps overlap this activity window.", "clear", "clear", "clear", 0, False
 
     max_overlap_gap_days = max(float(window.get("gap_days", 0.0)) for window in overlapping)
     if len(touched_stages) > 1:
@@ -374,14 +441,24 @@ def _compute_gap_overlap(
     else:
         overlap_risk = "moderate"
 
+    start_boundary_certainty = "limited" if "onset" in touched_stages else "clear"
+    peak_certainty = "limited" if "peak" in touched_stages else "clear"
+    end_boundary_certainty = "limited" if "tail" in touched_stages else "clear"
+    provisional = start_boundary_certainty == "limited" or end_boundary_certainty == "limited"
+
     return (
         overlap_count,
         overlap_risk,
         dominant_stage,
         (
-            f"{overlap_count} long gap window(s) overlap this season "
+            f"{overlap_count} long gap window(s) overlap this activity window "
             f"(stage={dominant_stage}, max_gap_days={max_overlap_gap_days:.1f}, span_days={season_span_days:.1f})."
         ),
+        start_boundary_certainty,
+        peak_certainty,
+        end_boundary_certainty,
+        internal_gap_count,
+        provisional,
     )
 
 
@@ -412,26 +489,71 @@ def detect_season_windows(
         observations,
         activity_threshold=activity_threshold,
     )
+    baselines = compute_local_baselines(observations)
     segments = _segment_active_periods(observations, activity_threshold=activity_threshold)
 
+    used_ranges: list[tuple[int, int]] = []
+
     for crossing_index, segment in segments:
-        start_index = _backtrack_start_index(observations, crossing_index)
-        end_index = crossing_index + len(segment) - 1
-        season_observations = observations[start_index : end_index + 1]
-        is_open = end_index == len(observations) - 1
+        segment_start_index = crossing_index
+        segment_end_index = crossing_index + len(segment) - 1
+        candidate_peak_indices = [
+            index
+            for index in range(segment_start_index, segment_end_index + 1)
+            if observations[index].ndvi_smoothed - baselines[index] >= MIN_ACTIVITY_AMPLITUDE
+        ]
+        candidate_peak_indices.sort(key=lambda index: observations[index].ndvi_smoothed, reverse=True)
 
-        if _is_left_edge_partial_tail(observations, crossing_index, season_observations):
+        for peak_index in candidate_peak_indices:
+            if any(start <= peak_index <= end for start, end in used_ranges):
+                continue
+
+            peak_row = observations[peak_index]
+            baseline_ndvi = baselines[peak_index]
+            amplitude_ndvi = peak_row.ndvi_smoothed - baseline_ndvi
+            boundary_threshold = max(
+                LOW_VEGETATION_FLOOR,
+                baseline_ndvi + ACTIVITY_BOUNDARY_AMPLITUDE_FRACTION * amplitude_ndvi,
+            )
+            start_index = peak_index
+            while (
+                start_index > segment_start_index
+                and observations[start_index - 1].ndvi_smoothed >= boundary_threshold
+            ):
+                start_index -= 1
+
+            end_index = peak_index
+            while (
+                end_index < segment_end_index
+                and observations[end_index + 1].ndvi_smoothed >= boundary_threshold
+            ):
+                end_index += 1
+
+            if any(not (end_index < start or start_index > end) for start, end in used_ranges):
+                continue
+
+            season_observations = observations[start_index : end_index + 1]
+            is_open = end_index == len(observations) - 1
+
+            if _is_left_edge_partial_tail(observations, start_index, season_observations):
+                continue
+
+            duration_days = _duration_days(season_observations)
+            if len(season_observations) < MIN_ACTIVITY_WINDOW_OBSERVATIONS:
+                continue
+            if duration_days < MIN_ACTIVITY_WINDOW_DURATION_DAYS:
+                continue
+
+            break
+        else:
             continue
 
-        duration_days = _duration_days(season_observations)
-        if len(segment) < MIN_SEASON_OBSERVATIONS:
-            continue
-        if duration_days < MIN_SEASON_DURATION_DAYS:
-            continue
-
+        used_ranges.append((start_index, end_index))
         peak_row = max(season_observations, key=lambda row: row.ndvi_smoothed)
         quality_label, evidence_summary, base_level = _label_quality(
             season_observations,
+            baseline_ndvi=baseline_ndvi,
+            amplitude_ndvi=amplitude_ndvi,
             is_open=is_open,
         )
         confirmation_level, confirmation_evidence = _compute_multi_index_confirmation(season_observations)
@@ -442,16 +564,29 @@ def detect_season_windows(
             confirmation_level=confirmation_level,
             confirmation_evidence=confirmation_evidence,
         )
-        gap_overlap_count, gap_overlap_risk, gap_overlap_stage, gap_overlap_evidence = _compute_gap_overlap(
+        (
+            gap_overlap_count,
+            gap_overlap_risk,
+            gap_overlap_stage,
+            gap_overlap_evidence,
+            start_boundary_certainty,
+            peak_certainty,
+            end_boundary_certainty,
+            internal_gap_count,
+            gap_provisional,
+        ) = _compute_gap_overlap(
             season_observations,
             long_gap_windows,
         )
+        if is_open:
+            end_boundary_certainty = "open"
+        provisional = is_open or gap_provisional
         evidence_summary = f"{evidence_summary} {gap_overlap_evidence}"
 
         seasons.append(
             SeasonWindow(
                 season_id=f"season_{len(seasons) + 1:02d}",
-                crossing_date=_iso_date(observations[crossing_index].timestamp),
+                crossing_date=_iso_date(observations[start_index].timestamp),
                 start_date=_iso_date(season_observations[0].timestamp),
                 peak_date=_iso_date(peak_row.timestamp),
                 end_date=_iso_date(season_observations[-1].timestamp),
@@ -464,6 +599,16 @@ def detect_season_windows(
                 gap_overlap_count=gap_overlap_count,
                 gap_overlap_risk=gap_overlap_risk,
                 gap_overlap_stage=gap_overlap_stage,
+                window_type="vegetation_activity",
+                provisional=provisional,
+                baseline_ndvi=round(baseline_ndvi, 6),
+                amplitude_ndvi=round(amplitude_ndvi, 6),
+                boundary_threshold_ndvi=round(boundary_threshold, 6),
+                usable_observation_count=len(season_observations),
+                start_boundary_certainty=start_boundary_certainty,
+                peak_certainty=peak_certainty,
+                end_boundary_certainty=end_boundary_certainty,
+                internal_gap_count=internal_gap_count,
             )
         )
 
@@ -480,16 +625,13 @@ def build_season_payload(
     seasons = detect_season_windows(observations, long_gap_windows=long_gap_windows)
     season_confidence_note = _build_season_confidence_note(quality_metrics)
 
-    if not seasons:
-        raise ValueError(
-            "No season windows detected from the current preprocessing output. "
-            "Adjust the detector or inspect the NDVI series."
-        )
-
     return {
         "aoi_id": quality_metrics["aoi_id"],
         "season_count": len(seasons),
         "gap_risk": quality_metrics["gap_risk"],
+        "terminology": {
+            "season": "detected vegetation activity window, not an agronomic crop season",
+        },
         "seasons": [
             {
                 "season_id": season.season_id,
@@ -506,6 +648,16 @@ def build_season_payload(
                 "gap_overlap_count": season.gap_overlap_count,
                 "gap_overlap_risk": season.gap_overlap_risk,
                 "gap_overlap_stage": season.gap_overlap_stage,
+                "window_type": season.window_type,
+                "provisional": season.provisional,
+                "baseline_ndvi": season.baseline_ndvi,
+                "amplitude_ndvi": season.amplitude_ndvi,
+                "boundary_threshold_ndvi": season.boundary_threshold_ndvi,
+                "usable_observation_count": season.usable_observation_count,
+                "start_boundary_certainty": season.start_boundary_certainty,
+                "peak_certainty": season.peak_certainty,
+                "end_boundary_certainty": season.end_boundary_certainty,
+                "internal_gap_count": season.internal_gap_count,
                 "season_confidence_note": season_confidence_note,
             }
             for season in seasons

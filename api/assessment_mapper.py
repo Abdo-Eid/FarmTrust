@@ -122,7 +122,10 @@ def _report_summary(assessment: dict[str, Any]) -> str:
     latest_label = latest.get("label", "unknown") if isinstance(latest, dict) else "unknown"
     evidence = assessment.get("evidence", {})
     basis = evidence.get("land_status_basis", "") if isinstance(evidence, dict) else ""
-    return f"Assessment classified this parcel as {status} with a {trend} trend. Latest season performance is {latest_label}. {basis}".strip()
+    return (
+        f"Assessment classified this parcel as {status} with a {trend} trend. "
+        f"Latest vegetation activity window is {latest_label}. {basis}"
+    ).strip()
 
 
 def _ndvi_series(aoi_id: str) -> list[NDVIPoint]:
@@ -159,7 +162,7 @@ def _season_records(aoi_id: str) -> list[SeasonRecord]:
             label = "weak"
         records.append(
             SeasonRecord(
-                season=str(season.get("season_id", "Season")),
+                season=str(season.get("season_id", "Activity window")),
                 start_date=str(season.get("start_date")),
                 end_date=str(season.get("end_date")),
                 ndvi_peak=float(season.get("peak_ndvi", 0)),

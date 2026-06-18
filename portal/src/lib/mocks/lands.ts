@@ -33,7 +33,7 @@ export const MOCK_LANDS: LandResult[] = [
         confidence: {
             status: "high",
             rationale:
-                "Dense cloud-free observations across both seasons with consistent NDVI trajectory.",
+                "Dense cloud-free observations across detected activity windows with consistent NDVI trajectory.",
         },
         risk_tier: "low",
         indicators: {
@@ -44,25 +44,25 @@ export const MOCK_LANDS: LandResult[] = [
             observation_coverage: 0.94,
         },
         report_summary:
-            "This land parcel demonstrates sustained active cultivation across the observed 24-month period. Vegetation indices are consistently above the district median, and both winter and summer seasons show healthy crop cycles. No risk flags identified. Recommended for standard financing consideration.",
+            "This land parcel demonstrates sustained vegetation activity across the observed 24-month period. Vegetation indices are consistently above the district median, and detected activity windows are strong. No risk flags identified. Recommended for standard financing consideration.",
         ndvi_series: generateNDVI("2022-03-01", 24, "good"),
         season_records: [
             {
-                season: "Winter 2022/23",
+                season: "Activity window 2022/23 A",
                 start_date: "2022-11-01",
                 end_date: "2023-04-30",
                 ndvi_peak: 0.75,
                 outcome: "good",
             },
             {
-                season: "Summer 2023",
+                season: "Activity window 2023 B",
                 start_date: "2023-05-01",
                 end_date: "2023-10-31",
                 ndvi_peak: 0.78,
                 outcome: "good",
             },
             {
-                season: "Winter 2023/24",
+                season: "Activity window 2023/24 A",
                 start_date: "2023-11-01",
                 end_date: "2024-04-30",
                 ndvi_peak: 0.81,
@@ -113,26 +113,26 @@ export const MOCK_LANDS: LandResult[] = [
             observation_coverage: 0.72,
         },
         report_summary:
-            "Cultivation activity is intermittent with evidence of seasonal waterlogging in the northern section. The 2-year trend is stable, but the last season showed a mid-cycle interruption consistent with excess irrigation or drainage failure. Recommend conditional financing with drainage assessment requirement.",
+            "Vegetation activity is intermittent with observed wetness evidence in the northern section. The 2-year trend is stable, but the latest activity window showed an interruption-like signal consistent with excess irrigation or drainage failure. Recommend conditional financing with drainage assessment requirement.",
         ndvi_series: generateNDVI("2022-03-01", 24, "intermittent"),
         season_records: [
             {
-                season: "Winter 2022/23",
+                season: "Activity window 2022/23 A",
                 start_date: "2022-11-01",
                 end_date: "2023-04-30",
                 ndvi_peak: 0.63,
                 outcome: "good",
             },
             {
-                season: "Summer 2023",
+                season: "Activity window 2023 B",
                 start_date: "2023-05-01",
                 end_date: "2023-10-31",
                 ndvi_peak: 0.55,
                 outcome: "interrupted",
-                anomaly: "Mid-season NDVI drop, possible waterlogging",
+                anomaly: "Mid-window NDVI drop, possible waterlogging",
             },
             {
-                season: "Winter 2023/24",
+                season: "Activity window 2023/24 A",
                 start_date: "2023-11-01",
                 end_date: "2024-04-30",
                 ndvi_peak: 0.61,
@@ -175,14 +175,14 @@ export const MOCK_LANDS: LandResult[] = [
         ndvi_series: generateNDVI("2022-03-01", 24, "declining"),
         season_records: [
             {
-                season: "Winter 2022/23",
+                season: "Activity window 2022/23 A",
                 start_date: "2022-11-01",
                 end_date: "2023-04-30",
                 ndvi_peak: 0.38,
                 outcome: "weak",
             },
             {
-                season: "Summer 2023",
+                season: "Activity window 2023 B",
                 start_date: "2023-05-01",
                 end_date: "2023-10-31",
                 ndvi_peak: 0.25,
@@ -190,7 +190,7 @@ export const MOCK_LANDS: LandResult[] = [
                 anomaly: "Salinization signature detected",
             },
             {
-                season: "Winter 2023/24",
+                season: "Activity window 2023/24 A",
                 start_date: "2023-11-01",
                 end_date: "2024-04-30",
                 ndvi_peak: 0.22,
@@ -253,7 +253,7 @@ export const MOCK_LANDS: LandResult[] = [
         confidence: {
             status: "high",
             rationale:
-                "Excellent observation coverage with clear seasonal cycles consistent with cotton cultivation patterns.",
+                "Excellent observation coverage with clear vegetation activity windows.",
         },
         risk_tier: "low",
         indicators: {
@@ -264,18 +264,18 @@ export const MOCK_LANDS: LandResult[] = [
             observation_coverage: 0.97,
         },
         report_summary:
-            "Premium agricultural land with consistent high-performance cultivation. Cotton cultivation pattern clearly identifiable from spectral signatures. Two full crop cycles observed with strong yields. Recommended for financing.",
+            "Premium agricultural land with consistent high vegetation activity. Multiple strong activity windows were observed from spectral signatures. Recommended for financing.",
         ndvi_series: generateNDVI("2022-03-01", 24, "good"),
         season_records: [
             {
-                season: "Summer 2022",
+                season: "Activity window 2022 B",
                 start_date: "2022-05-01",
                 end_date: "2022-10-31",
                 ndvi_peak: 0.79,
                 outcome: "good",
             },
             {
-                season: "Summer 2023",
+                season: "Activity window 2023 B",
                 start_date: "2023-05-01",
                 end_date: "2023-10-31",
                 ndvi_peak: 0.82,
@@ -333,7 +333,7 @@ export const MOCK_LANDS: LandResult[] = [
         flags: ["salinity"],
         satellite_evidence_coverage: {
             status: "limited",
-            rationale: "Observation gaps limit the seasonal timing evidence for part of the window.",
+            rationale: "Observation gaps limit activity-window boundary evidence for part of the interval.",
         },
         confidence: {
             status: "medium",

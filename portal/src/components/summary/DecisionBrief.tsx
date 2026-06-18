@@ -55,9 +55,9 @@ export function DecisionBrief({ land }: DecisionBriefProps) {
 
           <div className="w-px h-10 bg-gray-100 self-center" />
 
-          {/* Season Performance */}
+          {/* Activity Window Performance */}
           <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Last Season</p>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Last Activity Window</p>
             {requiresManualReview ? (
               <span className="text-gray-400 text-sm">Not issued</span>
             ) : season_performance ? (

@@ -119,7 +119,7 @@ def classify_gap_risk(
             "gap_risk": "high",
             "confidence_penalty": "high",
             "gap_risk_reason": (
-                "Long or frequent gaps may hide season onset, interruption, or peak timing."
+                "Long or frequent gaps may hide activity-window boundary, interruption, or peak timing."
             ),
         }
 
@@ -128,7 +128,7 @@ def classify_gap_risk(
             "gap_risk": "moderate",
             "confidence_penalty": "moderate",
             "gap_risk_reason": (
-                "Some continuity is missing, so seasonal timing should be treated with caution."
+                "Some continuity is missing, so activity-window timing should be treated with caution."
             ),
         }
 
