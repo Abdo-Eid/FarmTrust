@@ -79,6 +79,7 @@ export default function WorkbenchPage({
             </div>
         );
     }
+    const requiresManualReview = land.assessment_status === "manual_review_required";
 
     return (
         <div className="flex flex-col md:flex-row md:h-screen md:overflow-hidden bg-gray-50">
@@ -158,7 +159,14 @@ export default function WorkbenchPage({
                         <p className="text-xs font-semibold text-gray-700 uppercase mb-2">
                             Detected Anomalies
                         </p>
-                        {land.flags && land.flags.length > 0 ? (
+                        {requiresManualReview ? (
+                            <div className="flex items-center gap-2 text-amber-700 text-xs">
+                                <span className="material-symbols-outlined text-sm">
+                                    fact_check
+                                </span>
+                                <span>No final automated anomalies issued</span>
+                            </div>
+                        ) : land.flags && land.flags.length > 0 ? (
                             <div className="space-y-2">
                                 {land.flags.map((flag, i) => (
                                     <div

@@ -14,6 +14,7 @@ from farmtrust_core.io.paths import land_assessment_path, season_windows_path, s
 
 VALID_TRENDS = {"improving", "stable", "declining"}
 VALID_SEASON_LABELS = {"good", "interrupted", "weak"}
+MANUAL_REVIEW_STATUS = "manual_review_required"
 
 
 def _load_json(path: Path) -> dict[str, Any] | None:
@@ -36,6 +37,7 @@ def _base_response(land: Land, job: Job) -> dict[str, Any]:
         "submitted_at": land.created_at.isoformat(),
         "job_id": land.job_id,
         "job_status": job.status,
+        "assessment_status": None,
         "geometry": json.loads(land.geometry),
         "land_status": land.land_status,
         "trend_2y": land.trend_2y if land.trend_2y in VALID_TRENDS else None,
@@ -106,13 +108,24 @@ def _indicators(assessment: dict[str, Any]) -> Indicators:
 
 
 def _report_summary(assessment: dict[str, Any]) -> str:
+    if assessment.get("assessment_status") == MANUAL_REVIEW_STATUS:
+        coverage = assessment.get("satellite_evidence_coverage", {})
+        rationale = coverage.get("rationale", "") if isinstance(coverage, dict) else ""
+        return (
+            "Manual review is required because satellite evidence is insufficient "
+            f"for a final automated assessment. {rationale}"
+        ).strip()
+
     status = str(assessment.get("land_status", "unknown"))
     trend = str(assessment.get("trend_2y", "uncertain"))
     latest = assessment.get("latest_season_performance", {})
     latest_label = latest.get("label", "unknown") if isinstance(latest, dict) else "unknown"
     evidence = assessment.get("evidence", {})
     basis = evidence.get("land_status_basis", "") if isinstance(evidence, dict) else ""
-    return f"Assessment classified this parcel as {status} with a {trend} trend. Latest season performance is {latest_label}. {basis}".strip()
+    return (
+        f"Assessment classified this parcel as {status} with a {trend} trend. "
+        f"Latest vegetation activity window is {latest_label}. {basis}"
+    ).strip()
 
 
 def _ndvi_series(aoi_id: str) -> list[NDVIPoint]:
@@ -149,7 +162,7 @@ def _season_records(aoi_id: str) -> list[SeasonRecord]:
             label = "weak"
         records.append(
             SeasonRecord(
-                season=str(season.get("season_id", "Season")),
+                season=str(season.get("season_id", "Activity window")),
                 start_date=str(season.get("start_date")),
                 end_date=str(season.get("end_date")),
                 ndvi_peak=float(season.get("peak_ndvi", 0)),
@@ -164,17 +177,28 @@ def map_land_response(land: Land, job: Job) -> LandResponse:
     payload = _base_response(land, job)
     assessment = _load_json(land_assessment_path(land.aoi_id))
     if assessment:
+        assessment_status = str(assessment.get("assessment_status", "complete"))
         latest = assessment.get("latest_season_performance", {})
         latest_label = latest.get("label") if isinstance(latest, dict) else None
+        is_manual_review = assessment_status == MANUAL_REVIEW_STATUS
         payload.update(
             {
-                "land_status": assessment.get("land_status"),
-                "trend_2y": assessment.get("trend_2y") if assessment.get("trend_2y") in VALID_TRENDS else None,
-                "season_performance": latest_label if latest_label in VALID_SEASON_LABELS else None,
-                "flags": _risk_flags(assessment),
+                "assessment_status": assessment_status,
+                "land_status": None if is_manual_review else assessment.get("land_status"),
+                "trend_2y": None
+                if is_manual_review
+                else assessment.get("trend_2y")
+                if assessment.get("trend_2y") in VALID_TRENDS
+                else None,
+                "season_performance": None
+                if is_manual_review
+                else latest_label
+                if latest_label in VALID_SEASON_LABELS
+                else None,
+                "flags": [] if is_manual_review else _risk_flags(assessment),
                 "satellite_evidence_coverage": _satellite_evidence_coverage(assessment),
                 "confidence": _confidence(assessment),
-                "risk_tier": _risk_tier(assessment),
+                "risk_tier": None if is_manual_review else _risk_tier(assessment),
                 "indicators": _indicators(assessment),
                 "report_summary": _report_summary(assessment),
                 "ndvi_series": _ndvi_series(land.aoi_id),

@@ -132,7 +132,7 @@ export default function EvidencePage() {
     const descriptions: Record<string, string> = {
       waterlogging: 'Excess water retention detected in soil profile',
       salinity: 'Elevated salt concentration affecting crop yield',
-      abandonment: 'Insufficient vegetation activity for 2+ seasons',
+      abandonment: 'Insufficient sustained vegetation activity',
       encroachment: 'Boundary violation or unauthorized land use detected',
     }
     return descriptions[flag] || 'Unknown risk flag'
@@ -148,12 +148,13 @@ export default function EvidencePage() {
     return icons[flag] || 'info'
   }
 
-  const totalSeasons = land.season_records?.length ?? 0
-  const goodSeasons = land.season_records?.filter((r) => r.outcome === 'good').length ?? 0
+  const totalActivityWindows = land.season_records?.length ?? 0
+  const goodActivityWindows = land.season_records?.filter((r) => r.outcome === 'good').length ?? 0
   const avgNDVIPeak =
-    totalSeasons > 0
-      ? (land.season_records?.reduce((sum, r) => sum + r.ndvi_peak, 0) ?? 0) / totalSeasons
+    totalActivityWindows > 0
+      ? (land.season_records?.reduce((sum, r) => sum + r.ndvi_peak, 0) ?? 0) / totalActivityWindows
       : 0
+  const requiresManualReview = land.assessment_status === 'manual_review_required'
 
   return (
     <div className="min-h-full bg-sand">
@@ -200,7 +201,7 @@ export default function EvidencePage() {
               value="seasonal"
               className="px-4 py-2 text-sm font-medium text-gray-600 border-b-2 border-transparent data-[state=active]:border-teal-600 data-[state=active]:text-teal-700 hover:text-gray-900"
             >
-              Seasonal Performance
+              Activity Windows
             </Tabs.Trigger>
             <Tabs.Trigger
               value="risk"
@@ -257,7 +258,7 @@ export default function EvidencePage() {
             </div>
           </Tabs.Content>
 
-          {/* Seasonal Performance Tab */}
+          {/* Activity Window Tab */}
           <Tabs.Content value="seasonal" className="pt-6">
             <div className="space-y-6">
               {/* Summary Stats */}
@@ -265,17 +266,17 @@ export default function EvidencePage() {
                 <Card>
                   <div className="p-4">
                     <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">
-                      Total Seasons
+                      Total Windows
                     </p>
-                    <p className="text-2xl font-bold text-gray-900">{totalSeasons}</p>
+                    <p className="text-2xl font-bold text-gray-900">{totalActivityWindows}</p>
                   </div>
                 </Card>
                 <Card>
                   <div className="p-4">
                     <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">
-                      Good Seasons
+                      Good Windows
                     </p>
-                    <p className="text-2xl font-bold text-teal-700">{goodSeasons}</p>
+                    <p className="text-2xl font-bold text-teal-700">{goodActivityWindows}</p>
                   </div>
                 </Card>
                 <Card>
@@ -288,10 +289,10 @@ export default function EvidencePage() {
                 </Card>
               </div>
 
-              {/* Seasonal Table */}
+              {/* Activity Window Table */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Seasonal Records</CardTitle>
+                  <CardTitle>Activity Window Records</CardTitle>
                 </CardHeader>
                 <SeasonTable records={land.season_records} />
               </Card>
@@ -307,7 +308,14 @@ export default function EvidencePage() {
                   <CardTitle>Risk Flags</CardTitle>
                 </CardHeader>
                 <div className="space-y-3">
-                  {land.flags && land.flags.length > 0 ? (
+                  {requiresManualReview ? (
+                    <div className="flex items-center gap-3 p-4 rounded-md border border-amber-200 bg-amber-50">
+                      <span className="material-symbols-outlined text-amber-700">fact_check</span>
+                      <p className="text-amber-800 text-sm font-medium">
+                        No final automated land risk flags issued
+                      </p>
+                    </div>
+                  ) : land.flags && land.flags.length > 0 ? (
                     land.flags.map((flag) => (
                       <div
                         key={flag}

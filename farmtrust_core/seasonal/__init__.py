@@ -1,4 +1,4 @@
-"""Seasonal analysis utilities."""
+"""Vegetation activity-window analysis utilities."""
 
 from .seasons import (
     REQUIRED_PREPROCESS_COLUMNS,

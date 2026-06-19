@@ -19,12 +19,12 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Build the land assessment from preprocess and seasonal outputs."
+        description="Build the land assessment from preprocess and activity-window outputs."
     )
     parser.add_argument("--aoi-id", required=True, help="AOI identifier")
     parser.add_argument("--ingest-dir", default=None, help="Directory containing run_metadata.json")
     parser.add_argument("--preprocess-dir", default=None, help="Directory containing ndvi_smoothed.csv and quality_metrics.json")
-    parser.add_argument("--seasonal-dir", default=None, help="Directory containing season_windows.json")
+    parser.add_argument("--seasonal-dir", default=None, help="Directory containing season_windows.json activity-window output")
     parser.add_argument("--output-dir", default=None, help="Output directory (default: data/assessment/<aoi_id>)")
     args = parser.parse_args()
 
@@ -45,7 +45,7 @@ def main() -> int:
 
     logging.info("Ingest directory: %s", ingest_dir)
     logging.info("Preprocess directory: %s", preprocess_dir)
-    logging.info("Seasonal directory: %s", seasonal_dir)
+    logging.info("Activity-window directory: %s", seasonal_dir)
     logging.info("Output directory: %s", output_dir)
 
     payload = build_land_assessment(

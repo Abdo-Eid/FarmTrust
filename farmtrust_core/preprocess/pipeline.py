@@ -18,7 +18,7 @@ from .gaps import (
     compute_gap_metrics,
     compute_gap_windows,
 )
-from .smoothing import SMOOTHING_METHOD_NAME, smooth_usable_values
+from .smoothing import smoothing_metadata, smooth_usable_values
 
 
 REQUIRED_COLUMNS = (
@@ -176,30 +176,33 @@ def build_processed_observations(
     *,
     valid_fraction_threshold: float = DEFAULT_VALID_FRACTION_THRESHOLD,
 ) -> list[ProcessedObservation]:
-    usable_ndvi = [
-        observation.ndvi_raw
+    usable_observations = [
+        observation
         for observation in merged_observations
         if observation.valid_fraction >= valid_fraction_threshold
     ]
-    usable_evi = [
-        observation.evi_raw
-        for observation in merged_observations
-        if observation.valid_fraction >= valid_fraction_threshold
-    ]
-    usable_ndmi = [
-        observation.ndmi_raw
-        for observation in merged_observations
-        if observation.valid_fraction >= valid_fraction_threshold
-    ]
-    usable_ndwi = [
-        observation.ndwi_raw
-        for observation in merged_observations
-        if observation.valid_fraction >= valid_fraction_threshold
-    ]
-    ndvi_smoothed_values = smooth_usable_values(usable_ndvi)
-    evi_smoothed_values = smooth_usable_values(usable_evi)
-    ndmi_smoothed_values = smooth_usable_values(usable_ndmi)
-    ndwi_smoothed_values = smooth_usable_values(usable_ndwi)
+    usable_timestamps = [observation.timestamp for observation in usable_observations]
+    usable_valid_fractions = [observation.valid_fraction for observation in usable_observations]
+    ndvi_smoothed_values = smooth_usable_values(
+        timestamps=usable_timestamps,
+        values=[observation.ndvi_raw for observation in usable_observations],
+        valid_fractions=usable_valid_fractions,
+    )
+    evi_smoothed_values = smooth_usable_values(
+        timestamps=usable_timestamps,
+        values=[observation.evi_raw for observation in usable_observations],
+        valid_fractions=usable_valid_fractions,
+    )
+    ndmi_smoothed_values = smooth_usable_values(
+        timestamps=usable_timestamps,
+        values=[observation.ndmi_raw for observation in usable_observations],
+        valid_fractions=usable_valid_fractions,
+    )
+    ndwi_smoothed_values = smooth_usable_values(
+        timestamps=usable_timestamps,
+        values=[observation.ndwi_raw for observation in usable_observations],
+        valid_fractions=usable_valid_fractions,
+    )
 
     processed: list[ProcessedObservation] = []
     smoothed_index = 0
@@ -296,7 +299,7 @@ def build_preprocess_artifacts(
         "median_gap_days": gap_metrics["median_gap_days"],
         "long_gap_count": gap_windows["long_gap_count"],
         "long_gap_windows": gap_windows["long_gap_windows"],
-        "smoothing_method": SMOOTHING_METHOD_NAME,
+        **smoothing_metadata(),
         "usable_valid_fraction_threshold": float(valid_fraction_threshold),
         "gap_risk": gap_risk["gap_risk"],
         "confidence_penalty": gap_risk["confidence_penalty"],

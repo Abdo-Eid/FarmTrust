@@ -35,6 +35,17 @@ REQUIRED_SEASON_PAYLOAD_KEYS = (
     "gap_risk",
     "seasons",
 )
+COVERAGE_CONFIDENCE_CAPS = {
+    "good": None,
+    "fair": "medium",
+    "limited": "low",
+    "insufficient": "low",
+}
+CONFIDENCE_RANK = {
+    "low": 1,
+    "medium": 2,
+    "high": 3,
+}
 
 
 @dataclass(frozen=True)
@@ -55,6 +66,7 @@ class SeasonMetric:
     quality_label: str
     confirmation_level: str
     is_open: bool
+    provisional: bool
     duration_days: float
     peak_ndvi: float
     auc_ndvi: float
@@ -181,6 +193,7 @@ def _build_season_metrics(
                 quality_label=str(season["quality_label"]),
                 confirmation_level=str(season.get("confirmation_level", "unknown")),
                 is_open=bool(season["is_open"]),
+                provisional=bool(season.get("provisional", season["is_open"])),
                 duration_days=float(season["duration_days"]),
                 peak_ndvi=float(season["peak_ndvi"]),
                 auc_ndvi=round(_compute_auc(rows), 6),
@@ -218,7 +231,7 @@ def _derive_land_status(
     latest_timestamp: datetime,
 ) -> tuple[str, str]:
     if not season_metrics:
-        return "inactive", "No confirmed seasons were detected across the interval."
+        return "inactive", "No vegetation activity windows were detected across the observed interval."
 
     recent_seasons = _recent_season_metrics(season_metrics, latest_timestamp=latest_timestamp)
     recent_good = sum(1 for season in recent_seasons if season.quality_label == "good")
@@ -227,13 +240,13 @@ def _derive_land_status(
     if recent_any >= 2 and recent_good >= 1 and active_fraction >= 0.35:
         return (
             "active",
-            f"{recent_any} recent seasons were detected with active_fraction={active_fraction:.2f}.",
+            f"{recent_any} recent vegetation activity windows were detected with active_fraction={active_fraction:.2f}.",
         )
 
     if recent_any >= 1 and active_fraction >= 0.18:
         return (
             "intermittent",
-            f"Seasonal activity exists but continuity is weaker (recent_seasons={recent_any}, active_fraction={active_fraction:.2f}).",
+            f"Vegetation activity windows exist but continuity is weaker (recent_windows={recent_any}, active_fraction={active_fraction:.2f}).",
         )
 
     return (
@@ -247,7 +260,7 @@ def _derive_trend(season_metrics: list[SeasonMetric]) -> tuple[str, str]:
     if len(reference) < 2:
         reference = season_metrics
     if len(reference) < 2:
-        return "uncertain", "Trend needs at least two season observations."
+        return "uncertain", "Trend needs at least two observed vegetation activity windows."
 
     first = reference[0]
     last = reference[-1]
@@ -259,16 +272,16 @@ def _derive_trend(season_metrics: list[SeasonMetric]) -> tuple[str, str]:
     if peak_delta >= 0.03 or auc_ratio >= 0.10:
         return (
             "improving",
-            f"Season strength improved from peak_ndvi={first.peak_ndvi:.3f} to {last.peak_ndvi:.3f} with auc_ratio={auc_ratio:.2f}.",
+            f"Activity-window strength improved from peak_ndvi={first.peak_ndvi:.3f} to {last.peak_ndvi:.3f} with auc_ratio={auc_ratio:.2f}.",
         )
     if peak_delta <= -0.03 or auc_ratio <= -0.10:
         return (
             "declining",
-            f"Season strength declined from peak_ndvi={first.peak_ndvi:.3f} to {last.peak_ndvi:.3f} with auc_ratio={auc_ratio:.2f}.",
+            f"Activity-window strength declined from peak_ndvi={first.peak_ndvi:.3f} to {last.peak_ndvi:.3f} with auc_ratio={auc_ratio:.2f}.",
         )
     return (
         "stable",
-        f"Season strength stayed within conservative stability bounds (peak_delta={peak_delta:.3f}, auc_ratio={auc_ratio:.2f}).",
+        f"Activity-window strength stayed within conservative stability bounds (peak_delta={peak_delta:.3f}, auc_ratio={auc_ratio:.2f}).",
     )
 
 
@@ -279,7 +292,7 @@ def _latest_season_payload(season_metrics: list[SeasonMetric]) -> tuple[dict[str
         {
             "season_id": selected.season_id,
             "label": selected.quality_label,
-            "provisional": selected.is_open,
+            "provisional": selected.provisional,
             "confirmation_level": selected.confirmation_level,
             "evidence_summary": selected.evidence_summary,
         },
@@ -289,7 +302,7 @@ def _latest_season_payload(season_metrics: list[SeasonMetric]) -> tuple[dict[str
 
 def _derive_confidence(
     quality_metrics: dict[str, Any],
-    latest_season: SeasonMetric,
+    latest_season: SeasonMetric | None,
 ) -> dict[str, Any]:
     continuity_score = 3.0
     season_clarity_score = 3.0
@@ -302,7 +315,7 @@ def _derive_confidence(
         reasons.append("Satellite evidence coverage is limited, so timing and boundary confidence are reduced.")
     elif gap_risk == "moderate":
         continuity_score -= 0.75
-        reasons.append("Satellite evidence coverage is fair, so some season interpretation remains cautious.")
+        reasons.append("Satellite evidence coverage is fair, so some activity-window interpretation remains cautious.")
     else:
         reasons.append("Gap continuity is strong enough for a confident baseline.")
 
@@ -316,31 +329,39 @@ def _derive_confidence(
     else:
         reasons.append(f"Usable observation count is solid ({usable_count}).")
 
-    if latest_season.confirmation_level == "weak":
+    if latest_season is None:
         season_clarity_score -= 0.75
-        reasons.append("Latest season has weak multi-index confirmation.")
+        signal_strength_score -= 0.75
+        reasons.append("No vegetation activity window was detected in the observed interval.")
+    elif latest_season.confirmation_level == "weak":
+        season_clarity_score -= 0.75
+        reasons.append("Latest activity window has weak multi-index confirmation.")
     elif latest_season.confirmation_level == "moderate":
         season_clarity_score -= 0.25
-        reasons.append("Latest season has moderate multi-index confirmation.")
+        reasons.append("Latest activity window has moderate multi-index confirmation.")
     else:
-        reasons.append("Latest season has strong multi-index confirmation.")
+        reasons.append("Latest activity window has strong multi-index confirmation.")
 
-    if latest_season.quality_label == "weak":
+    if latest_season is None:
+        pass
+    elif latest_season.quality_label == "weak":
         signal_strength_score -= 0.75
-        reasons.append("Latest season quality is weak.")
+        reasons.append("Latest activity-window quality is weak.")
     elif latest_season.quality_label == "interrupted":
         signal_strength_score -= 0.5
-        reasons.append("Latest season shows interruption risk.")
+        reasons.append("Latest activity window shows interruption-like observed signal behavior.")
 
-    if latest_season.gap_overlap_risk == "high":
+    if latest_season is None:
+        pass
+    elif latest_season.gap_overlap_risk == "high":
         continuity_score -= 0.5
         reasons.append(
-            f"The latest season overlaps one or more long gap windows near {latest_season.gap_overlap_stage}."
+            f"The latest activity window overlaps one or more long observation gaps near {latest_season.gap_overlap_stage}."
         )
     elif latest_season.gap_overlap_risk == "moderate":
         continuity_score -= 0.25
         reasons.append(
-            f"The latest season partially overlaps a long gap window near {latest_season.gap_overlap_stage}."
+            f"The latest activity window partially overlaps a long observation gap near {latest_season.gap_overlap_stage}."
         )
 
     continuity_level = _score_to_level(continuity_score)
@@ -358,7 +379,7 @@ def _derive_confidence(
     payload = build_confidence_payload(level, reasons)
     payload["components"] = {
         "continuity": continuity_level,
-        "season_clarity": season_clarity_level,
+        "activity_window_clarity": season_clarity_level,
         "signal_strength": signal_strength_level,
     }
     return payload
@@ -367,22 +388,101 @@ def _derive_confidence(
 def _derive_satellite_evidence_coverage(quality_metrics: dict[str, Any]) -> dict[str, str]:
     gap_risk = str(quality_metrics["gap_risk"])
     usable_count = int(quality_metrics["usable_observation_count"])
+    gap_ratio = float(quality_metrics.get("gap_ratio", 0.0))
+    max_gap_days = float(quality_metrics.get("max_gap_days", 0.0))
+    long_gap_count = int(quality_metrics.get("long_gap_count", 0))
     reason = str(quality_metrics.get("gap_risk_reason", "")).strip()
 
-    if usable_count < 10:
+    if usable_count < 12:
         status = "insufficient"
         rationale = "Too few usable satellite observations for a complete automated assessment."
-    elif gap_risk == "high" or usable_count < 30:
+    elif gap_ratio > 0.60:
+        status = "insufficient"
+        rationale = "Satellite evidence gaps dominate the assessment window."
+    elif max_gap_days > 90:
+        status = "insufficient"
+        rationale = "A very long satellite observation gap prevents a complete automated assessment."
+    elif long_gap_count > 12:
+        status = "insufficient"
+        rationale = "Too many long satellite observation gaps prevent a complete automated assessment."
+    elif usable_count < 30:
+        status = "limited"
+        rationale = "Usable satellite observations are sparse, so automated interpretation is limited."
+    elif gap_risk == "high":
         status = "limited"
         rationale = reason or "Large observation gaps limit satellite evidence coverage."
-    elif gap_risk == "moderate" or usable_count < 60:
+    elif gap_ratio > 0.30:
+        status = "limited"
+        rationale = "Satellite evidence gaps limit automated interpretation."
+    elif max_gap_days > 45:
+        status = "limited"
+        rationale = "A long satellite observation gap limits automated interpretation."
+    elif long_gap_count > 6:
+        status = "limited"
+        rationale = "Frequent long satellite observation gaps limit automated interpretation."
+    elif usable_count < 60:
+        status = "fair"
+        rationale = "Usable satellite observations are adequate but thinner than preferred."
+    elif gap_risk == "moderate":
         status = "fair"
         rationale = reason or "Some observation gaps are present, but evidence remains usable."
+    elif gap_ratio > 0.15:
+        status = "fair"
+        rationale = "Some satellite evidence gaps are present, but evidence remains usable."
+    elif max_gap_days > 10:
+        status = "fair"
+        rationale = "A moderate satellite observation gap is present, but evidence remains usable."
+    elif long_gap_count > 0:
+        status = "fair"
+        rationale = "One or more satellite observation gaps are present, but evidence remains usable."
     else:
         status = "good"
         rationale = reason or "Satellite observations are continuous enough for the assessment window."
 
     return {"status": status, "rationale": rationale}
+
+
+def _derive_assessment_status(satellite_evidence_coverage: dict[str, str]) -> str:
+    if satellite_evidence_coverage["status"] == "insufficient":
+        return "manual_review_required"
+    return "complete"
+
+
+def _cap_confidence_by_coverage(
+    confidence: dict[str, Any],
+    satellite_evidence_coverage: dict[str, str],
+) -> dict[str, Any]:
+    capped = dict(confidence)
+    reasons = list(capped.get("reasons", []))
+    coverage_status = satellite_evidence_coverage["status"]
+    cap = COVERAGE_CONFIDENCE_CAPS[coverage_status]
+    if cap is None:
+        capped["reasons"] = reasons
+        return capped
+
+    current_level = str(capped.get("level", "medium"))
+    if CONFIDENCE_RANK[current_level] > CONFIDENCE_RANK[cap]:
+        capped["level"] = cap
+        reasons.append(
+            f"Assessment confidence is capped at {cap} because satellite evidence coverage is {coverage_status}."
+        )
+    elif coverage_status == "insufficient" and current_level != "low":
+        capped["level"] = "low"
+        reasons.append("Assessment confidence is low because satellite evidence is insufficient.")
+    elif coverage_status == "insufficient":
+        reasons.append("Satellite evidence is insufficient, so automated assessment requires manual review.")
+
+    components = capped.get("components")
+    if isinstance(components, dict):
+        components = dict(components)
+        if coverage_status == "fair" and components.get("continuity") == "high":
+            components["continuity"] = "medium"
+        elif coverage_status in {"limited", "insufficient"}:
+            components["continuity"] = "low"
+        capped["components"] = components
+
+    capped["reasons"] = reasons
+    return capped
 
 
 def _score_to_level(score: float) -> str:
@@ -396,7 +496,7 @@ def _score_to_level(score: float) -> str:
 def _derive_risk_flags(
     quality_metrics: dict[str, Any],
     season_metrics: list[SeasonMetric],
-    latest_season: SeasonMetric,
+    latest_season: SeasonMetric | None,
     *,
     land_status: str,
 ) -> list[dict[str, str]]:
@@ -407,42 +507,42 @@ def _derive_risk_flags(
             build_risk_flag(
                 "interruption_risk",
                 "moderate",
-                "At least one detected season shows interruption-like behavior.",
+                "At least one detected vegetation activity window shows interruption-like observed signal behavior.",
             )
         )
 
-    if latest_season.quality_label == "weak":
+    if latest_season is not None and latest_season.quality_label == "weak":
         flags.append(
             build_risk_flag(
                 "weak_activity_risk",
                 "high",
-                "The latest interpreted season is weak.",
+                "The latest interpreted vegetation activity window is weak.",
             )
         )
-    elif latest_season.peak_ndvi < 0.30:
+    elif latest_season is not None and latest_season.peak_ndvi < 0.30:
         flags.append(
             build_risk_flag(
                 "weak_activity_risk",
                 "moderate",
-                "The latest season peak NDVI stayed below the strong-growth band.",
+                "The latest activity-window peak NDVI stayed below the strong-growth band.",
             )
         )
 
-    if latest_season.median_ndmi < 0.05:
+    if latest_season is not None and latest_season.median_ndmi < 0.05:
         flags.append(
             build_risk_flag(
                 "water_stress_risk",
                 "moderate",
-                f"Latest season median NDMI is low ({latest_season.median_ndmi:.3f}).",
+                f"Latest activity-window median NDMI is low ({latest_season.median_ndmi:.3f}).",
             )
         )
 
-    if latest_season.median_ndwi > -0.05:
+    if latest_season is not None and latest_season.median_ndwi > -0.05:
         flags.append(
             build_risk_flag(
                 "waterlogging_risk",
                 "moderate",
-                f"Latest season median NDWI is elevated ({latest_season.median_ndwi:.3f}).",
+                f"Latest activity-window median NDWI is elevated ({latest_season.median_ndwi:.3f}).",
             )
         )
 
@@ -463,15 +563,6 @@ def _derive_risk_flags(
             )
         )
 
-    if latest_season.is_open:
-        flags.append(
-            build_risk_flag(
-                "provisional_latest_season",
-                "low",
-                "The latest season is still open at the right edge of the available series.",
-            )
-        )
-
     return flags
 
 
@@ -487,8 +578,6 @@ def build_land_assessment(
     season_payload = _validate_season_payload(_load_json(season_payload_path), season_payload_path)
     observations = load_assessment_observations(smoothed_csv_path)
     season_metrics = _build_season_metrics(observations, list(season_payload["seasons"]))
-    if not season_metrics:
-        raise ValueError("Season payload did not produce usable season metrics for assessment.")
 
     active_fraction = _active_fraction(observations)
     land_status, land_status_basis = _derive_land_status(
@@ -497,18 +586,34 @@ def build_land_assessment(
         latest_timestamp=observations[-1].timestamp,
     )
     trend_2y, trend_basis = _derive_trend(season_metrics)
-    latest_season_payload, latest_season = _latest_season_payload(season_metrics)
-    confidence = _derive_confidence(quality_metrics, latest_season)
+    if season_metrics:
+        latest_season_payload, latest_season = _latest_season_payload(season_metrics)
+    else:
+        latest_season_payload = None
+        latest_season = None
     satellite_evidence_coverage = _derive_satellite_evidence_coverage(quality_metrics)
+    assessment_status = _derive_assessment_status(satellite_evidence_coverage)
+    confidence = _cap_confidence_by_coverage(
+        _derive_confidence(quality_metrics, latest_season),
+        satellite_evidence_coverage,
+    )
     risk_flags = _derive_risk_flags(
         quality_metrics,
         season_metrics,
         latest_season,
         land_status=land_status,
     )
+    if assessment_status == "manual_review_required":
+        land_status = None
+        land_status_basis = "Satellite evidence is insufficient for a final automated land-status assessment."
+        trend_2y = None
+        trend_basis = "Satellite evidence is insufficient for a final automated trend assessment."
+        latest_season_payload = None
+        risk_flags = []
 
     return {
         "aoi_id": str(quality_metrics["aoi_id"]),
+        "assessment_status": assessment_status,
         "interval": {
             "start_date": str(run_metadata.get("start_date", observations[0].timestamp.date().isoformat())),
             "end_date": str(run_metadata.get("end_date", observations[-1].timestamp.date().isoformat())),
@@ -523,7 +628,9 @@ def build_land_assessment(
         "evidence": {
             "land_status_basis": land_status_basis,
             "trend_basis": trend_basis,
-            "latest_season_basis": latest_season.evidence_summary,
+            "latest_season_basis": latest_season.evidence_summary
+            if latest_season is not None
+            else "No vegetation activity window was detected in the observed interval.",
             "gap_note": str(quality_metrics.get("gap_risk_reason", "")),
         },
         "metrics_summary": {
@@ -547,6 +654,7 @@ def build_land_assessment(
                     "quality_label": season.quality_label,
                     "confirmation_level": season.confirmation_level,
                     "is_open": season.is_open,
+                    "provisional": season.provisional,
                     "gap_overlap_count": season.gap_overlap_count,
                     "gap_overlap_risk": season.gap_overlap_risk,
                     "gap_overlap_stage": season.gap_overlap_stage,

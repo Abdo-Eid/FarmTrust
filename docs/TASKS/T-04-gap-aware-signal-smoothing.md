@@ -44,24 +44,38 @@ Use a conservative gap-aware time-window smoother:
 - Store smoothing metadata so downstream outputs remain auditable.
 - Do not introduce a formal signal bundle by default. Keep this task focused on smoothing and metadata. If a clearer handoff becomes necessary during implementation, keep it minimal: signals, evidence, and processing metadata only; no hidden scoring, UI labels, or business decisions.
 
+Approved constants and behavior:
+- `MAX_SMOOTHING_GAP_DAYS = 12.0`.
+- `LOCAL_WINDOW_DAYS = 12.0`, interpreted as `±12` days around each real usable observation.
+- `MIN_LOCAL_NEIGHBORS = 2`, excluding the center point.
+- Two-pass robust smoother:
+  - Pass 1: local median within the same continuous segment and `±12` days.
+  - Pass 2: weighted mean over pass-1 values within the same continuous segment and `±12` days.
+- Weight: `valid_fraction / (1 + abs(delta_days) / LOCAL_WINDOW_DAYS)`.
+- If fewer than 2 neighbor usable observations exist inside the same segment/window, keep raw.
+- 1-point and 2-point segments keep raw.
+- Gaps greater than 12 days break smoothing continuity; a gap exactly 12 days remains continuous.
+- Smooth only real usable observations; do not interpolate or create synthetic dates.
+
 ## Task List
 
-- [ ] Define final smoothing constants: max smoothing gap `12` days and local window size.
-- [ ] Update `farmtrust_core/preprocess/smoothing.py` to accept timestamps and valid fractions with each signal value.
-- [ ] Update `farmtrust_core/preprocess/pipeline.py` to pass timestamped usable observations into smoothing.
-- [ ] Ensure smoothing never crosses gaps greater than 12 days.
-- [ ] Ensure smoothing never creates synthetic timestamps or fills unusable rows.
-- [ ] Align season confirmation to use the intended smoothed `EVI`, `NDMI`, and `NDWI` values consistently.
-- [ ] Write tests for continuous-segment smoothing, spike reduction, long-gap blocking, edge values, and insufficient-neighbor fallback.
-- [ ] Update `quality_metrics.json` smoothing metadata with method name, max gap days, local window days, and interpolation policy.
-- [ ] Avoid a new large signal-object abstraction unless needed to prevent unclear field passing.
-- [ ] Run backend verification after implementation.
+- [x] Define final smoothing constants: max smoothing gap `12` days and local window size.
+- [x] Update `farmtrust_core/preprocess/smoothing.py` to accept timestamps and valid fractions with each signal value.
+- [x] Update `farmtrust_core/preprocess/pipeline.py` to pass timestamped usable observations into smoothing.
+- [x] Ensure smoothing never crosses gaps greater than 12 days.
+- [x] Ensure smoothing never creates synthetic timestamps or fills unusable rows.
+- [x] Align season confirmation to use the intended smoothed `EVI`, `NDMI`, and `NDWI` values consistently.
+- [x] Write tests for continuous-segment smoothing, spike reduction, long-gap blocking, edge values, and insufficient-neighbor fallback.
+- [x] Update `quality_metrics.json` smoothing metadata with method name, max gap days, local window days, and interpolation policy.
+- [x] Avoid a new large signal-object abstraction unless needed to prevent unclear field passing.
+- [x] Run backend verification after implementation.
 
 ## Feedback Log
 
 - 2026-06-17: User rejected keeping the current smoother as a baseline and asked why not implement the correct method for the use case.
 - 2026-06-17: User requested a task and specified the gap break should be more than 12 days.
 - 2026-06-17: User questioned whether a signal object would help or just add logic; scope now avoids a large abstraction unless it is clearly needed.
+- 2026-06-18: User approved constants, weighted two-pass smoothing, no interpolation/synthetic dates, metadata, smoothed seasonal confirmation, and backend verification command.
 
 ## Decisions
 
@@ -70,12 +84,15 @@ Use a conservative gap-aware time-window smoother:
 - Smoothing must not interpolate or synthesize observations.
 - Raw values remain available for audit.
 - Do not create a large signal object as part of this task by default; use minimal metadata and only add a small handoff contract if the implementation becomes fragile without it.
+- 2026-06-18: Use a two-pass local median then weighted-mean smoother with `MAX_SMOOTHING_GAP_DAYS = 12.0`, `LOCAL_WINDOW_DAYS = 12.0`, and `MIN_LOCAL_NEIGHBORS = 2`.
+- 2026-06-18: 1-point and 2-point continuous segments keep raw values; observations with fewer than 2 local neighbors keep raw.
+- 2026-06-18: Weight smoothed local mean by `valid_fraction / (1 + abs(delta_days) / LOCAL_WINDOW_DAYS)`.
 
 ## Open Questions
 
-- [clarification needed] Should the local smoothing window be `±12 days`, `±10 days`, or a separate value from the 12-day gap break?
-- [clarification needed] Should local mean weighting use only time distance, or both time distance and `valid_fraction`?
-- [clarification needed] If a segment has only two usable observations, should both keep raw values or use a two-point local mean?
+- Resolved: local smoothing window is `±12` days.
+- Resolved: weighted mean uses both time distance and `valid_fraction`.
+- Resolved: two-point segments keep raw values.
 
 ## Knowledge to Keep
 
@@ -83,7 +100,15 @@ Use a conservative gap-aware time-window smoother:
 - The corrected method must preserve evidence gaps because FarmTrust separates signal interpretation from evidence coverage and assessment confidence.
 - A useful signal handoff is a boundary, not extra scoring logic: it should describe observed signals, evidence quality, and processing metadata only.
 - This task should fix smoothing first; expanding a first-class vegetation/moisture/activity signal layer is future work only if the code needs it.
+- Implemented smoothing method is `gap_aware_local_median_weighted_mean`.
+- Seasonal confirmation and scoring now consume the same smoothed EVI, NDMI, and NDWI policy from preprocessing output.
 
 ## Done Summary
 
-- Pending.
+- Replaced order-based smoothing with timestamp-aware, gap-aware smoothing over real usable observations only.
+- Preserved unusable rows with blank smoothed values and raw values for audit/debug comparison.
+- Added smoothing metadata to quality metrics.
+- Updated seasonal confirmation to use smoothed EVI, NDMI, and NDWI.
+- Promoted durable smoothing policy and metadata fields to `PIPELINE.md`.
+- Added focused backend tests for spike reduction, gap blocking, exact 12-day continuity, no interpolation/synthetic dates, unusable rows, edge handling, 1/2-point fallback, insufficient-neighbor fallback, metadata, and seasonal confirmation.
+- Verification: `uv run python -m unittest discover -s tests` passed.

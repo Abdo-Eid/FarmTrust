@@ -12,10 +12,10 @@ selected interval, with enough evidence to support API and portal consumption.
 The current-build output focuses on:
 
 - smoothed vegetation and moisture signals
-- season count over the interval
+- vegetation activity-window count over the interval
 - interval-based land status
 - 2-year trend
-- latest-season performance
+- latest activity-window performance
 - conservative risk flags
 - satellite evidence coverage
 - assessment confidence and supporting evidence
@@ -166,8 +166,14 @@ Processing behavior:
 - negative weights are clamped to `0`; when total weight is `0`, a simple arithmetic mean is used
 - usable observations require `valid_fraction >= 0.90`
 - non-usable rows remain in the output for review, but do not receive smoothed values
-- smoothing is applied only to usable values
-- the current smoothing method is `rolling_median_3_then_mean_3`
+- smoothing is applied only to real usable observations
+- the current smoothing method is `gap_aware_local_median_weighted_mean`
+- usable-observation gaps greater than `12` days break smoothing continuity; gaps exactly `12` days remain continuous
+- local smoothing uses a `±12` day window inside each continuous segment
+- smoothing uses a local median pass followed by a weighted-mean pass
+- weighted mean uses `valid_fraction / (1 + abs(delta_days) / 12.0)`
+- observations with fewer than `2` usable neighbors inside the same segment/window keep raw values
+- 1-point and 2-point continuous segments keep raw values
 - no synthetic timestamps are created
 - no interpolation is performed
 
@@ -209,6 +215,14 @@ Important quality fields:
 - `max_gap_days`
 - `median_gap_days`
 - `smoothing_method`
+- `max_smoothing_gap_days`
+- `local_window_days`
+- `minimum_local_neighbors`
+- `minimum_local_neighbors_excludes_center`
+- `weighting_policy`
+- `interpolation_policy`
+- `creates_synthetic_timestamps`
+- `smooths_only_usable_observations`
 - `usable_valid_fraction_threshold`
 - `gap_risk`
 - `confidence_penalty`
@@ -227,7 +241,7 @@ Evidence coverage interpretation:
 - Raw gap metrics describe satellite observation quality, not land or farmer quality.
 - Internal fields such as `gap_risk`, `confidence_penalty`, and `gap_risk_reason` are pipeline interpretation helpers; they should not be shown as land risk flags.
 - User-facing wording should use `satellite_evidence_coverage`, `evidence limitations`, and `assessment confidence`.
-- Assessment confidence means confidence in FarmTrust's conclusion, given satellite coverage, observation continuity, season clarity, and signal strength. It does not mean confidence in the land itself.
+- Assessment confidence means confidence in FarmTrust's conclusion, given satellite coverage, observation continuity, activity-window clarity, and signal strength. It does not mean confidence in the land itself.
 - Cloud gaps or weak coverage can lower assessment confidence, but they should not by themselves create a land risk flag such as abandonment, salinity, waterlogging, or encroachment.
 
 Interpretation layers:
@@ -235,7 +249,7 @@ Interpretation layers:
 - Raw metrics: `valid_fraction`, `total_observation_count`, `usable_observation_count`, `dropped_observation_count`, `max_gap_days`, `median_gap_days`, `gap_ratio`, `long_gap_count`, `long_gap_windows`.
 - Internal continuity classification: `gap_risk`, `confidence_penalty`, and `gap_risk_reason` describe how observation gaps affect evidence reliability.
 - User-facing interpretation: `satellite_evidence_coverage` should be communicated as `good`, `fair`, `limited`, or `insufficient`.
-- Assessment reliability: assessment confidence should be communicated as `high`, `medium`, or `low`, with a short reason tied to evidence coverage, season clarity, and signal strength.
+- Assessment reliability: assessment confidence should be communicated as `high`, `medium`, or `low`, with a short reason tied to evidence coverage, activity-window clarity, and signal strength.
 
 Current interpretation policy:
 
@@ -251,11 +265,11 @@ Threshold note:
 
 Operational notes:
 
-- downstream seasonal analysis depends on `is_usable = true`, populated `ndvi_smoothed`, and required quality metric keys
-- changes to `valid_fraction_threshold`, smoothing method, or expected cadence can shift seasonal boundaries and should be re-reviewed visually
+- downstream activity-window analysis depends on `is_usable = true`, populated `ndvi_smoothed`, and required quality metric keys
+- changes to `valid_fraction_threshold`, smoothing method, or expected cadence can shift activity-window boundaries and should be re-reviewed visually
 - daily duplicate handling matters because overlapping tiles and scene variants can produce repeated observation days
 
-### 3. Seasonal analysis
+### 3. Activity-window analysis
 
 Entrypoint:
 
@@ -265,11 +279,11 @@ python scripts/seasonal_analysis.py --aoi-id <aoi_id>
 
 Primary responsibilities:
 
-- detect season windows from smoothed NDVI
-- identify crossing/start/peak/end dates
-- label seasons as `good`, `interrupted`, or `weak`
-- confirm seasons using EVI/NDMI/NDWI
-- record whether each season overlaps long gap windows
+- detect vegetation activity windows from smoothed NDVI
+- identify observed crossing/start/peak/end dates for the detected activity window
+- label activity windows as `good`, `interrupted`, or `weak`
+- confirm activity windows using EVI/NDMI/NDWI support signals
+- record whether each activity window overlaps long observation gaps
 
 Main code:
 
@@ -285,26 +299,27 @@ Input contract:
 
 Detector behavior:
 
-- detection uses smoothed NDVI only in the current baseline
-- activity threshold is fixed at `0.18`
-- the threshold confirms active-period crossing; it is not treated as the literal agronomic start date
-- active periods are contiguous usable smoothed observations where `ndvi_smoothed >= 0.18`
-- after the first threshold crossing, the detector backtracks to the earlier local low that begins the sustained rise
-- `crossing_date` records threshold crossing
-- `start_date` records the backtracked onset
-- left-edge partial tails are excluded when the series begins active and peaks at the first observation
-- a segment is retained only when it has at least `4` active observations and at least `20.0` days of duration
+- detection uses T-04 smoothed NDVI as the primary activity signal
+- output field names remain season-oriented for compatibility, but `season` means detected vegetation activity window, not an agronomic crop season
+- baseline method is `local_p20_smoothed_ndvi`
+- local baseline uses the 20th percentile of smoothed NDVI within `±90.0` days; if fewer than `5` local observations exist, it falls back to the full-series 20th percentile
+- peak method is `max_smoothed_ndvi_in_candidate_window`, using only real usable observations
+- no interpolation is performed and no synthetic dates or peaks are created
+- low vegetation floor is `0.18`; observations below this cannot start or sustain an activity window
+- activity-window boundary threshold is `max(0.18, baseline_ndvi + 0.35 * amplitude_ndvi)`
+- minimum amplitude is `0.08`; weaker candidates are ignored as no detected activity window
+- a retained window needs at least `4` usable observations and at least `20.0` days of observed duration
 - peak date is the timestamp with maximum `ndvi_smoothed` inside the retained window
-- end-of-series active windows are emitted as seasons and marked `is_open = true`
+- right-edge active windows are emitted with `is_open = true`, `provisional = true`, and `end_boundary_certainty = "open"`
 
 Quality labels:
 
-- `weak` if `peak_ndvi < 0.24` or duration is under `20` days
-- `interrupted` if the maximum single-step drop is `>= 0.05`
-- `good` if `peak_ndvi >= 0.30` and rise gain from start to peak is `>= 0.08`
-- otherwise, the season is `weak`
+- `good` requires `peak_ndvi >= 0.30`, amplitude at least `0.12`, sustained duration, and non-weak confirmation
+- `interrupted` describes observed NDVI drop behavior inside the activity window, not a known crop-stage failure
+- `weak` describes detected activity that is sustained but has weaker amplitude/confirmation
+- weak EVI/NDMI/NDWI confirmation caps the activity-window label at `weak`
 
-`rise_gain` is `peak_ndvi - start_ndvi`. Maximum drop is the largest one-step decrease between consecutive smoothed observations inside the season window.
+Maximum drop is the largest one-step decrease between consecutive smoothed observations inside the activity window.
 
 Main output:
 
@@ -333,15 +348,34 @@ Important season fields:
 - `gap_overlap_stage`
 - `evidence_summary`
 - `season_confidence_note`
+- `window_type`
+- `provisional`
+- `baseline_ndvi`
+- `amplitude_ndvi`
+- `boundary_threshold_ndvi`
+- `usable_observation_count`
+- `start_boundary_certainty`
+- `peak_certainty`
+- `end_boundary_certainty`
+- `internal_gap_count`
 
-Season boundaries should be reviewed with clear separation between adjacent seasons rather than duplicated start/end boundary markers.
+Top-level terminology field:
+
+- `terminology.season`: `detected vegetation activity window, not an agronomic crop season`
+
+Activity-window boundaries should be reviewed with clear separation between adjacent windows rather than duplicated start/end boundary markers.
 
 Gap context:
 
-- observation gap classification does not directly change season boundaries
-- seasonal outputs record whether season windows overlap long observation gaps
-- overlap diagnostics include severity and dominant touched stage: `onset`, `peak`, `tail`, or `multiple`
-- interpretation should become more cautious when satellite evidence coverage is limited or when long gaps overlap important season stages
+- observation gap classification does not directly create land or farming risk flags
+- activity-window outputs record whether detected windows overlap long observation gaps
+- onset zone is the first third of the observed window
+- peak zone is `peak_date ± max(6 days, duration_days / 6)`
+- tail zone is the last third of the observed window
+- long gaps near onset/tail make boundary certainty limited and set `provisional = true`
+- long gaps near peak set `peak_certainty = "limited"`
+- internal long gaps increment `internal_gap_count`
+- interpretation should become more cautious when satellite evidence coverage is limited or when long gaps overlap important activity-window stages
 
 ### 4. Land assessment
 
@@ -353,10 +387,10 @@ python scripts/land_assessment.py --aoi-id <aoi_id>
 
 Primary responsibilities:
 
-- aggregate preprocessing and seasonal evidence
+- aggregate preprocessing and activity-window evidence
 - classify interval-level `land_status`
 - classify interval-level `trend_2y`
-- determine `latest_season_performance`
+- determine latest activity-window performance in the compatibility field `latest_season_performance`
 - emit conservative `risk_flags`
 - compute assessment confidence, meaning confidence in the assessment reliability
 
@@ -398,11 +432,11 @@ Top-level fields:
 
 Assessment policy notes:
 
-- `land_status` is inferred from interval-level behavior across seasons and low-activity spans, not from one latest point
-- `trend_2y` is derived from season-level strength summaries such as peak NDVI and season AUC
-- `latest_season_performance` uses the latest closed season when available; otherwise it uses the latest open season and marks it provisional
-- risk flags stay conservative and should prefer `uncertain` or lower assessment confidence when continuity or season clarity is weak
-- assessment confidence surfaces component levels for satellite evidence coverage, season clarity, and signal strength in addition to the final level
+- `land_status` is inferred from observed interval-level vegetation activity and low-activity spans, not from one latest point
+- `trend_2y` is derived from activity-window strength summaries such as peak NDVI and window AUC
+- `latest_season_performance` uses the latest closed activity window when available; otherwise it uses the latest open activity window and marks it provisional
+- risk flags stay conservative and should prefer `uncertain` or lower assessment confidence when continuity or activity-window clarity is weak
+- assessment confidence surfaces component levels for satellite evidence coverage, activity-window clarity, and signal strength in addition to the final level
 - satellite evidence limitations should be documented as evidence limitations, not as land/farmer problems
 - crop category is skipped in the current build
 
@@ -439,7 +473,7 @@ Important note:
 
 Current behavior:
 
-- uses interval-level seasonal behavior plus active-observation fraction
+- uses interval-level vegetation activity-window behavior plus active-observation fraction
 - does **not** decide status from the latest point alone
 
 Current labels:
@@ -452,8 +486,8 @@ Current labels:
 
 Current behavior:
 
-- compares season-level strength across the interval
-- currently uses peak NDVI and season AUC as conservative strength summaries
+- compares activity-window strength across the interval
+- currently uses peak NDVI and activity-window AUC as conservative strength summaries
 
 Current labels:
 
@@ -462,12 +496,12 @@ Current labels:
 - `declining`
 - `uncertain`
 
-### Latest season performance
+### Latest activity-window performance
 
 Current behavior:
 
-- uses the latest closed season if available
-- otherwise uses the latest open season and marks it provisional
+- uses the latest closed activity window if available
+- otherwise uses the latest open activity window and marks it provisional
 
 Current labels:
 
@@ -498,7 +532,7 @@ The current-build surface should stay focused on:
 
 - one ingestion entrypoint
 - one preprocessing entrypoint
-- one seasonal entrypoint
+- one activity-window entrypoint
 - one assessment entrypoint
 
 ## Current limitations
@@ -507,7 +541,7 @@ The current-build surface should stay focused on:
 - no interpolation is performed
 - land status is rule-based, not region-calibrated
 - crop category is deferred
-- seasonal detection remains NDVI-primary
+- activity-window detection remains NDVI-primary
 - CLI fixture input and portal/API polygon input both need validation when contracts change
 
 These are acceptable for the current build as long as confidence and evidence remain explicit.

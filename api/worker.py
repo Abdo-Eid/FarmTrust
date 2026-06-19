@@ -171,7 +171,7 @@ def _run_job(job_id: str, land_id: str) -> None:
                     quality_metrics=preprocess["quality_metrics"],
                 )
 
-                _append_log(session, job, "[INFO] Detecting season windows")
+                _append_log(session, job, "[INFO] Detecting vegetation activity windows")
                 season_payload = build_season_payload(
                     smoothed_csv_path=smoothed_timeseries_path(land.aoi_id),
                     quality_metrics_path=quality_metrics_path(land.aoi_id),

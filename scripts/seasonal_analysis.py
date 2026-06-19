@@ -1,4 +1,4 @@
-"""Run the Phase A seasonal-analysis baseline for one AOI."""
+"""Run vegetation activity-window detection for one AOI."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ def _load_aoi_id_from_quality_metrics(metrics_path: Path, fallback: str) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Detect season windows from preprocessing outputs."
+        description="Detect vegetation activity windows from preprocessing outputs."
     )
     parser.add_argument("--aoi-id", default=None, help="AOI identifier (default input dir: data/preprocess/<aoi_id>)")
     parser.add_argument("--input-dir", default=None, help="Directory containing ndvi_smoothed.csv and quality_metrics.json")
@@ -64,7 +64,7 @@ def main() -> int:
     )
     output_path = write_season_payload(output_dir=output_dir, payload=payload)
 
-    logging.info("Wrote season windows to: %s", output_path)
+    logging.info("Wrote vegetation activity windows to: %s", output_path)
     return 0
 
 

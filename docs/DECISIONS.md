@@ -146,3 +146,10 @@ Alternatives: Expose internal `gap_risk` directly; hide gap diagnostics entirely
 Consequences: User-facing surfaces should use satellite evidence coverage and assessment confidence. Internal fields such as `gap_risk` may remain pipeline helpers, but they must map to evidence limitations, not land/farmer problems. Land risk flags remain reserved for land-condition signals such as waterlogging, salinity likelihood, abandonment, and encroachment / land-use change.
 Links: PROJECT §Outputs (what the user sees) | PROJECT §Big picture (end-to-end) | PIPELINE §Evidence coverage interpretation
 Refines: 2026-05-18 — Current-build preprocessing does not interpolate or synthesize timestamps
+
+2026-06-17 — Decision: Insufficient satellite evidence requires manual review
+Why: A completed pipeline run can still lack enough usable evidence for a final automated land assessment. In that case, the product must avoid implying land/farmer failure or issuing unsupported financing-review signals.
+Alternatives: Return a provisional automated land status; return no assessment object; treat insufficient evidence as a high-risk land result.
+Consequences: API and reports expose `assessment_status: complete | manual_review_required`. Manual-review results keep satellite evidence coverage and low assessment confidence, but do not present final automated `land_status`, `trend_2y`, `season_performance`, `risk_tier`, or land risk flags. Confidence is capped by evidence coverage: no cap for `good`, max `medium` for `fair`, max `low` for `limited`, and `low` for `insufficient`.
+Links: PROJECT §Outputs (what the user sees) | ENGINEERING §Assessment artifact boundary | TASK: T-03
+Refines: 2026-06-17 — Decision: Gap diagnostics describe evidence coverage, not land risk

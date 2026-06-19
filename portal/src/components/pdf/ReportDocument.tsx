@@ -240,18 +240,26 @@ export function ReportDocument({
     institution,
     reportDate,
 }: ReportDocumentProps) {
+    const requiresManualReview =
+        land.assessment_status === "manual_review_required";
     const statusLabel =
-        land.land_status && STATUS_LABELS[land.land_status]
+        requiresManualReview
+            ? "Manual Review Required"
+            : land.land_status && STATUS_LABELS[land.land_status]
             ? STATUS_LABELS[land.land_status]
             : land.land_status || "Unknown";
 
     const riskLabel =
-        land.risk_tier && RISK_LABELS[land.risk_tier]
+        requiresManualReview
+            ? "Not Issued"
+            : land.risk_tier && RISK_LABELS[land.risk_tier]
             ? RISK_LABELS[land.risk_tier]
             : land.risk_tier || "Unknown";
 
     const trendLabel =
-        land.trend_2y && TREND_LABELS[land.trend_2y]
+        requiresManualReview
+            ? "Not Issued"
+            : land.trend_2y && TREND_LABELS[land.trend_2y]
             ? TREND_LABELS[land.trend_2y]
             : land.trend_2y || "Unknown";
 
@@ -377,7 +385,13 @@ export function ReportDocument({
 
                 {/* Risk Flags Section */}
                 <Text style={styles.sectionHeading}>RISK FLAGS</Text>
-                {land.flags && land.flags.length > 0 ? (
+                {requiresManualReview ? (
+                    <Text style={styles.bulletItem}>
+                        No final automated land risk flags issued. Manual
+                        review is required because satellite evidence is
+                        insufficient.
+                    </Text>
+                ) : land.flags && land.flags.length > 0 ? (
                     <View style={styles.bulletList}>
                         {land.flags.map((flag, idx) => (
                             <Text key={idx} style={styles.bulletItem}>

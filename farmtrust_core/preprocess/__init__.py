@@ -12,10 +12,20 @@ from .pipeline import (
     load_ingestion_observations,
     write_preprocess_outputs,
 )
-from .smoothing import SMOOTHING_METHOD_NAME, smooth_usable_values
+from .smoothing import (
+    LOCAL_WINDOW_DAYS,
+    MAX_SMOOTHING_GAP_DAYS,
+    MIN_LOCAL_NEIGHBORS,
+    SMOOTHING_METHOD_NAME,
+    smooth_usable_values,
+    smoothing_metadata,
+)
 
 __all__ = [
     "REQUIRED_COLUMNS",
+    "LOCAL_WINDOW_DAYS",
+    "MAX_SMOOTHING_GAP_DAYS",
+    "MIN_LOCAL_NEIGHBORS",
     "SMOOTHING_METHOD_NAME",
     "build_confidence_inputs",
     "classify_gap_risk",
@@ -24,5 +34,6 @@ __all__ = [
     "compute_gap_windows",
     "load_ingestion_observations",
     "smooth_usable_values",
+    "smoothing_metadata",
     "write_preprocess_outputs",
 ]
