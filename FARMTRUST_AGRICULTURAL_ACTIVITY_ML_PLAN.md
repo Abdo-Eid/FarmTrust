@@ -860,7 +860,7 @@ finetune(config):
 
 ### Phase 4 — Kaggle Notebooks
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local (write) → Kaggle (execute)
 
 #### Notebook structure

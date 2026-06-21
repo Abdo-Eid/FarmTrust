@@ -10,6 +10,9 @@ wheels/
 
 # Runtime / cache
 .cache/
+.tmp/
+models/
+catboost_info/
 
 # Jupyter noise
 **/.ipynb_checkpoints/

@@ -11,14 +11,14 @@ from sklearn.metrics import classification_report, confusion_matrix, f1_score, p
 from torch.optim import AdamW
 from torch.utils.data import DataLoader, random_split
 
-from kaggle.sits_bert.config import FarmTrustSITSConfig, config as default_config
-from kaggle.sits_bert.dataset import FarmTrustDataset
-from kaggle.sits_bert.model import SITSBertFinetune
+from .config import FarmTrustSITSConfig, config as default_config
+from .dataset import FarmTrustDataset
+from .model import SITSBertFinetune
 
 
 def finetune(config: FarmTrustSITSConfig = default_config) -> dict[str, float]:
     torch.manual_seed(config.seed)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = _training_device()
     output_dir = Path(config.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -130,6 +130,16 @@ def _false_active_rate(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     if negatives.sum() == 0:
         return 0.0
     return float(((y_pred == 0) & negatives).sum() / negatives.sum())
+
+
+def _training_device() -> torch.device:
+    if not torch.cuda.is_available():
+        return torch.device("cpu")
+    major, _ = torch.cuda.get_device_capability(0)
+    if major < 7:
+        print("CUDA device is not compatible with this PyTorch wheel; using CPU.")
+        return torch.device("cpu")
+    return torch.device("cuda")
 
 
 def _sweep_thresholds(y_true: np.ndarray, y_prob: np.ndarray, config: FarmTrustSITSConfig) -> dict[str, float]:

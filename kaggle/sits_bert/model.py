@@ -7,7 +7,7 @@ import math
 import torch
 from torch import nn
 
-from kaggle.sits_bert.config import FarmTrustSITSConfig, config as default_config
+from .config import FarmTrustSITSConfig, config as default_config
 
 
 class SITSBertEncoder(nn.Module):

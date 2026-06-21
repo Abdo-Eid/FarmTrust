@@ -10,9 +10,9 @@ import torch
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 
-from kaggle.sits_bert.config import FarmTrustSITSConfig, config as default_config
-from kaggle.sits_bert.dataset import FarmTrustDataset
-from kaggle.sits_bert.model import SITSBertPretraining
+from .config import FarmTrustSITSConfig, config as default_config
+from .dataset import FarmTrustDataset
+from .model import SITSBertPretraining
 
 
 def _lr_lambda(step: int, *, warmup_steps: int, total_steps: int) -> float:
@@ -24,7 +24,7 @@ def _lr_lambda(step: int, *, warmup_steps: int, total_steps: int) -> float:
 
 def pretrain(config: FarmTrustSITSConfig = default_config) -> list[float]:
     torch.manual_seed(config.seed)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = _training_device()
     output_dir = Path(config.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -49,7 +49,11 @@ def pretrain(config: FarmTrustSITSConfig = default_config) -> list[float]:
     for epoch in range(1, config.pretraining.epochs + 1):
         model.train()
         for batch in loader:
-            batch = {key: value.to(device) for key, value in batch.items()}
+            batch = {
+                key: value.to(device)
+                for key, value in batch.items()
+                if key in {"input_ids", "attention_mask", "doy", "mask_positions", "reconstruction_target"}
+            }
             output = model(**batch)
             loss = output["loss"]
             loss.backward()
@@ -70,3 +74,13 @@ def pretrain(config: FarmTrustSITSConfig = default_config) -> list[float]:
         stats_path.write_text(json.dumps(dataset.stats, indent=2), encoding="utf-8")
     print("PRETRAIN COMPLETE. Download: sits_bert_pretrained.pt")
     return losses
+
+
+def _training_device() -> torch.device:
+    if not torch.cuda.is_available():
+        return torch.device("cpu")
+    major, _ = torch.cuda.get_device_capability(0)
+    if major < 7:
+        print("CUDA device is not compatible with this PyTorch wheel; using CPU.")
+        return torch.device("cpu")
+    return torch.device("cuda")
