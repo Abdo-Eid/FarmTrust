@@ -919,7 +919,7 @@ Notebook 03 settings:
 
 ### Phase 5 — Download & Local Inference
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local
 
 #### `scripts/download_from_kaggle.sh`

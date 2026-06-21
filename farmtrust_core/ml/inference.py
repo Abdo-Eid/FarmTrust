@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -48,7 +49,7 @@ def run_inference(aoi_id: str, data_root: str | Path = "data", model_dir: str | 
         sequence = SequenceBuilder(data_root=data_root).build(aoi_id)
         stats = load_stats(model_dir / "normalization_stats.json")
         features = apply_normalization(sequence["features"], stats)
-        probabilities = _predict_probabilities(features, model_dir / "sits_bert_finetuned.pt")
+        probabilities = _predict_probabilities(features, sequence, model_dir / "sits_bert_finetuned.pt")
         model_card = _load_model_card(model_dir / "model_card.json")
         artifact = _build_artifact(aoi_id, sequence, probabilities, model_card, data_root)
     except Exception as exc:
@@ -59,21 +60,40 @@ def run_inference(aoi_id: str, data_root: str | Path = "data", model_dir: str | 
     return artifact
 
 
-def _predict_probabilities(features: np.ndarray, model_path: Path) -> np.ndarray:
+def _predict_probabilities(features: np.ndarray, sequence: dict[str, Any], model_path: Path) -> np.ndarray:
     """Load a Kaggle-trained Torch checkpoint when available."""
     import torch
 
-    checkpoint = torch.load(model_path, map_location="cpu")
+    checkpoint = torch.load(model_path, map_location="cpu", weights_only=False)
     model = checkpoint.get("model")
     if model is None:
-        raise ValueError("Checkpoint does not contain an importable 'model' object")
+        model = _load_sits_bert_from_state_dict(checkpoint)
     model.eval()
     with torch.no_grad():
-        logits = model(torch.from_numpy(features).float())
+        logits = model(
+            torch.from_numpy(features).float(),
+            torch.from_numpy(sequence["attention_mask"]).bool(),
+            torch.from_numpy(sequence["doy"]).long(),
+        )
         if isinstance(logits, dict):
             logits = logits.get("logits")
         probabilities = torch.softmax(logits, dim=-1).cpu().numpy()
     return probabilities
+
+
+def _load_sits_bert_from_state_dict(checkpoint: dict[str, Any]) -> Any:
+    state_dict = checkpoint.get("model_state_dict")
+    if state_dict is None:
+        raise ValueError("Checkpoint does not contain 'model' or 'model_state_dict'")
+    repo_root = Path(__file__).resolve().parents[2]
+    kaggle_package_root = repo_root / "kaggle"
+    if str(kaggle_package_root) not in sys.path:
+        sys.path.insert(0, str(kaggle_package_root))
+    from sits_bert.model import SITSBertFinetune
+
+    model = SITSBertFinetune()
+    model.load_state_dict(state_dict, strict=False)
+    return model
 
 
 def _load_model_card(path: Path) -> dict[str, Any]:
