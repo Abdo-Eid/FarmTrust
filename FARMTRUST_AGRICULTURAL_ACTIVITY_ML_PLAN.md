@@ -897,7 +897,7 @@ KAGGLE DATASET 1: farmtrust-sits
 
 KAGGLE DATASET 2: farmtrust-sits-code
   Upload: kaggle/ directory zipped
-  Contents: sits_bert/ + notebooks/
+  Contents: sits_bert/ + notebooks/ including notebooks/00_ingest_egypt_aois.ipynb
   Command: zip -r sits_code.zip kaggle/ && kaggle datasets create -p . sits_code.zip
 
 KAGGLE DATASET 3: farmtrust-sits-pretrained   ← created AFTER notebook 02 finishes
