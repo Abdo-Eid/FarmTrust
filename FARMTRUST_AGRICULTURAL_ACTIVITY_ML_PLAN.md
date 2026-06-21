@@ -756,7 +756,7 @@ This .npz is what you upload to Kaggle as a dataset.
 
 ### Phase 2.5 — Classical ML Activity Model
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local
 **Priority:** Production candidate #1
 
