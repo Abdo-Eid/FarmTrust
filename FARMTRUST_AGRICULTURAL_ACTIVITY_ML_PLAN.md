@@ -790,7 +790,7 @@ Decision policy:
 
 ### Phase 3 — SITS-BERT Kaggle Code
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local (write) → Kaggle (execute)
 
 #### `kaggle/sits_bert/config.py`
