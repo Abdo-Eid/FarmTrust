@@ -512,7 +512,7 @@ uv sync --extra ml
 
 ### Phase 1 — `farmtrust_core/ml/` Subpackage
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local
 
 #### 1.1 — `farmtrust_core/ml/__init__.py`
