@@ -16,7 +16,16 @@ dependencies = [
 ingest-aoi = "scripts.ingest_aoi:main"
 
 [project.optional-dependencies]
-ml = []
+ml = [
+  "torch>=2.2.2",
+  "numpy>=1.26.4",
+  "scikit-learn>=1.4.1",
+  "lightgbm>=4.3.0",
+  "catboost>=1.2.3",
+  "hmmlearn>=0.3.2",
+  "PyYAML>=6.0.1",
+  "matplotlib>=3.8.3",
+]
 data = [
     "planetary-computer>=1.0.0",
     "pyarrow>=23.0.1",
