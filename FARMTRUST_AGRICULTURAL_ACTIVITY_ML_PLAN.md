@@ -717,7 +717,7 @@ Never raises on inference — catches exceptions and writes error artifact inste
 
 ### Phase 2 — Kaggle Dataset Builder Script
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local
 
 #### `scripts/build_sits_dataset.py`
