@@ -1,13 +1,17 @@
 {
-  "id": "faresmamdou/farmtrust-ingest-egypt-aois",
-  "title": "FarmTrust Ingest Egypt AOIs",
-  "code_file": "00_ingest_egypt_aois.ipynb",
+  "id": "faresmamdou/farmtrust-sits-bert-finetune",
+  "title": "FarmTrust SITS-BERT Finetune",
+  "code_file": "03_finetune.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": true,
-  "enable_gpu": false,
+  "enable_gpu": true,
   "enable_internet": true,
-  "dataset_sources": ["faresmamdou/farmtrust-sits-code"],
+  "dataset_sources": [
+    "faresmamdou/farmtrust-sits",
+    "faresmamdou/farmtrust-sits-code",
+    "faresmamdou/farmtrust-sits-pretrained"
+  ],
   "competition_sources": [],
   "kernel_sources": []
 }

@@ -979,8 +979,12 @@ What it does:
 
 ### Phase 6 — Evaluation
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local
+
+**RESULT:** Pipeline validated end-to-end. Model metrics are 0.0 as expected
+with 1-AOI training set. Improvement path: rebuild sits_dataset.npz
+with all 12 AOIs + weak labels, re-upload to Kaggle, retrain.
 
 #### `evaluation/metrics.py`
 
