@@ -1,0 +1,18 @@
+{
+  "schema_version": "ml-1.1",
+  "pipeline_version": "farmtrust-activity-s2-v1",
+  "aoi_id": "aoi_fayoum_01",
+  "inference_timestamp": "2026-06-22T21:06:30.397640Z",
+  "ml_land_status": "uncertain",
+  "ml_lender_decision": "insufficient_evidence",
+  "ml_assessment_confidence": "low",
+  "ml_false_active_risk": "high",
+  "ml_review_recommendation": "manual_review_required",
+  "ml_summary": {
+    "false_active_gates_triggered": [
+      "inference_error"
+    ]
+  },
+  "error": "No module named 'torch'",
+  "advisory_note": "ML output is advisory. Rule-based assessment in land_assessment.json remains authoritative until ml_promoted=true."
+}

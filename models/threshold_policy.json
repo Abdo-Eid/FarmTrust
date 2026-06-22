@@ -1,0 +1,9 @@
+{
+  "confirmed_active": 0.8,
+  "possible_active": 0.65,
+  "tuned_active_threshold": 0.4,
+  "precision_active": 0.0,
+  "recall_active": 0.0,
+  "selection_rule": "highest recall where precision_active >= 0.90",
+  "test_set_warning": "rule-based proxy test set, not manually annotated ground truth"
+}

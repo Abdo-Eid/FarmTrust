@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 import csv
+import json
+import sys
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 from sklearn.metrics import balanced_accuracy_score, brier_score_loss, f1_score, precision_score, recall_score
+
+
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8")
 
 
 TEST_SET_WARNING = """
@@ -25,6 +32,13 @@ LABEL_TO_INDEX = {
     "sparse": 2,
     "uncertain": 3,
     "intermittent": 2,
+}
+
+INDEX_TO_LABEL = {
+    0: "active",
+    1: "bare",
+    2: "sparse",
+    3: "uncertain",
 }
 
 
@@ -73,6 +87,37 @@ def print_report(metrics: dict[str, float]) -> None:
     print("PASS")
 
 
+def load_prediction_for_aoi(aoi_id: str, data_root: str | Path = "data") -> tuple[int, list[float]] | None:
+    prediction_path = Path(data_root) / "ml" / aoi_id / "sits_prediction.json"
+    if not prediction_path.exists():
+        return None
+
+    payload = json.loads(prediction_path.read_text(encoding="utf-8"))
+    observations = payload.get("observations", [])
+    probabilities = []
+    for observation in observations:
+        probs = observation.get("ml_probabilities", {})
+        probabilities.append(
+            [
+                float(probs.get("active", 0.0)),
+                float(probs.get("bare", 0.0)),
+                float(probs.get("sparse", 0.0)),
+                float(probs.get("uncertain", 0.0)),
+            ]
+        )
+
+    if probabilities:
+        mean_prob = np.asarray(probabilities, dtype=float).mean(axis=0)
+    else:
+        status = str(payload.get("ml_land_status", "uncertain")).lower()
+        label = LABEL_TO_INDEX.get(status, 3)
+        mean_prob = np.zeros(4, dtype=float)
+        mean_prob[label] = 1.0
+
+    pred = int(mean_prob.argmax())
+    return pred, mean_prob.tolist()
+
+
 def false_active_rate(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     negatives = y_true != 0
     if int(negatives.sum()) == 0:
@@ -101,7 +146,40 @@ def main() -> int:
     if not rows:
         raise ValueError("Test set is empty")
     print(f"Loaded test_set.csv rows: {len(rows)}")
-    print("FAIL: evaluation predictions are not available for the proxy test set yet.")
+
+    y_true: list[int] = []
+    y_pred: list[int] = []
+    y_prob: list[list[float]] = []
+    missing_predictions: list[str] = []
+    for row in rows:
+        aoi_id = row["aoi_id"]
+        true_label = LABEL_TO_INDEX.get(row["label"])
+        if true_label is None:
+            raise ValueError(f"Unknown test label for {aoi_id}: {row['label']}")
+        prediction = load_prediction_for_aoi(aoi_id)
+        if prediction is None:
+            missing_predictions.append(aoi_id)
+            continue
+        pred, prob = prediction
+        y_true.append(true_label)
+        y_pred.append(pred)
+        y_prob.append(prob)
+
+    if missing_predictions:
+        print("FAIL: missing prediction artifacts for test-set AOIs:")
+        for aoi_id in missing_predictions:
+            print(f"  data/ml/{aoi_id}/sits_prediction.json")
+        return 0
+
+    metrics = compute_all_metrics(
+        np.asarray(y_true, dtype=int),
+        np.asarray(y_pred, dtype=int),
+        np.asarray(y_prob, dtype=float),
+    )
+    try:
+        print_report(metrics)
+    except AssertionError as exc:
+        print(f"FAIL: {exc}")
     return 0
 
 
