@@ -1,0 +1,13 @@
+{
+  "id": "faresmamdou/farmtrust-ingest-egypt-aois",
+  "title": "FarmTrust Ingest Egypt AOIs",
+  "code_file": "00_ingest_egypt_aois.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": true,
+  "dataset_sources": ["faresmamdou/farmtrust-sits-code"],
+  "competition_sources": [],
+  "kernel_sources": []
+}

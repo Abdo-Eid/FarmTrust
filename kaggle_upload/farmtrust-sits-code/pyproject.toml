@@ -1,0 +1,61 @@
+[project]
+name = "farmtrust"
+version = "0.1.0"
+description = "Satellite time-series pipeline for explainable land assessment signals"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.115",
+    "numpy>=2.4.3",
+    "pandas>=3.0.1",
+    "sqlmodel>=0.0.21",
+    "uvicorn[standard]>=0.30",
+]
+
+[project.scripts]
+ingest-aoi = "scripts.ingest_aoi:main"
+
+[project.optional-dependencies]
+ml = [
+  "torch>=2.2.2",
+  "numpy>=1.26.4",
+  "scikit-learn>=1.4.1",
+  "lightgbm>=4.3.0",
+  "catboost>=1.2.3",
+  "hmmlearn>=0.3.2",
+  "PyYAML>=6.0.1",
+  "matplotlib>=3.8.3",
+]
+data = [
+    "planetary-computer>=1.0.0",
+    "pyarrow>=23.0.1",
+    "pyproj>=3.7.2",
+    "pystac-client>=0.9.0",
+    "python-dateutil>=2.9.0.post0",
+    "rasterio>=1.5.0",
+    "requests>=2.32.5",
+    "rioxarray>=0.22.0",
+    "shapely>=2.1.2",
+    "stackstac>=0.5.0",
+    "xarray>=2026.2.0",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.2.0",
+    "ipython>=9.11.0",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.8",
+    "pip>=26.0.1",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["farmtrust_core*", "scripts*", "api*"]
+
+[tool.fastapi]
+entrypoint = "api.main:app"

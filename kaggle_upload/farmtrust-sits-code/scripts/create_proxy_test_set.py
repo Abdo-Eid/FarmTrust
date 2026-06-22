@@ -102,7 +102,6 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 
 def _passes_coverage_gate(quality: dict[str, Any]) -> bool:
-    # Thresholds validated against 5-year AOI data (2020-2024)
     return (
         int(quality.get("usable_observation_count", 0)) >= 30
         and float(quality.get("gap_ratio", 1.0)) <= 0.30
