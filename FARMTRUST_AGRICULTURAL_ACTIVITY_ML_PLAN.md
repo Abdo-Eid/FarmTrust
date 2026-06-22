@@ -1029,7 +1029,7 @@ Plots PR curve with threshold annotations and saves PNG.
 
 ### Phase 7 — API Integration (Advisory Mode)
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local
 **⚠ This phase modifies existing files. Read every instruction carefully.**
 

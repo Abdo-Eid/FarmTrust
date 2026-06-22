@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import threading
 from datetime import date, datetime, timedelta, timezone
 from typing import Dict
@@ -16,6 +17,7 @@ from farmtrust_core.ingest.pipeline import PipelineCancelledError
 from farmtrust_core.io.paths import (
     aoi_dir,
     assessment_dir,
+    data_root,
     preprocess_dir,
     quality_metrics_path,
     run_metadata_path,
@@ -24,10 +26,14 @@ from farmtrust_core.io.paths import (
     smoothed_timeseries_path,
     timeseries_path,
 )
+from farmtrust_core.ml.inference import run_inference_if_model_available
 from farmtrust_core.preprocess import build_preprocess_artifacts, write_preprocess_outputs
 from farmtrust_core.scoring import build_land_assessment, write_land_assessment
 from farmtrust_core.seasonal import build_season_payload, write_season_payload
 
+
+logger = logging.getLogger(__name__)
+DATA_ROOT = data_root()
 
 PHASE_PROGRESS = {
     None: 0,
@@ -187,6 +193,10 @@ def _run_job(job_id: str, land_id: str) -> None:
                     season_payload_path=season_windows_path(land.aoi_id),
                 )
                 write_land_assessment(output_dir=assessment_dir(land.aoi_id), payload=assessment)
+                try:
+                    run_inference_if_model_available(aoi_id=land.aoi_id, data_root=DATA_ROOT)
+                except Exception as exc:
+                    logger.warning("ML inference skipped for %s: %s", land.aoi_id, exc)
 
                 _set_job(session, job, phase="report_generation")
                 mapped = map_land_response(land, job)

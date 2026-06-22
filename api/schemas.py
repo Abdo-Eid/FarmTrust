@@ -65,6 +65,17 @@ class SeasonRecord(BaseModel):
     anomaly: Optional[str] = None
 
 
+class MLAdvisoryOutput(BaseModel):
+    ml_land_status: Optional[str] = None
+    ml_lender_decision: Optional[str] = None
+    ml_assessment_confidence: Optional[str] = None
+    ml_false_active_risk: Optional[str] = None
+    ml_review_recommendation: Optional[str] = None
+    ml_activity_window_count: Optional[int] = None
+    ml_model_version: Optional[str] = None
+    advisory_note: str = "ML output is advisory. Rule-based assessment remains authoritative."
+
+
 class LandResponse(BaseModel):
     id: str
     name: str
@@ -87,6 +98,7 @@ class LandResponse(BaseModel):
     report_summary: Optional[str] = None
     ndvi_series: Optional[list[NDVIPoint]] = None
     season_records: Optional[list[SeasonRecord]] = None
+    ml_advisory: Optional[MLAdvisoryOutput] = None
 
 
 class JobResponse(BaseModel):

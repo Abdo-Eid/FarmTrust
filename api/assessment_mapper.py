@@ -5,11 +5,19 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from api.models import Job, Land
-from api.schemas import Confidence, Indicators, LandResponse, NDVIPoint, SatelliteEvidenceCoverage, SeasonRecord
-from farmtrust_core.io.paths import land_assessment_path, season_windows_path, smoothed_timeseries_path
+from api.schemas import (
+    Confidence,
+    Indicators,
+    LandResponse,
+    MLAdvisoryOutput,
+    NDVIPoint,
+    SatelliteEvidenceCoverage,
+    SeasonRecord,
+)
+from farmtrust_core.io.paths import data_root, land_assessment_path, season_windows_path, smoothed_timeseries_path
 
 
 VALID_TRENDS = {"improving", "stable", "declining"}
@@ -43,7 +51,38 @@ def _base_response(land: Land, job: Job) -> dict[str, Any]:
         "trend_2y": land.trend_2y if land.trend_2y in VALID_TRENDS else None,
         "season_performance": land.season_performance if land.season_performance in VALID_SEASON_LABELS else None,
         "risk_tier": land.risk_tier,
+        "ml_advisory": map_ml_advisory(land.aoi_id, str(data_root())),
     }
+
+
+def map_ml_advisory(aoi_id: str, data_root: str) -> Optional[MLAdvisoryOutput]:
+    path = Path(data_root) / "ml" / aoi_id / "sits_prediction.json"
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        summary = payload.get("ml_summary", {})
+        activity_window_count = None
+        if isinstance(summary, dict):
+            activity_window_count = summary.get("ml_activity_window_count")
+        if activity_window_count is None:
+            windows = payload.get("ml_activity_windows")
+            activity_window_count = len(windows) if isinstance(windows, list) else None
+        return MLAdvisoryOutput(
+            ml_land_status=payload.get("ml_land_status"),
+            ml_lender_decision=payload.get("ml_lender_decision"),
+            ml_assessment_confidence=payload.get("ml_assessment_confidence"),
+            ml_false_active_risk=payload.get("ml_false_active_risk"),
+            ml_review_recommendation=payload.get("ml_review_recommendation"),
+            ml_activity_window_count=activity_window_count,
+            ml_model_version=payload.get("model_version"),
+            advisory_note=payload.get(
+                "advisory_note",
+                "ML output is advisory. Rule-based assessment remains authoritative.",
+            ),
+        )
+    except Exception:
+        return None
 
 
 def _risk_flags(assessment: dict[str, Any]) -> list[str]:
