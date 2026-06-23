@@ -376,7 +376,7 @@ kaggle datasets version \
 
 ### Phase C6 — Run Notebook 05 on Kaggle
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Kaggle (via CLI)
 
 **What it does:**
