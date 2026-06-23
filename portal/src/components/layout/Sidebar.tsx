@@ -3,7 +3,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 import { useState } from "react";
-import { authClient } from "@/lib/auth-client";
 
 const NAV_ITEMS = [
     { href: "/lands", icon: "grid_view", label: "Lands" },
@@ -12,7 +11,6 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
     const pathname = usePathname();
-    const { data: session } = authClient.useSession();
     const [isCollapsed, setIsCollapsed] = useState(true);
 
     return (
@@ -114,62 +112,6 @@ export function Sidebar() {
                     );
                 })}
             </nav>
-
-            {/* User section */}
-            <div
-                className={clsx(
-                    "border-t border-teal-800 py-4",
-                    isCollapsed ? "px-3" : "px-4",
-                )}
-            >
-                <div
-                    className={clsx(
-                        "flex items-center",
-                        isCollapsed ? "justify-center" : "gap-3",
-                    )}
-                >
-                    <div className="w-8 h-8 rounded-full bg-teal-700 flex items-center justify-center flex-shrink-0">
-                        <span className="material-symbols-outlined text-teal-200 text-base">
-                            person
-                        </span>
-                    </div>
-                    {!isCollapsed && (
-                        <div className="min-w-0 flex-1">
-                            <p className="text-white text-xs font-medium truncate">
-                                {session?.user?.name ?? "—"}
-                            </p>
-                            <p className="text-teal-400 text-xs truncate">
-                                {(session?.user as { institution?: string })
-                                    ?.institution ??
-                                    session?.user?.email ??
-                                    ""}
-                            </p>
-                        </div>
-                    )}
-                    <button
-                        onClick={() =>
-                            authClient.signOut({
-                                fetchOptions: {
-                                    onSuccess: () => {
-                                        window.location.href = "/login";
-                                    },
-                                },
-                            })
-                        }
-                        className={clsx(
-                            "transition-colors",
-                            isCollapsed
-                                ? "text-teal-300 hover:text-teal-100"
-                                : "text-teal-500 hover:text-teal-200",
-                        )}
-                        title="Sign out"
-                    >
-                        <span className="material-symbols-outlined text-base">
-                            logout
-                        </span>
-                    </button>
-                </div>
-            </div>
         </aside>
     );
 }

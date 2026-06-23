@@ -24,16 +24,10 @@ export function HeroPage() {
                 </div>
                 <div className="flex items-center gap-4">
                     <Link
-                        href="/login"
-                        className="text-sm text-gray-600 font-medium transition-colors hover:text-gray-900"
-                    >
-                        Sign In
-                    </Link>
-                    <Link
-                        href="/login"
+                        href="/lands"
                         className="inline-flex items-center rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-800"
                     >
-                        Get Started
+                        Open Interface
                         <span className="material-symbols-outlined ml-1.5 text-base">
                             arrow_forward
                         </span>
@@ -56,7 +50,7 @@ export function HeroPage() {
                     <div className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-3 py-1">
                         <span className="h-1.5 w-1.5 rounded-full bg-teal-600" />
                         <span className="text-xs font-medium text-teal-700">
-                            Satellite-Powered Land Intelligence
+                            Satellite-Powered Land Intelligence Interface
                         </span>
                     </div>
 
@@ -70,19 +64,19 @@ export function HeroPage() {
 
                     {/* Subtitle */}
                     <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-gray-500 sm:text-lg">
-                        FarmTrust transforms multi-year satellite time-series
-                        into objective, continuous land activity signals — so
-                        agricultural financing decisions are grounded in data,
-                        not field visits.
+                        FarmTrust is the interface for the assessment work we
+                        already have: it presents multi-year satellite time-
+                        series as objective, continuous land activity signals
+                        for agricultural financing review.
                     </p>
 
                     {/* CTA buttons */}
                     <div className="mt-10 flex items-center justify-center gap-4">
                         <Link
-                            href="/login"
+                            href="/lands"
                             className="inline-flex items-center rounded-md bg-teal-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-800"
                         >
-                            Enter Portal
+                            Open Lands
                             <span className="material-symbols-outlined ml-2 text-base">
                                 arrow_forward
                             </span>
@@ -115,7 +109,7 @@ export function HeroPage() {
                         {
                             icon: "description",
                             title: "Shareable Reports",
-                            desc: "One-click PDF reports built for lender workflows and compliance.",
+                            desc: "One-click PDF reports built for lender workflows and review.",
                         },
                         {
                             icon: "public",
@@ -148,7 +142,7 @@ export function HeroPage() {
                 <div className="mx-auto max-w-5xl">
                     <div className="mb-14 text-center">
                         <h2 className="text-2xl font-bold text-white sm:text-3xl">
-                            From satellite pixels to financing signals
+                            From satellite pixels to work-ready signals
                         </h2>
                         <p className="mt-3 text-sm text-teal-300">
                             A transparent, auditable pipeline — no black boxes.
@@ -170,7 +164,7 @@ export function HeroPage() {
                             {
                                 step: "03",
                                 title: "Report & Decide",
-                                desc: "Consolidated scores, trends, evidence coverage, and assessment-confidence bands are delivered via portal or PDF.",
+                                desc: "Consolidated scores, trends, evidence coverage, and assessment-confidence bands are delivered through the interface or PDF.",
                             },
                         ].map((item) => (
                             <div key={item.step} className="text-center">

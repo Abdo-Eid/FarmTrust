@@ -120,6 +120,7 @@ Local reuse behavior:
 - the ledger stores `cache_key` + `status` and can store `band_status`; provenance (`item_ids`, `mgrs_tiles`, `min_cloud_cover`) lives in `cube.zarr`, while derived stats live in `indices_timeseries.csv`
 - the ledger — not the cube's time axis — is authoritative about which days are real, so failed/partial (zero-filled) slots are never processed
 - Phase 1 skips day downloads when the stored `cache_key` matches, status is `downloaded`/legacy `ok`, and all requested bands exist; missing dates trigger day-level backfill, missing bands trigger band-only backfill, and the cube is physically sorted after local compaction. Phase 2 recomputes derived stats from cube pixels and rewrites `indices_timeseries.csv`
+- ingestion artifact validation fails loudly when root/`20m` time axes diverge, when the cube time axis is unsorted, or when `indices_timeseries.csv` does not match confirmed ledger days; preprocessing runs the same guard before consuming the CSV
 - there is no active STAC query-result TTL/env-var cache
 
 ### 2. Preprocessing
