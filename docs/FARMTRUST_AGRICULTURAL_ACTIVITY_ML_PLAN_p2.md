@@ -683,7 +683,7 @@ kaggle datasets version \
 
 ### Phase F4 — Final Retrain on Kaggle
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Kaggle (via CLI)
 
 **What it does:**
