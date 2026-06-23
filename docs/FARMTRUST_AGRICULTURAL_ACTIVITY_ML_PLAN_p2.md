@@ -179,7 +179,7 @@ cat data/eurocrops/schema_inspection.txt
 
 ### Phase C3 — Create `scripts/convert_eurocrops.py`
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local
 
 **What it does:**
