@@ -637,7 +637,7 @@ print(df['label_source'].value_counts())
 
 ### Phase F3 — Rebuild Dataset v2 with Manual Labels
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local
 
 **What it does:**

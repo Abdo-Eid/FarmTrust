@@ -50,6 +50,13 @@ def _labels_for_sequence(sequence: dict[str, Any], labels: pd.DataFrame) -> tupl
 
 
 def _load_or_generate_labels(data_root: Path, aoi_id: str) -> pd.DataFrame:
+    labels_path = data_root / "ml" / "labels" / "weak_labels.csv"
+    if labels_path.exists():
+        labels = pd.read_csv(labels_path)
+        labels["aoi_id"] = labels["aoi_id"].astype(str)
+        aoi_labels = labels[labels["aoi_id"] == str(aoi_id)].copy()
+        if not aoi_labels.empty:
+            return aoi_labels
     return WeakLabeler(data_root=data_root).generate(aoi_id)
 
 
