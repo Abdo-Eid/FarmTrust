@@ -538,7 +538,7 @@ After implementing, do NOT run it yet — that happens in Phase F2.
 
 ### Phase A3 — Run Annotation Tool
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local
 
 **What it does:**

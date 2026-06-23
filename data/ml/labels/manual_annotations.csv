@@ -1,0 +1,13 @@
+aoi_id,manual_label,annotated_at,annotation_method
+aoi_demo_01,bare,2026-06-23T04:54:28.986147+00:00,auto_coverage_metrics
+aoi_demo_02,active,2026-06-23T04:54:28.986147+00:00,auto_coverage_metrics
+aoi_demo_03,active,2026-06-23T04:54:28.986147+00:00,auto_coverage_metrics
+aoi_demo_04,active,2026-06-23T04:54:28.986147+00:00,auto_coverage_metrics
+aoi_fayoum_01,bare,2026-06-23T04:54:28.986147+00:00,auto_coverage_metrics
+aoi_fayoum_02,sparse,2026-06-23T04:54:28.986147+00:00,auto_coverage_metrics
+aoi_nile_delta_01,bare,2026-06-23T04:54:28.986147+00:00,auto_coverage_metrics
+aoi_nile_delta_02,active,2026-06-23T04:54:28.986147+00:00,auto_coverage_metrics
+aoi_nile_delta_03,intermittent,2026-06-23T04:54:28.986147+00:00,auto_coverage_metrics
+aoi_upper_egypt_01,active,2026-06-23T04:54:28.986147+00:00,auto_coverage_metrics
+aoi_upper_egypt_02,active,2026-06-23T04:54:28.986147+00:00,auto_coverage_metrics
+aoi_upper_egypt_03,bare,2026-06-23T04:54:28.986147+00:00,auto_coverage_metrics

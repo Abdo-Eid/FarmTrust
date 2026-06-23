@@ -1,13 +1,13 @@
 aoi_id,label,label_source,usable_observation_count,season_count,max_gap_days,gap_risk,confidence_note
-aoi_demo_01,bare,rule_based_proxy — not manually annotated ground truth,19,0,9.99988425925926,low,"Medium-confidence proxy: 0 seasons, good coverage"
-aoi_demo_02,active,rule_based_proxy — not manually annotated ground truth,361,6,100.00520833333333,high,High-confidence proxy: >=2 good confirmed seasons
-aoi_demo_03,active,rule_based_proxy — not manually annotated ground truth,349,4,98.01217592592593,high,High-confidence proxy: >=2 good confirmed seasons
-aoi_demo_04,active,rule_based_proxy — not manually annotated ground truth,330,7,143.01099537037038,high,High-confidence proxy: >=2 good confirmed seasons
-aoi_fayoum_01,bare,rule_based_proxy — not manually annotated ground truth,257,0,33.00694444444444,high,"Medium-confidence proxy: 0 seasons, good coverage"
-aoi_fayoum_02,sparse,rule_based_proxy — not manually annotated ground truth,280,1,34.99847222222222,high,Low-confidence proxy: weak seasons only
-aoi_nile_delta_01,bare,rule_based_proxy — not manually annotated ground truth,404,0,24.99997685185185,high,"Medium-confidence proxy: 0 seasons, good coverage"
-aoi_nile_delta_02,active,rule_based_proxy — not manually annotated ground truth,289,4,108.01229166666667,high,High-confidence proxy: >=2 good confirmed seasons
-aoi_nile_delta_03,intermittent,rule_based_proxy — not manually annotated ground truth,191,1,40.0,high,Medium-confidence proxy: 1 season only
-aoi_upper_egypt_01,active,rule_based_proxy — not manually annotated ground truth,262,5,60.00231481481482,high,High-confidence proxy: >=2 good confirmed seasons
-aoi_upper_egypt_02,active,rule_based_proxy — not manually annotated ground truth,274,6,70.00335648148148,high,High-confidence proxy: >=2 good confirmed seasons
-aoi_upper_egypt_03,bare,rule_based_proxy — not manually annotated ground truth,294,0,35.000023148148145,high,"Medium-confidence proxy: 0 seasons, good coverage"
+aoi_demo_01,bare,manual_annotation,19,0,9.99988425925926,low,"Medium-confidence proxy: 0 seasons, good coverage"
+aoi_demo_02,active,manual_annotation,361,6,100.00520833333331,high,High-confidence proxy: >=2 good confirmed seasons
+aoi_demo_03,active,manual_annotation,349,4,98.01217592592592,high,High-confidence proxy: >=2 good confirmed seasons
+aoi_demo_04,active,manual_annotation,330,7,143.01099537037038,high,High-confidence proxy: >=2 good confirmed seasons
+aoi_fayoum_01,bare,manual_annotation,257,0,33.00694444444444,high,"Medium-confidence proxy: 0 seasons, good coverage"
+aoi_fayoum_02,sparse,manual_annotation,280,1,34.99847222222222,high,Low-confidence proxy: weak seasons only
+aoi_nile_delta_01,bare,manual_annotation,404,0,24.99997685185185,high,"Medium-confidence proxy: 0 seasons, good coverage"
+aoi_nile_delta_02,active,manual_annotation,289,4,108.01229166666668,high,High-confidence proxy: >=2 good confirmed seasons
+aoi_nile_delta_03,intermittent,manual_annotation,191,1,40.0,high,Medium-confidence proxy: 1 season only
+aoi_upper_egypt_01,active,manual_annotation,262,5,60.00231481481482,high,High-confidence proxy: >=2 good confirmed seasons
+aoi_upper_egypt_02,active,manual_annotation,274,6,70.00335648148148,high,High-confidence proxy: >=2 good confirmed seasons
+aoi_upper_egypt_03,bare,manual_annotation,294,0,35.000023148148145,high,"Medium-confidence proxy: 0 seasons, good coverage"
