@@ -440,7 +440,7 @@ Wait for human to confirm the file is saved at `models/sits_bert_transfer_finetu
 
 ### Phase A1 — Create `scripts/annotate_aois.py`
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local
 
 **What it does:**
