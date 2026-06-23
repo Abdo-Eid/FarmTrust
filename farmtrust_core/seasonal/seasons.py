@@ -11,8 +11,8 @@ import csv
 import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from statistics import median
 from pathlib import Path
+from statistics import median
 from typing import Any, Optional
 
 from farmtrust_core.ingest.utils import safe_write_text
@@ -36,23 +36,18 @@ REQUIRED_QUALITY_KEYS = (
     "gap_risk",
 )
 
-BASELINE_METHOD = "local_p20_smoothed_ndvi"
-BASELINE_WINDOW_DAYS = 90.0
-BASELINE_PERCENTILE = 20.0
-MIN_LOCAL_BASELINE_OBSERVATIONS = 5
-PEAK_METHOD = "max_smoothed_ndvi_in_candidate_window"
-ACTIVITY_BOUNDARY_AMPLITUDE_FRACTION = 0.35
-LOW_VEGETATION_FLOOR = 0.18
-ACTIVITY_THRESHOLD = LOW_VEGETATION_FLOOR
-MIN_ACTIVITY_AMPLITUDE = 0.08
-GOOD_ACTIVITY_AMPLITUDE = 0.12
+SIGNAL_MODEL_METHOD = "adaptive_prominence_to_noise"
+LOW_ENVELOPE_PERCENTILE = 20.0
+HIGH_ENVELOPE_PERCENTILE = 80.0
+LOCAL_ENVELOPE_WINDOW_DAYS = 90.0
+MIN_LOCAL_ENVELOPE_OBSERVATIONS = 5
+BOUNDARY_PROMINENCE_FRACTION = 0.20
+CONFIRMED_PROMINENCE_NOISE_RATIO = 3.8
+BORDERLINE_PROMINENCE_NOISE_RATIO = 2.5
+STRONG_PROMINENCE_NOISE_RATIO = 4.0
+INTERRUPTED_DROP_FRACTION = 0.45
 MIN_ACTIVITY_WINDOW_DURATION_DAYS = 20.0
 MIN_ACTIVITY_WINDOW_OBSERVATIONS = 4
-GOOD_PEAK_THRESHOLD = 0.30
-INTERRUPTED_DROP_THRESHOLD = 0.05
-EVI_CONFIRMATION_MIN = 0.20
-NDMI_CONFIRMATION_MIN = 0.05
-NDWI_CONFIRMATION_MAX = 0.20
 
 
 @dataclass(frozen=True)
@@ -64,6 +59,26 @@ class SeasonalObservation:
     ndwi_smoothed: float
     valid_fraction: float
     source_row_count: int
+
+
+@dataclass(frozen=True)
+class ActivitySignalModel:
+    low_envelope: list[float]
+    noise_floor_ndvi: float
+    cadence_days: float
+
+
+@dataclass(frozen=True)
+class ActivityCandidate:
+    start_index: int
+    peak_index: int
+    end_index: int
+    detection_status: str
+    lifecycle_status: str
+    baseline_ndvi: float
+    prominence_ndvi: float
+    boundary_threshold_ndvi: float
+    prominence_to_noise_ratio: float
 
 
 @dataclass(frozen=True)
@@ -92,6 +107,11 @@ class SeasonWindow:
     peak_certainty: str
     end_boundary_certainty: str
     internal_gap_count: int
+    lifecycle_status: str
+    detection_status: str
+    prominence_ndvi: float
+    noise_floor_ndvi: float
+    prominence_to_noise_ratio: float
 
 
 def _parse_timestamp(value: str) -> datetime:
@@ -172,16 +192,6 @@ def load_preprocess_observations(csv_path: Path) -> list[SeasonalObservation]:
     return observations
 
 
-def compute_activity_threshold(
-    observations: list[SeasonalObservation],
-    *,
-    activity_threshold: float = ACTIVITY_THRESHOLD,
-) -> float:
-    if not observations:
-        raise ValueError("Cannot compute activity threshold without observations")
-    return activity_threshold
-
-
 def _percentile(values: list[float], percentile: float) -> float:
     if not values:
         raise ValueError("Cannot compute percentile without values")
@@ -198,60 +208,71 @@ def _percentile(values: list[float], percentile: float) -> float:
     return float(lower_value + (upper_value - lower_value) * fraction)
 
 
-def compute_local_baselines(observations: list[SeasonalObservation]) -> list[float]:
+def _duration_days(observations: list[SeasonalObservation]) -> float:
+    start = observations[0].timestamp
+    end = observations[-1].timestamp
+    return max(0.0, (end - start).total_seconds() / 86400.0)
+
+
+def _median_absolute_deviation(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    center = float(median(values))
+    return float(median(abs(value - center) for value in values))
+
+
+def _typical_cadence_days(observations: list[SeasonalObservation]) -> float:
+    gaps = [
+        (right.timestamp - left.timestamp).total_seconds() / 86400.0
+        for left, right in zip(observations[:-1], observations[1:])
+        if right.timestamp > left.timestamp
+    ]
+    if not gaps:
+        return 0.0
+    return float(median(gaps))
+
+
+def _estimate_noise_floor(values: list[float]) -> float:
+    if len(values) < 2:
+        return 0.0
+
+    step_changes = [abs(right - left) for left, right in zip(values[:-1], values[1:])]
+    step_noise = _median_absolute_deviation(step_changes) * 1.4826
+    low_step = _percentile(step_changes, LOW_ENVELOPE_PERCENTILE) if step_changes else 0.0
+    series_noise = _median_absolute_deviation(values) * 1.4826
+    envelope_range = max(values) - min(values)
+    sample_scaled_range = envelope_range / max(float(len(values) - 1), 1.0)
+    return max(step_noise, low_step, series_noise / 6.0, sample_scaled_range)
+
+
+def _compute_low_envelope(observations: list[SeasonalObservation]) -> list[float]:
     if not observations:
         return []
 
-    global_baseline = _percentile(
-        [row.ndvi_smoothed for row in observations],
-        BASELINE_PERCENTILE,
-    )
-    baselines: list[float] = []
+    all_values = [row.ndvi_smoothed for row in observations]
+    global_low = _percentile(all_values, LOW_ENVELOPE_PERCENTILE)
+    envelope: list[float] = []
     for observation in observations:
         local_values = [
             candidate.ndvi_smoothed
             for candidate in observations
             if abs((candidate.timestamp - observation.timestamp).total_seconds()) / 86400.0
-            <= BASELINE_WINDOW_DAYS
+            <= LOCAL_ENVELOPE_WINDOW_DAYS
         ]
-        if len(local_values) >= MIN_LOCAL_BASELINE_OBSERVATIONS:
-            baselines.append(_percentile(local_values, BASELINE_PERCENTILE))
+        if len(local_values) >= MIN_LOCAL_ENVELOPE_OBSERVATIONS:
+            envelope.append(_percentile(local_values, LOW_ENVELOPE_PERCENTILE))
         else:
-            baselines.append(global_baseline)
-    return baselines
+            envelope.append(global_low)
+    return envelope
 
 
-def _segment_active_periods(
-    observations: list[SeasonalObservation],
-    *,
-    activity_threshold: float,
-) -> list[tuple[int, list[SeasonalObservation]]]:
-    segments: list[tuple[int, list[SeasonalObservation]]] = []
-    current: list[SeasonalObservation] = []
-    current_start_index: int | None = None
-
-    for index, observation in enumerate(observations):
-        if observation.ndvi_smoothed >= activity_threshold:
-            if not current:
-                current_start_index = index
-            current.append(observation)
-        elif current:
-            assert current_start_index is not None
-            segments.append((current_start_index, current))
-            current = []
-            current_start_index = None
-
-    if current:
-        assert current_start_index is not None
-        segments.append((current_start_index, current))
-
-    return segments
-
-
-def _duration_days(observations: list[SeasonalObservation]) -> float:
-    start = observations[0].timestamp
-    end = observations[-1].timestamp
-    return max(0.0, (end - start).total_seconds() / 86400.0)
+def build_activity_signal_model(observations: list[SeasonalObservation]) -> ActivitySignalModel:
+    values = [row.ndvi_smoothed for row in observations]
+    return ActivitySignalModel(
+        low_envelope=_compute_low_envelope(observations),
+        noise_floor_ndvi=_estimate_noise_floor(values),
+        cadence_days=_typical_cadence_days(observations),
+    )
 
 
 def _max_single_step_drop(values: list[float]) -> float:
@@ -261,84 +282,285 @@ def _max_single_step_drop(values: list[float]) -> float:
     return max(drops)
 
 
+def _local_peak_indices(observations: list[SeasonalObservation]) -> list[int]:
+    if len(observations) < 2:
+        return []
+
+    values = [row.ndvi_smoothed for row in observations]
+    indices: list[int] = []
+    for index, value in enumerate(values):
+        left = values[index - 1] if index > 0 else None
+        right = values[index + 1] if index < len(values) - 1 else None
+        if left is None and right is not None and value > right:
+            indices.append(index)
+        elif right is None and left is not None and value > left:
+            indices.append(index)
+        elif left is not None and right is not None and value >= left and value > right:
+            indices.append(index)
+
+    if not indices:
+        max_index = max(range(len(values)), key=lambda candidate: values[candidate])
+        min_index = min(range(len(values)), key=lambda candidate: values[candidate])
+        if max_index != min_index:
+            indices.append(max_index)
+    return indices
+
+
+def _local_valley_indices(observations: list[SeasonalObservation]) -> list[int]:
+    if len(observations) < 2:
+        return []
+
+    values = [row.ndvi_smoothed for row in observations]
+    indices: list[int] = []
+    for index, value in enumerate(values):
+        left = values[index - 1] if index > 0 else None
+        right = values[index + 1] if index < len(values) - 1 else None
+        if left is None and right is not None and value < right:
+            indices.append(index)
+        elif right is None and left is not None and value < left:
+            indices.append(index)
+        elif left is not None and right is not None and value <= left and value < right:
+            indices.append(index)
+    return indices
+
+
+def _first_index_at_or_above(
+    observations: list[SeasonalObservation],
+    *,
+    start_index: int,
+    end_index: int,
+    threshold: float,
+) -> int:
+    for index in range(start_index, end_index + 1):
+        if observations[index].ndvi_smoothed >= threshold:
+            return index
+    return start_index
+
+
+def _last_index_at_or_above(
+    observations: list[SeasonalObservation],
+    *,
+    start_index: int,
+    end_index: int,
+    threshold: float,
+) -> int:
+    for index in range(end_index, start_index - 1, -1):
+        if observations[index].ndvi_smoothed >= threshold:
+            return index
+    return end_index
+
+
+def _candidate_from_peak(
+    observations: list[SeasonalObservation],
+    model: ActivitySignalModel,
+    peak_index: int,
+) -> ActivityCandidate | None:
+    values = [row.ndvi_smoothed for row in observations]
+    peak_value = values[peak_index]
+    valleys = _local_valley_indices(observations)
+    left_valleys = [index for index in valleys if index < peak_index]
+    right_valleys = [index for index in valleys if index > peak_index]
+    left_low_index = left_valleys[-1] if left_valleys else min(range(0, peak_index + 1), key=lambda index: values[index])
+    right_low_index = right_valleys[0] if right_valleys else min(range(peak_index, len(values)), key=lambda index: values[index])
+    left_prominence = peak_value - values[left_low_index]
+    right_prominence = peak_value - values[right_low_index]
+    has_left_rise = peak_index > 0 and left_prominence > 0
+    has_right_fall = peak_index < len(observations) - 1 and right_prominence > 0
+
+    if has_left_rise and has_right_fall:
+        lifecycle_status = "complete"
+        surrounding_low = max(values[left_low_index], values[right_low_index])
+        boundary_base = min(values[left_low_index], values[right_low_index])
+        prominence = peak_value - surrounding_low
+    elif has_left_rise:
+        lifecycle_status = "open_right"
+        surrounding_low = values[left_low_index]
+        boundary_base = surrounding_low
+        prominence = left_prominence
+    elif has_right_fall:
+        lifecycle_status = "open_left"
+        surrounding_low = values[right_low_index]
+        boundary_base = surrounding_low
+        prominence = right_prominence
+    else:
+        return None
+
+    if prominence <= 0:
+        return None
+
+    if model.noise_floor_ndvi > 0:
+        prominence_to_noise_ratio = prominence / model.noise_floor_ndvi
+    else:
+        prominence_to_noise_ratio = float("inf")
+
+    if prominence_to_noise_ratio >= CONFIRMED_PROMINENCE_NOISE_RATIO:
+        detection_status = "confirmed"
+    elif prominence_to_noise_ratio >= BORDERLINE_PROMINENCE_NOISE_RATIO:
+        detection_status = "borderline"
+    else:
+        return None
+
+    boundary_threshold = boundary_base + BOUNDARY_PROMINENCE_FRACTION * prominence
+    if lifecycle_status == "open_left":
+        start_index = 0
+    else:
+        start_index = _first_index_at_or_above(
+            observations,
+            start_index=left_low_index,
+            end_index=peak_index,
+            threshold=boundary_threshold,
+        )
+
+    if lifecycle_status == "open_right":
+        end_index = len(observations) - 1
+    else:
+        end_index = _last_index_at_or_above(
+            observations,
+            start_index=peak_index,
+            end_index=right_low_index,
+            threshold=boundary_threshold,
+        )
+
+    if end_index < start_index:
+        return None
+
+    if lifecycle_status == "complete":
+        if start_index == 0 and end_index == len(observations) - 1:
+            lifecycle_status = "open_both"
+        elif start_index == 0:
+            lifecycle_status = "open_left"
+        elif end_index == len(observations) - 1:
+            lifecycle_status = "open_right"
+
+
+    candidate_observations = observations[start_index : end_index + 1]
+    if len(candidate_observations) < MIN_ACTIVITY_WINDOW_OBSERVATIONS:
+        return None
+    if _duration_days(candidate_observations) < MIN_ACTIVITY_WINDOW_DURATION_DAYS:
+        return None
+
+    return ActivityCandidate(
+        start_index=start_index,
+        peak_index=peak_index,
+        end_index=end_index,
+        detection_status=detection_status,
+        lifecycle_status=lifecycle_status,
+        baseline_ndvi=model.low_envelope[peak_index],
+        prominence_ndvi=prominence,
+        boundary_threshold_ndvi=boundary_threshold,
+        prominence_to_noise_ratio=prominence_to_noise_ratio,
+    )
+
+
+def _find_activity_candidates(
+    observations: list[SeasonalObservation],
+    model: ActivitySignalModel,
+) -> list[ActivityCandidate]:
+    candidates = [
+        candidate
+        for peak_index in _local_peak_indices(observations)
+        if (candidate := _candidate_from_peak(observations, model, peak_index)) is not None
+    ]
+    candidates.sort(
+        key=lambda candidate: (
+            candidate.detection_status == "confirmed",
+            candidate.prominence_to_noise_ratio,
+            candidate.prominence_ndvi,
+        ),
+        reverse=True,
+    )
+
+    selected: list[ActivityCandidate] = []
+    used_ranges: list[tuple[int, int]] = []
+    for candidate in candidates:
+        if any(
+            not (candidate.end_index < start or candidate.start_index > end)
+            for start, end in used_ranges
+        ):
+            continue
+        selected.append(candidate)
+        used_ranges.append((candidate.start_index, candidate.end_index))
+
+    selected.sort(key=lambda candidate: candidate.start_index)
+    return selected
+
+
 def _label_quality(
     segment: list[SeasonalObservation],
     *,
-    baseline_ndvi: float,
-    amplitude_ndvi: float,
-    is_open: bool = False,
+    prominence_ndvi: float,
+    prominence_to_noise_ratio: float,
+    lifecycle_status: str,
 ) -> tuple[str, str, str]:
     values = [row.ndvi_smoothed for row in segment]
     peak_row = max(segment, key=lambda row: row.ndvi_smoothed)
-    peak_ndvi = peak_row.ndvi_smoothed
     duration_days = _duration_days(segment)
     max_drop = _max_single_step_drop(values)
 
-    if duration_days < MIN_ACTIVITY_WINDOW_DURATION_DAYS or amplitude_ndvi < GOOD_ACTIVITY_AMPLITUDE:
-        label = (
-            "weak",
-            (
-                "Weak vegetation activity window: "
-                f"peak_ndvi={peak_ndvi:.3f}, baseline_ndvi={baseline_ndvi:.3f}, "
-                f"amplitude_ndvi={amplitude_ndvi:.3f}, duration_days={duration_days:.1f}."
-            ),
-        )
-        quality_label, evidence_summary = _append_open_note(label, is_open=is_open)
-        return quality_label, evidence_summary, "weak"
-
-    if max_drop >= INTERRUPTED_DROP_THRESHOLD:
-        label = (
+    if max_drop >= prominence_ndvi * INTERRUPTED_DROP_FRACTION:
+        return (
             "interrupted",
-            f"Interrupted vegetation activity window: peak_ndvi={peak_ndvi:.3f}, max_drop={max_drop:.3f}.",
+            (
+                "Interrupted vegetation activity window: "
+                f"peak_ndvi={peak_row.ndvi_smoothed:.3f}, prominence_ndvi={prominence_ndvi:.3f}, "
+                f"max_drop={max_drop:.3f}, lifecycle_status={lifecycle_status}."
+            ),
+            "moderate",
         )
-        quality_label, evidence_summary = _append_open_note(label, is_open=is_open)
-        return quality_label, evidence_summary, "moderate"
 
-    if peak_ndvi >= GOOD_PEAK_THRESHOLD and amplitude_ndvi >= GOOD_ACTIVITY_AMPLITUDE:
-        label = (
+    if prominence_to_noise_ratio >= STRONG_PROMINENCE_NOISE_RATIO and lifecycle_status == "complete":
+        return (
             "good",
             (
                 "Good vegetation activity window: "
-                f"peak_ndvi={peak_ndvi:.3f}, baseline_ndvi={baseline_ndvi:.3f}, "
-                f"amplitude_ndvi={amplitude_ndvi:.3f}."
+                f"peak_ndvi={peak_row.ndvi_smoothed:.3f}, prominence_ndvi={prominence_ndvi:.3f}, "
+                f"prominence_to_noise_ratio={prominence_to_noise_ratio:.2f}."
             ),
+            "strong",
         )
-        quality_label, evidence_summary = _append_open_note(label, is_open=is_open)
-        return quality_label, evidence_summary, "strong"
 
-    label = (
+    return (
         "weak",
         (
-            "Weak vegetation activity window: "
-            f"peak_ndvi={peak_ndvi:.3f}, baseline_ndvi={baseline_ndvi:.3f}, "
-            f"amplitude_ndvi={amplitude_ndvi:.3f}."
+            "Weak or provisional vegetation activity window: "
+            f"peak_ndvi={peak_row.ndvi_smoothed:.3f}, prominence_ndvi={prominence_ndvi:.3f}, "
+            f"prominence_to_noise_ratio={prominence_to_noise_ratio:.2f}, "
+            f"duration_days={duration_days:.1f}, lifecycle_status={lifecycle_status}."
         ),
+        "weak",
     )
-    quality_label, evidence_summary = _append_open_note(label, is_open=is_open)
-    return quality_label, evidence_summary, "weak"
 
 
-def _append_open_note(
-    label: tuple[str, str],
+def _series_supports_peak(values: list[float], peak_offset: int, *, inverted: bool = False) -> bool:
+    if len(values) < 3:
+        return False
+    peak_value = values[peak_offset]
+    low_envelope = _percentile(values, LOW_ENVELOPE_PERCENTILE)
+    high_envelope = _percentile(values, HIGH_ENVELOPE_PERCENTILE)
+    if high_envelope == low_envelope:
+        return False
+    normalized = (peak_value - low_envelope) / (high_envelope - low_envelope)
+    if inverted:
+        return normalized <= 1.0 - BOUNDARY_PROMINENCE_FRACTION
+    return normalized >= BOUNDARY_PROMINENCE_FRACTION
+
+
+def _compute_multi_index_confirmation(
+    segment: list[SeasonalObservation],
     *,
-    is_open: bool,
+    peak_row: SeasonalObservation | None = None,
 ) -> tuple[str, str]:
-    if not is_open:
-        return label
-
-    quality_label, evidence_summary = label
-    return quality_label, f"{evidence_summary[:-1]} Still active at end of available observations; boundary is provisional."
-
-
-def _compute_multi_index_confirmation(segment: list[SeasonalObservation]) -> tuple[str, str]:
-    evi_peak = max(row.evi_smoothed for row in segment)
-    ndmi_median = float(median(row.ndmi_smoothed for row in segment))
-    ndwi_median = float(median(row.ndwi_smoothed for row in segment))
+    if peak_row is None:
+        peak_row = max(segment, key=lambda row: row.ndvi_smoothed)
+    peak_offset = segment.index(peak_row)
+    evi_values = [row.evi_smoothed for row in segment]
+    ndmi_values = [row.ndmi_smoothed for row in segment]
+    ndwi_values = [row.ndwi_smoothed for row in segment]
 
     checks = [
-        evi_peak >= EVI_CONFIRMATION_MIN,
-        ndmi_median >= NDMI_CONFIRMATION_MIN,
-        ndwi_median <= NDWI_CONFIRMATION_MAX,
+        _series_supports_peak(evi_values, peak_offset),
+        _series_supports_peak(ndmi_values, peak_offset),
+        _series_supports_peak(ndwi_values, peak_offset, inverted=True),
     ]
     support_count = sum(1 for flag in checks if flag)
     if support_count == 3:
@@ -350,7 +572,7 @@ def _compute_multi_index_confirmation(segment: list[SeasonalObservation]) -> tup
 
     evidence = (
         f"Multi-index confirmation={level} "
-        f"(evi_peak={evi_peak:.3f}, ndmi_median={ndmi_median:.3f}, ndwi_median={ndwi_median:.3f})."
+        f"(relative EVI/NDMI support={support_count >= 2}, NDWI non-water support={checks[2]})."
     )
     return level, evidence
 
@@ -364,9 +586,7 @@ def _apply_confirmation_adjustment(
     confirmation_evidence: str,
 ) -> tuple[str, str]:
     adjusted_label = quality_label
-    if confirmation_level == "weak":
-        adjusted_label = "weak"
-    elif quality_label == "interrupted" and confirmation_level == "strong" and base_level == "moderate":
+    if quality_label == "interrupted" and confirmation_level == "strong" and base_level == "moderate":
         adjusted_label = "good"
 
     return adjusted_label, f"{base_evidence} {confirmation_evidence}"
@@ -462,157 +682,175 @@ def _compute_gap_overlap(
     )
 
 
-def _is_left_edge_partial_tail(
+def _window_from_candidate(
     observations: list[SeasonalObservation],
-    crossing_index: int,
-    season_observations: list[SeasonalObservation],
-) -> bool:
-    if crossing_index != 0:
-        return False
-    if not season_observations:
-        return False
+    candidate: ActivityCandidate,
+    *,
+    model: ActivitySignalModel,
+    long_gap_windows: list[dict[str, Any]],
+    sequence_number: int,
+) -> SeasonWindow:
+    season_observations = observations[candidate.start_index : candidate.end_index + 1]
+    peak_row = observations[candidate.peak_index]
+    is_open = candidate.lifecycle_status in {"open_right", "open_both"}
+    duration_days = _duration_days(season_observations)
+    quality_label, evidence_summary, base_level = _label_quality(
+        season_observations,
+        prominence_ndvi=candidate.prominence_ndvi,
+        prominence_to_noise_ratio=candidate.prominence_to_noise_ratio,
+        lifecycle_status=candidate.lifecycle_status,
+    )
+    confirmation_level, confirmation_evidence = _compute_multi_index_confirmation(
+        season_observations,
+        peak_row=peak_row,
+    )
+    quality_label, evidence_summary = _apply_confirmation_adjustment(
+        quality_label=quality_label,
+        base_evidence=evidence_summary,
+        base_level=base_level,
+        confirmation_level=confirmation_level,
+        confirmation_evidence=confirmation_evidence,
+    )
+    (
+        gap_overlap_count,
+        gap_overlap_risk,
+        gap_overlap_stage,
+        gap_overlap_evidence,
+        start_boundary_certainty,
+        peak_certainty,
+        end_boundary_certainty,
+        internal_gap_count,
+        gap_provisional,
+    ) = _compute_gap_overlap(
+        season_observations,
+        long_gap_windows,
+    )
 
-    peak_row = max(season_observations, key=lambda row: row.ndvi_smoothed)
-    first_row = season_observations[0]
-    return peak_row.timestamp == first_row.timestamp
+    if candidate.lifecycle_status in {"open_left", "open_both"}:
+        start_boundary_certainty = "open"
+    if candidate.lifecycle_status in {"open_right", "open_both"}:
+        end_boundary_certainty = "open"
+
+    provisional = candidate.lifecycle_status != "complete" or gap_provisional
+    if candidate.lifecycle_status != "complete":
+        evidence_summary = (
+            f"{evidence_summary} Window lifecycle is {candidate.lifecycle_status}; "
+            "unobserved boundaries are provisional."
+        )
+    evidence_summary = f"{evidence_summary} {gap_overlap_evidence}"
+
+    return SeasonWindow(
+        season_id=f"season_{sequence_number:02d}",
+        crossing_date=_iso_date(observations[candidate.start_index].timestamp),
+        start_date=_iso_date(season_observations[0].timestamp),
+        peak_date=_iso_date(peak_row.timestamp),
+        end_date=_iso_date(season_observations[-1].timestamp),
+        is_open=is_open,
+        peak_ndvi=round(peak_row.ndvi_smoothed, 6),
+        duration_days=round(duration_days, 2),
+        quality_label=quality_label,
+        evidence_summary=evidence_summary,
+        confirmation_level=confirmation_level,
+        gap_overlap_count=gap_overlap_count,
+        gap_overlap_risk=gap_overlap_risk,
+        gap_overlap_stage=gap_overlap_stage,
+        window_type="vegetation_activity",
+        provisional=provisional,
+        baseline_ndvi=round(candidate.baseline_ndvi, 6),
+        amplitude_ndvi=round(candidate.prominence_ndvi, 6),
+        boundary_threshold_ndvi=round(candidate.boundary_threshold_ndvi, 6),
+        usable_observation_count=len(season_observations),
+        start_boundary_certainty=start_boundary_certainty,
+        peak_certainty=peak_certainty,
+        end_boundary_certainty=end_boundary_certainty,
+        internal_gap_count=internal_gap_count,
+        lifecycle_status=candidate.lifecycle_status,
+        detection_status=candidate.detection_status,
+        prominence_ndvi=round(candidate.prominence_ndvi, 6),
+        noise_floor_ndvi=round(model.noise_floor_ndvi, 6),
+        prominence_to_noise_ratio=round(candidate.prominence_to_noise_ratio, 6),
+    )
+
+
+def _season_to_payload(season: SeasonWindow, season_confidence_note: str) -> dict[str, Any]:
+    return {
+        "season_id": season.season_id,
+        "crossing_date": season.crossing_date,
+        "start_date": season.start_date,
+        "peak_date": season.peak_date,
+        "end_date": season.end_date,
+        "is_open": season.is_open,
+        "peak_ndvi": season.peak_ndvi,
+        "duration_days": season.duration_days,
+        "quality_label": season.quality_label,
+        "evidence_summary": season.evidence_summary,
+        "confirmation_level": season.confirmation_level,
+        "gap_overlap_count": season.gap_overlap_count,
+        "gap_overlap_risk": season.gap_overlap_risk,
+        "gap_overlap_stage": season.gap_overlap_stage,
+        "window_type": season.window_type,
+        "provisional": season.provisional,
+        "baseline_ndvi": season.baseline_ndvi,
+        "amplitude_ndvi": season.amplitude_ndvi,
+        "boundary_threshold_ndvi": season.boundary_threshold_ndvi,
+        "usable_observation_count": season.usable_observation_count,
+        "start_boundary_certainty": season.start_boundary_certainty,
+        "peak_certainty": season.peak_certainty,
+        "end_boundary_certainty": season.end_boundary_certainty,
+        "internal_gap_count": season.internal_gap_count,
+        "lifecycle_status": season.lifecycle_status,
+        "detection_status": season.detection_status,
+        "prominence_ndvi": season.prominence_ndvi,
+        "noise_floor_ndvi": season.noise_floor_ndvi,
+        "prominence_to_noise_ratio": season.prominence_to_noise_ratio,
+        "season_confidence_note": season_confidence_note,
+    }
+
+
+def detect_activity_windows(
+    observations: list[SeasonalObservation],
+    *,
+    long_gap_windows: Optional[list[dict[str, Any]]] = None,
+) -> tuple[list[SeasonWindow], list[SeasonWindow]]:
+    long_gap_windows = long_gap_windows or []
+    model = build_activity_signal_model(observations)
+    candidates = _find_activity_candidates(observations, model)
+    confirmed_candidates = [candidate for candidate in candidates if candidate.detection_status == "confirmed"]
+    borderline_candidates = [candidate for candidate in candidates if candidate.detection_status == "borderline"]
+
+    confirmed = [
+        _window_from_candidate(
+            observations,
+            candidate,
+            model=model,
+            long_gap_windows=long_gap_windows,
+            sequence_number=index,
+        )
+        for index, candidate in enumerate(confirmed_candidates, start=1)
+    ]
+    borderline = [
+        _window_from_candidate(
+            observations,
+            candidate,
+            model=model,
+            long_gap_windows=long_gap_windows,
+            sequence_number=index,
+        )
+        for index, candidate in enumerate(borderline_candidates, start=1)
+    ]
+    return confirmed, borderline
 
 
 def detect_season_windows(
     observations: list[SeasonalObservation],
     *,
-    activity_threshold: float = ACTIVITY_THRESHOLD,
     long_gap_windows: Optional[list[dict[str, Any]]] = None,
 ) -> list[SeasonWindow]:
-    seasons: list[SeasonWindow] = []
-    long_gap_windows = long_gap_windows or []
-    activity_threshold = compute_activity_threshold(
+    confirmed, _borderline = detect_activity_windows(
         observations,
-        activity_threshold=activity_threshold,
+        long_gap_windows=long_gap_windows,
     )
-    baselines = compute_local_baselines(observations)
-    segments = _segment_active_periods(observations, activity_threshold=activity_threshold)
-
-    used_ranges: list[tuple[int, int]] = []
-
-    for crossing_index, segment in segments:
-        segment_start_index = crossing_index
-        segment_end_index = crossing_index + len(segment) - 1
-        candidate_peak_indices = [
-            index
-            for index in range(segment_start_index, segment_end_index + 1)
-            if observations[index].ndvi_smoothed - baselines[index] >= MIN_ACTIVITY_AMPLITUDE
-        ]
-        candidate_peak_indices.sort(key=lambda index: observations[index].ndvi_smoothed, reverse=True)
-
-        for peak_index in candidate_peak_indices:
-            if any(start <= peak_index <= end for start, end in used_ranges):
-                continue
-
-            peak_row = observations[peak_index]
-            baseline_ndvi = baselines[peak_index]
-            amplitude_ndvi = peak_row.ndvi_smoothed - baseline_ndvi
-            boundary_threshold = max(
-                LOW_VEGETATION_FLOOR,
-                baseline_ndvi + ACTIVITY_BOUNDARY_AMPLITUDE_FRACTION * amplitude_ndvi,
-            )
-            start_index = peak_index
-            while (
-                start_index > segment_start_index
-                and observations[start_index - 1].ndvi_smoothed >= boundary_threshold
-            ):
-                start_index -= 1
-
-            end_index = peak_index
-            while (
-                end_index < segment_end_index
-                and observations[end_index + 1].ndvi_smoothed >= boundary_threshold
-            ):
-                end_index += 1
-
-            if any(not (end_index < start or start_index > end) for start, end in used_ranges):
-                continue
-
-            season_observations = observations[start_index : end_index + 1]
-            is_open = end_index == len(observations) - 1
-
-            if _is_left_edge_partial_tail(observations, start_index, season_observations):
-                continue
-
-            duration_days = _duration_days(season_observations)
-            if len(season_observations) < MIN_ACTIVITY_WINDOW_OBSERVATIONS:
-                continue
-            if duration_days < MIN_ACTIVITY_WINDOW_DURATION_DAYS:
-                continue
-
-            break
-        else:
-            continue
-
-        used_ranges.append((start_index, end_index))
-        peak_row = max(season_observations, key=lambda row: row.ndvi_smoothed)
-        quality_label, evidence_summary, base_level = _label_quality(
-            season_observations,
-            baseline_ndvi=baseline_ndvi,
-            amplitude_ndvi=amplitude_ndvi,
-            is_open=is_open,
-        )
-        confirmation_level, confirmation_evidence = _compute_multi_index_confirmation(season_observations)
-        quality_label, evidence_summary = _apply_confirmation_adjustment(
-            quality_label=quality_label,
-            base_evidence=evidence_summary,
-            base_level=base_level,
-            confirmation_level=confirmation_level,
-            confirmation_evidence=confirmation_evidence,
-        )
-        (
-            gap_overlap_count,
-            gap_overlap_risk,
-            gap_overlap_stage,
-            gap_overlap_evidence,
-            start_boundary_certainty,
-            peak_certainty,
-            end_boundary_certainty,
-            internal_gap_count,
-            gap_provisional,
-        ) = _compute_gap_overlap(
-            season_observations,
-            long_gap_windows,
-        )
-        if is_open:
-            end_boundary_certainty = "open"
-        provisional = is_open or gap_provisional
-        evidence_summary = f"{evidence_summary} {gap_overlap_evidence}"
-
-        seasons.append(
-            SeasonWindow(
-                season_id=f"season_{len(seasons) + 1:02d}",
-                crossing_date=_iso_date(observations[start_index].timestamp),
-                start_date=_iso_date(season_observations[0].timestamp),
-                peak_date=_iso_date(peak_row.timestamp),
-                end_date=_iso_date(season_observations[-1].timestamp),
-                is_open=is_open,
-                peak_ndvi=round(peak_row.ndvi_smoothed, 6),
-                duration_days=round(duration_days, 2),
-                quality_label=quality_label,
-                evidence_summary=evidence_summary,
-                confirmation_level=confirmation_level,
-                gap_overlap_count=gap_overlap_count,
-                gap_overlap_risk=gap_overlap_risk,
-                gap_overlap_stage=gap_overlap_stage,
-                window_type="vegetation_activity",
-                provisional=provisional,
-                baseline_ndvi=round(baseline_ndvi, 6),
-                amplitude_ndvi=round(amplitude_ndvi, 6),
-                boundary_threshold_ndvi=round(boundary_threshold, 6),
-                usable_observation_count=len(season_observations),
-                start_boundary_certainty=start_boundary_certainty,
-                peak_certainty=peak_certainty,
-                end_boundary_certainty=end_boundary_certainty,
-                internal_gap_count=internal_gap_count,
-            )
-        )
-
-    return seasons
+    return confirmed
 
 
 def build_season_payload(
@@ -622,45 +860,37 @@ def build_season_payload(
     quality_metrics = _load_quality_metrics(quality_metrics_path)
     observations = load_preprocess_observations(smoothed_csv_path)
     long_gap_windows = _parse_gap_windows(quality_metrics)
-    seasons = detect_season_windows(observations, long_gap_windows=long_gap_windows)
+    seasons, borderline_windows = detect_activity_windows(
+        observations,
+        long_gap_windows=long_gap_windows,
+    )
     season_confidence_note = _build_season_confidence_note(quality_metrics)
+
+    complete_window_count = sum(1 for season in seasons if season.lifecycle_status == "complete")
+    open_window_count = len(seasons) - complete_window_count
 
     return {
         "aoi_id": quality_metrics["aoi_id"],
         "season_count": len(seasons),
+        "complete_window_count": complete_window_count,
+        "open_window_count": open_window_count,
+        "borderline_window_count": len(borderline_windows),
         "gap_risk": quality_metrics["gap_risk"],
+        "activity_detection_model": {
+            "method": SIGNAL_MODEL_METHOD,
+            "low_envelope_percentile": LOW_ENVELOPE_PERCENTILE,
+            "high_envelope_percentile": HIGH_ENVELOPE_PERCENTILE,
+            "local_envelope_window_days": LOCAL_ENVELOPE_WINDOW_DAYS,
+            "boundary_prominence_fraction": BOUNDARY_PROMINENCE_FRACTION,
+            "confirmed_prominence_noise_ratio": CONFIRMED_PROMINENCE_NOISE_RATIO,
+            "borderline_prominence_noise_ratio": BORDERLINE_PROMINENCE_NOISE_RATIO,
+        },
         "terminology": {
             "season": "detected vegetation activity window, not an agronomic crop season",
         },
-        "seasons": [
-            {
-                "season_id": season.season_id,
-                "crossing_date": season.crossing_date,
-                "start_date": season.start_date,
-                "peak_date": season.peak_date,
-                "end_date": season.end_date,
-                "is_open": season.is_open,
-                "peak_ndvi": season.peak_ndvi,
-                "duration_days": season.duration_days,
-                "quality_label": season.quality_label,
-                "evidence_summary": season.evidence_summary,
-                "confirmation_level": season.confirmation_level,
-                "gap_overlap_count": season.gap_overlap_count,
-                "gap_overlap_risk": season.gap_overlap_risk,
-                "gap_overlap_stage": season.gap_overlap_stage,
-                "window_type": season.window_type,
-                "provisional": season.provisional,
-                "baseline_ndvi": season.baseline_ndvi,
-                "amplitude_ndvi": season.amplitude_ndvi,
-                "boundary_threshold_ndvi": season.boundary_threshold_ndvi,
-                "usable_observation_count": season.usable_observation_count,
-                "start_boundary_certainty": season.start_boundary_certainty,
-                "peak_certainty": season.peak_certainty,
-                "end_boundary_certainty": season.end_boundary_certainty,
-                "internal_gap_count": season.internal_gap_count,
-                "season_confidence_note": season_confidence_note,
-            }
-            for season in seasons
+        "seasons": [_season_to_payload(season, season_confidence_note) for season in seasons],
+        "borderline_windows": [
+            _season_to_payload(season, season_confidence_note) for season in borderline_windows
         ],
     }
 

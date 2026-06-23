@@ -1,5 +1,7 @@
 # Current Build Ingestion (Sentinel-2 via Planetary Computer STAC) — Full Write-up
 
+> **Superseded by T-06 (2026-06-20).** This describes the legacy per-scene rasterio ingestion path (`pipeline.py` / `write_outputs()`, `processor.py`, `window_read.py`, `dedup.py`, `scene_index.py`), which has been removed. Ingestion now uses the odc.stac.load solar-day cube path behind `farmtrust_core.ingest.runner.run_ingestion`. Current source storage is `cube.zarr`: root 10m bands/provenance/time plus a native `20m` group for bands such as `B11`, `SCL`, and red-edge bands. Kept for historical context only. See `ENGINEERING.md §Pipeline boundary` and `docs/PIPELINE.md`.
+
 ## 1) Objective
 Build an **AOI-first** ingestion pipeline for land/farm assessment to support financing decisions. The ingestion stage must:
 
@@ -192,9 +194,14 @@ AOI windows are typically < 1% of a tile. Reading only windows keeps:
 **Symptom**
 - B04/B08 (10m) shapes differ from SCL (20m) or SWIR (20m).
 
-**Solution**
+**Legacy solution**
 - Resample categorical layers (SCL) to match the 10m grid using nearest neighbor.
 - For indices that require 20m bands, choose a consistent target grid and resample appropriately.
+
+**Current solution**
+- Store 10m bands in the root `cube.zarr` group.
+- Store native 20m source bands in `cube.zarr/20m`.
+- Align 20m bands temporarily in memory only when an index or mask needs the 10m processing grid.
 
 ---
 
@@ -213,9 +220,10 @@ These are the practical defaults we converged on:
   - `usable_thresh = 0.7`
   - `excellent_thresh = 0.9`
 - **Storage for the current build**:
-  - CSV for the time-series stats
-  - JSON for run metadata
-  - Avoid parquet until pyarrow is standardized in the env
+  - `cube.zarr` for source pixels/provenance
+  - `indices_timeseries.csv` for derived time-series stats
+  - `run_metadata.json` for run metadata
+  - `scenes_index.jsonl` for operational day/band status
 
 ---
 
@@ -223,7 +231,7 @@ These are the practical defaults we converged on:
 - Does **not** download full tiles.
 - Does **not** produce a regular monthly grid (that’s preprocessing/resampling).
 - Does **not** do smoothing, interpolation, or gap filling (preprocessing stage).
-- Does **not** attempt to build a full “pixel cube” dataset unless explicitly requested (that is a separate storage design: GeoTIFF chips / Zarr / NetCDF).
+- Does **not** store derived stats in `cube.zarr`; derived outputs stay in `indices_timeseries.csv`.
 
 ---
 
@@ -299,21 +307,23 @@ If the AOI is only partially covered by individual tiles on a given date and ful
 
 ---
 
-## 13) Module structure
+## 13) Legacy module structure
 
-All ingestion logic lives in `farmtrust_core/ingest/`. The `scripts/ingest_aoi.py` entry point is CLI argument parsing only (~100 lines).
+Legacy ingestion logic lived in `farmtrust_core/ingest/`. The `scripts/ingest_aoi.py` entry point remains CLI argument parsing only, but the rasterio modules listed here were removed when the ODC cube path became the single implementation.
 
 | Module | Responsibility |
 |---|---|
 | `pipeline.py` | `write_outputs()` — top-level orchestrator: STAC search → dedup → parallel download → CSV + index |
 | `processor.py` | `process_one_scene()` — thread-safe worker: download chips, compute indices, return result |
 | `dedup.py` | `pre_deduplicate_items()` — one best scene per (date, spacecraft) before any I/O |
-| `scene_index.py` | `scenes_index.json` CRUD, cache-skip logic (`should_skip_scene`) |
+| `scene_index.py` | Legacy JSON index CRUD, cache-skip logic (`should_skip_scene`) |
 | `window_read.py` | `ChipGrid`, COG window reads, band reprojection, GeoTIFF output |
 | `indices.py` | NDVI, EVI, NDMI, NDWI, MNDWI — pure NumPy, no I/O |
 | `stac_client.py` | STAC search with multi-endpoint fallback and Planetary Computer signing |
 | `config.py` | Bbox parsing/normalization, default date range, JSON config loading |
 | `utils.py` | `compute_fingerprint`, `safe_write_text` (atomic), `utc_now_iso` |
+
+Current ingestion modules are `runner.py`, `cube_pipeline.py`, `cube_loader.py`, `cube_stats.py`, `indices.py`, `config.py`, and `utils.py`.
 
 ---
 

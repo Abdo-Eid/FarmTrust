@@ -33,17 +33,17 @@ Purpose: single place for product truth (vision, scope, current roadmap, open qu
 - Season count across the selected interval, with season boundaries explained visually.
 - PDF report export for lender review.
 
-## MVP scope (what we ship first)
+## Current-build scope (what we ship first)
 - Satellite-only assessment for a single land polygon.
 - AOI input via polygon draw: the user clicks land corners on a map to define the analysis area.
-- Geography: Egypt national coverage in MVP.
+- Geography: Egypt national coverage in current build.
 - Plot size bounds: 1–200 feddan.
 - Two-year behavior + trend indicators and last-season performance summary.
 - Simple, explainable report suitable for financing review.
 - Lightweight portal: lands-only list, one-page land summary, optional map tab.
 - Current-build assessment must be based on interval-level evidence, not a single latest observation.
 - Validation approach: weak labels only; add public-area qualitative reviews when feasible.
-- Risk flags use conservative thresholds to protect trust in MVP outputs.
+- Risk flags use conservative thresholds to protect trust in current-build outputs.
 - Current-build execution uses a single-job worker path; queue/broker is deferred until multi-user needs.
 
 ## Current Build ownership (6 roles)
@@ -149,6 +149,6 @@ flowchart TD
 - Future ideas are intentionally isolated in `FUTURE.md` and must be re-evaluated before becoming scope or a live task.
 
 ## Exploration Gate
-- MVP scope written
+- Current-build scope written
 - Top open questions prioritized
 - Active options capped with evidence and decision triggers; non-committed ideas parked in `FUTURE.md`

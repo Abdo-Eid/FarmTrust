@@ -186,20 +186,26 @@ class GapAwareSmoothingTests(unittest.TestCase):
         observations = [
             SeasonalObservation(
                 timestamp=timestamp,
-                ndvi_smoothed=0.50,
+                ndvi_smoothed=ndvi,
                 evi_smoothed=evi,
-                ndmi_smoothed=0.10,
-                ndwi_smoothed=-0.10,
+                ndmi_smoothed=ndmi,
+                ndwi_smoothed=ndwi,
                 valid_fraction=0.95,
                 source_row_count=1,
             )
-            for timestamp, evi in zip(_timestamps(0, 5, 10), [0.25, 0.27, 0.26])
+            for timestamp, ndvi, evi, ndmi, ndwi in zip(
+                _timestamps(0, 5, 10),
+                [0.30, 0.50, 0.35],
+                [0.20, 0.35, 0.25],
+                [0.02, 0.12, 0.05],
+                [0.18, -0.10, 0.10],
+            )
         ]
 
         level, evidence = _compute_multi_index_confirmation(observations)
 
         self.assertEqual(level, "strong")
-        self.assertIn("evi_peak=0.270", evidence)
+        self.assertIn("Multi-index confirmation=strong", evidence)
 
 
 if __name__ == "__main__":

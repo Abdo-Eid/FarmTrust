@@ -15,10 +15,10 @@ Detailed pipeline runbook content lives in `PIPELINE.md`.
 - Satellite time-series pipeline producing plot-level indicators, assessment confidence, satellite evidence coverage, and land risk flags.
 - Outputs stored for fast portal rendering and report export.
 
-## MVP stack
+## Current-build stack
 
 - Data access: Sentinel-2 via cloud STAC, currently Planetary Computer.
-- Processing: Python (xarray, rasterio, pystac-client) for time-series features.
+- Processing: Python (xarray, odc-stac, dask, rasterio, pystac-client) for time-series features. Ingestion uses odc.stac.load for solar-day cube mosaics; rasterio is a transitive raster dependency (AOI rasterization, warp), not a separate ingestion path.
 - API: FastAPI for job submission, results, job status, and mapped report DTOs.
 - Storage: SQLite for current-build lands/jobs plus local file artifacts under `data/`.
 - Portal: React/Next.js with Leaflet for AOI input and summaries.
@@ -98,7 +98,7 @@ FastAPI (port 8000)
 
 ## Modeling approach (by output)
 
-- Land activity/status (active/intermittent/inactive): rule-based time-series features from NDVI/EVI seasonality, AUC, and threshold crossings.
+- Land activity/status (active/intermittent/inactive): rule-based time-series features from adaptive vegetation activity windows, activity coverage, and season-level strength summaries.
 - Trend (improving/stable/declining): conservative comparison of season-level strength summaries such as peak NDVI and season AUC.
 - Season performance (good/interrupted/weak): change-point detection on NDVI curves and rule-based curve-shape classification (rise-peak-fall vs drop/flat).
 - Risk flags:
@@ -115,8 +115,10 @@ FastAPI (port 8000)
 - Product/API input is user-drawn polygon geometry; local/demo CLI fixtures may use bbox/config input for repeatable validation.
 - Stage handoffs remain file-based in the current build so each stage can be validated independently.
 - FastAPI runs or triggers the pipeline, reads the internal assessment artifact, maps it into API DTOs, and sends shaped responses to the portal.
-- Architecture commitments: Sentinel-2 current source, explicit gap diagnostics, no interpolation or synthetic timestamps, conservative rule-based scoring, NDVI-primary seasonal detection with EVI/NDMI/NDWI confirmation.
-- Local scene/chip reuse is supported to reduce repeated raster work; exact reuse rules belong in `PIPELINE.md`.
+- Architecture commitments: Sentinel-2 current source, explicit gap diagnostics, no interpolation or synthetic timestamps, conservative rule-based scoring, and field-relative adaptive activity-window detection using NDVI prominence/noise with EVI/NDMI/NDWI as supporting evidence.
+- **Ingestion architecture:** odc.stac.load cube path, the single ingestion path, run in two phases. **Download** searches STAC, mosaics each solar day across overlapping tiles, and region-writes raw-DN pixels into `cube.zarr`; fresh cubes start on a sorted time axis, while existing cubes append newly discovered days to avoid rewriting old chunks. **Process** opens the cube, applies the AOI polygon + SCL validity masks and the BOA offset (DN-1000)/10000, computes per-day statistics, and emits sorted `indices_timeseries.csv` rows (one row = one solar-day mosaic). `cube.zarr` is the primary, self-describing source artifact (raw pixels + provenance + config in root attrs); derived stats live in `indices_timeseries.csv`, not in the cube. Root `cube.zarr` stores the 10m grid/provenance/time; native 20m source bands (`B05`, `B06`, `B07`, `B8A`, `B11`, `B12`, `SCL`) are stored in a `20m` Zarr group and are aligned temporarily in memory for derived statistics. `scenes_index.jsonl` (v4+) is an operational ledger of per-day and per-band download status and is authoritative about which days/bands are real; `run_metadata.json` carries run config and is Phase 2's config read-path. Separating download from process lets a policy change (offset, SCL classes, new index) reprocess without re-downloading. Cache is keyed per solar day, while band repair/backfill is keyed per missing band; adding dates or repairing bands does not rewrite existing bands.
+- Callers (API worker, CLI) depend on the loader-agnostic seam `farmtrust_core.ingest.runner.run_ingestion` and catch `IngestCancelled`; they never import a concrete loader. Swapping or adding an ingestion implementation changes only the runner's dispatch table.
+- The legacy rasterio per-scene path (`pipeline.py`, `processor.py`, `window_read.py`, `dedup.py`, `scene_index.py`) was removed once the cube path passed equivalence and the full preprocess→seasonal→scoring chain ran on cube output.
 - Detailed commands, runtime artifacts, field contracts, thresholds, and detector behavior belong in `PIPELINE.md`.
 
 ## Assessment artifact boundary
@@ -151,7 +153,7 @@ FastAPI (port 8000)
 - Jobs/queue: The current build uses a direct worker execution path (single-job flow). Queue/broker integration is deferred until multi-user reliability is needed.
 - Retries and failures: simple status update to failed/succeeded; no multi-user reliability guarantees in the current build.
 - Monitoring: job success rate, data availability, anomaly rates, latency.
-- Performance: reuse local scene/chip outputs and cache intermediate artifacts where current code supports it.
+- Performance: reuse local `cube.zarr` source bands and cache intermediate artifacts where current code supports it.
 - Demo entry point (current build): scripts-driven (make demo or scripts/demo.ps1), no Docker requirement.
 
 ## Dev workflow (current build)

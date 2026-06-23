@@ -10,8 +10,6 @@ from pathlib import Path
 from typing import Any
 
 from farmtrust_core.ingest.utils import safe_write_text
-from farmtrust_core.seasonal.seasons import ACTIVITY_THRESHOLD
-
 from .evidence import build_confidence_payload, build_risk_flag
 
 
@@ -77,6 +75,8 @@ class SeasonMetric:
     gap_overlap_count: int
     gap_overlap_risk: str
     gap_overlap_stage: str
+    lifecycle_status: str
+    detection_status: str
 
 
 def _parse_timestamp(value: str) -> datetime:
@@ -204,14 +204,26 @@ def _build_season_metrics(
                 gap_overlap_count=int(season.get("gap_overlap_count", 0)),
                 gap_overlap_risk=str(season.get("gap_overlap_risk", "low")),
                 gap_overlap_stage=str(season.get("gap_overlap_stage", "none")),
+                lifecycle_status=str(season.get("lifecycle_status", "open_right" if season.get("is_open") else "complete")),
+                detection_status=str(season.get("detection_status", "confirmed")),
             )
         )
 
     return metrics
 
 
-def _active_fraction(observations: list[AssessmentObservation]) -> float:
-    active_count = sum(1 for row in observations if row.ndvi_smoothed >= ACTIVITY_THRESHOLD)
+def _activity_coverage_fraction(
+    observations: list[AssessmentObservation],
+    season_metrics: list[SeasonMetric],
+) -> float:
+    if not observations:
+        return 0.0
+    confirmed_windows = [season for season in season_metrics if season.detection_status == "confirmed"]
+    active_count = sum(
+        1
+        for row in observations
+        if any(season.start_date <= row.timestamp.date() <= season.end_date for season in confirmed_windows)
+    )
     return active_count / len(observations)
 
 
@@ -227,7 +239,7 @@ def _recent_season_metrics(
 def _derive_land_status(
     season_metrics: list[SeasonMetric],
     *,
-    active_fraction: float,
+    activity_coverage_fraction: float,
     latest_timestamp: datetime,
 ) -> tuple[str, str]:
     if not season_metrics:
@@ -237,21 +249,21 @@ def _derive_land_status(
     recent_good = sum(1 for season in recent_seasons if season.quality_label == "good")
     recent_any = len(recent_seasons)
 
-    if recent_any >= 2 and recent_good >= 1 and active_fraction >= 0.35:
+    if recent_any >= 2 and recent_good >= 1 and activity_coverage_fraction >= 0.35:
         return (
             "active",
-            f"{recent_any} recent vegetation activity windows were detected with active_fraction={active_fraction:.2f}.",
+            f"{recent_any} recent vegetation activity windows were detected with activity_coverage_fraction={activity_coverage_fraction:.2f}.",
         )
 
-    if recent_any >= 1 and active_fraction >= 0.18:
+    if recent_any >= 1 and activity_coverage_fraction >= 0.18:
         return (
             "intermittent",
-            f"Vegetation activity windows exist but continuity is weaker (recent_windows={recent_any}, active_fraction={active_fraction:.2f}).",
+            f"Vegetation activity windows exist but continuity is weaker (recent_windows={recent_any}, activity_coverage_fraction={activity_coverage_fraction:.2f}).",
         )
 
     return (
         "inactive",
-        f"Detected activity is too sparse for a stable active classification (active_fraction={active_fraction:.2f}).",
+        f"Detected activity is too sparse for a stable active classification (activity_coverage_fraction={activity_coverage_fraction:.2f}).",
     )
 
 
@@ -350,6 +362,10 @@ def _derive_confidence(
     elif latest_season.quality_label == "interrupted":
         signal_strength_score -= 0.5
         reasons.append("Latest activity window shows interruption-like observed signal behavior.")
+
+    if latest_season is not None and latest_season.provisional:
+        season_clarity_score -= 0.5
+        reasons.append("Latest activity window has provisional boundaries because the cycle is incomplete or overlaps evidence gaps.")
 
     if latest_season is None:
         pass
@@ -519,30 +535,12 @@ def _derive_risk_flags(
                 "The latest interpreted vegetation activity window is weak.",
             )
         )
-    elif latest_season is not None and latest_season.peak_ndvi < 0.30:
+    elif latest_season is not None and latest_season.provisional:
         flags.append(
             build_risk_flag(
                 "weak_activity_risk",
                 "moderate",
-                "The latest activity-window peak NDVI stayed below the strong-growth band.",
-            )
-        )
-
-    if latest_season is not None and latest_season.median_ndmi < 0.05:
-        flags.append(
-            build_risk_flag(
-                "water_stress_risk",
-                "moderate",
-                f"Latest activity-window median NDMI is low ({latest_season.median_ndmi:.3f}).",
-            )
-        )
-
-    if latest_season is not None and latest_season.median_ndwi > -0.05:
-        flags.append(
-            build_risk_flag(
-                "waterlogging_risk",
-                "moderate",
-                f"Latest activity-window median NDWI is elevated ({latest_season.median_ndwi:.3f}).",
+                "The latest activity window is provisional, so final strength is not yet established.",
             )
         )
 
@@ -579,10 +577,10 @@ def build_land_assessment(
     observations = load_assessment_observations(smoothed_csv_path)
     season_metrics = _build_season_metrics(observations, list(season_payload["seasons"]))
 
-    active_fraction = _active_fraction(observations)
+    activity_coverage_fraction = _activity_coverage_fraction(observations, season_metrics)
     land_status, land_status_basis = _derive_land_status(
         season_metrics,
-        active_fraction=active_fraction,
+        activity_coverage_fraction=activity_coverage_fraction,
         latest_timestamp=observations[-1].timestamp,
     )
     trend_2y, trend_basis = _derive_trend(season_metrics)
@@ -638,7 +636,8 @@ def build_land_assessment(
             "gap_risk": str(quality_metrics["gap_risk"]),
             "long_gap_count": int(quality_metrics.get("long_gap_count", 0)),
             "long_gap_windows": quality_metrics.get("long_gap_windows", []),
-            "active_observation_fraction": round(active_fraction, 4),
+            "active_observation_fraction": round(activity_coverage_fraction, 4),
+            "activity_coverage_fraction": round(activity_coverage_fraction, 4),
             "interval_max_ndvi": round(max(row.ndvi_smoothed for row in observations), 6),
             "interval_max_evi": round(max(row.evi_smoothed for row in observations), 6),
             "interval_median_ndmi": round(_median([row.ndmi_smoothed for row in observations]), 6),
@@ -658,6 +657,8 @@ def build_land_assessment(
                     "gap_overlap_count": season.gap_overlap_count,
                     "gap_overlap_risk": season.gap_overlap_risk,
                     "gap_overlap_stage": season.gap_overlap_stage,
+                    "lifecycle_status": season.lifecycle_status,
+                    "detection_status": season.detection_status,
                 }
                 for season in season_metrics
             ],

@@ -45,44 +45,38 @@ Entrypoint:
 uv run ingest-aoi --config scripts/ingest_demo.json
 ```
 
-Primary responsibilities:
+Primary responsibilities (two phases, see `farmtrust_core/ingest/cube_pipeline.py`):
 
-- search Sentinel-2 L2A scenes for the AOI and interval through STAC, currently Planetary Computer
-- apply optional cloud-cover filtering and deduplicate to one best scene per date/spacecraft before download
-- read AOI chip windows, reproject/write GeoTIFF chips, and compute per-scene index statistics
-- compute quality values such as valid fraction
-- maintain local scene/chip reuse state
-- write the base ingestion outputs
+- **Phase 1 — `download_cubes`:** search Sentinel-2 L2A through STAC (Planetary Computer), filter by `eo:cloud_cover`, group items by solar day, and load each day as an AOI-clipped mosaic across all overlapping tiles via `odc.stac.load`. Pre-allocate a time-sorted `cube.zarr` and region-write each day's raw-DN pixels into its slot as it downloads (out-of-order downloads still land sorted on disk). Missing requested bands are backfilled independently, so repairing/deleting `B11` or adding `B05` does not rewrite existing bands.
+- **Phase 2 — `process_cubes`:** open `cube.zarr`, read 10m root bands plus native 20m grouped bands as needed, apply the AOI polygon mask + SCL validity classes, apply the BOA offset `(DN-1000)/10000`, compute per-day index statistics and `valid_fraction`, and emit `indices_timeseries.csv`. Derived stats are not written back into the source cube.
+- Separating the phases means a policy change (offset, SCL classes, a new index) reprocesses via Phase 2 only; adding or repairing a source band backfills only that band.
 
 Main code:
 
-- `scripts/ingest_aoi.py`
+- `scripts/ingest_aoi.py` (CLI)
+- `farmtrust_core/ingest/runner.py` (loader-agnostic seam: `run_ingestion`, `IngestCancelled`)
+- `farmtrust_core/ingest/cube_pipeline.py` (two-phase orchestrator)
+- `farmtrust_core/ingest/cube_loader.py` (`odc.stac.load` wrapper, per-band resampling, raw DN)
+- `farmtrust_core/ingest/cube_stats.py` (BOA offset, AOI mask, per-day stats — pure, no I/O)
 - `farmtrust_core/ingest/config.py`
-- `farmtrust_core/ingest/dedup.py`
-- `farmtrust_core/ingest/indices.py`
-- `farmtrust_core/ingest/pipeline.py`
-- `farmtrust_core/ingest/processor.py`
-- `farmtrust_core/ingest/scene_index.py`
-- `farmtrust_core/ingest/stac_client.py`
 - `farmtrust_core/ingest/utils.py`
-- `farmtrust_core/ingest/window_read.py`
 
 Main outputs:
 
-- `data/<aoi_id>/indices_timeseries.csv`
-- `data/<aoi_id>/run_metadata.json`
-- `data/<aoi_id>/scenes_index.json`
-- `data/<aoi_id>/chips/...`
+- `data/<aoi_id>/cube.zarr` — **primary source artifact**: raw-DN pixels, per-day provenance, and config. Root stores the 10m grid (`B02 B03 B04 B08`) plus time/provenance; the `20m` group stores native 20m source bands (`B05 B06 B07 B8A B11 B12 SCL`) when requested.
+- `data/<aoi_id>/indices_timeseries.csv` — derived per-solar-day export (downstream handoff)
+- `data/<aoi_id>/run_metadata.json` — run config (downstream contract; Phase 2 reads config here)
+- `data/<aoi_id>/scenes_index.jsonl` — operational write-ahead ledger (v4+): one line per attempted solar day with `cache_key`, day `status`, and per-band `band_status` when backfill is used
 
 AOI and window notes:
 
 - intended assessment lookback is the last `24` months UTC
 - demo and smoke-test runs may use shorter configured windows to validate code paths quickly
 - metadata includes `window` and `lookback_months`
-- one row is emitted per scene timestamp in the current build
+- one row is emitted per solar-day mosaic
 - STAC search currently uses the AOI bbox
-- COG reads use the bbox as a rectangular raster window for efficient HTTP range reads
-- when polygon geometry is provided, the pipeline applies a polygon mask inside that COG window
+- `odc.stac.load` clips to the AOI bbox and aligns to centroid-estimated UTM, reading only the needed COG windows over HTTP; 10m bands are stored on the root grid and 20m bands are stored in the native `20m` group
+- when polygon geometry is provided, the pipeline applies a polygon mask on the loaded cube grid
 - index statistics and `valid_fraction` are computed only over pixels inside the polygon mask
 - for bbox-only CLI fixtures, the whole bbox window is treated as the AOI
 
@@ -99,7 +93,7 @@ Satellite access notes:
 - Planetary Computer signing is handled softly where needed
 - broader satellite source strategy is unresolved and tracked in `OPEN_ITEMS.md`, including when and why to use Sentinel-2, Landsat, or other possible sources
 
-Current index output includes per-scene values for:
+Current index output includes per-solar-day values for:
 
 - NDVI
 - EVI
@@ -117,15 +111,15 @@ Required downstream columns include:
 - `ndwi`
 - `mndwi` where available
 
-Scene cadence is irregular and per item timestamp. Fixed-interval views belong downstream in preprocessing or analysis. Missing values remain null/NaN so downstream stages can reason explicitly about observation count and gaps.
+Observation cadence is irregular and keyed by solar-day mosaics. Fixed-interval views belong downstream in preprocessing or analysis. Missing values remain null/NaN so downstream stages can reason explicitly about observation count and gaps.
 
 Local reuse behavior:
 
 - the active pipeline still queries STAC on each run
-- local reuse is scene/chip based through `scenes_index.json`
-- `scenes_index.json` stores per-scene status, fingerprint, stats, and provenance
-- a scene can skip download/reprocessing only when its stored fingerprint matches the current AOI/config/date/mask settings, its status is `ok`, and all expected chip files exist
-- cached scenes rebuild `indices_timeseries.csv` rows from `scenes_index.json`
+- local reuse is solar-day based through `scenes_index.jsonl` (v4+ JSONL; one operational line per solar day, with per-band status when backfill is used)
+- the ledger stores `cache_key` + `status` and can store `band_status`; provenance (`item_ids`, `mgrs_tiles`, `min_cloud_cover`) lives in `cube.zarr`, while derived stats live in `indices_timeseries.csv`
+- the ledger — not the cube's time axis — is authoritative about which days are real, so failed/partial (zero-filled) slots are never processed
+- Phase 1 skips day downloads when the stored `cache_key` matches, status is `downloaded`/legacy `ok`, and all requested bands exist; missing bands trigger band-only backfill. Phase 2 recomputes derived stats from cube pixels and rewrites `indices_timeseries.csv`
 - there is no active STAC query-result TTL/env-var cache
 
 ### 2. Preprocessing
@@ -294,30 +288,32 @@ Input contract:
 
 - input directory: `data/preprocess/<aoi_id>/`
 - required files: `ndvi_smoothed.csv`, `quality_metrics.json`
-- required CSV columns: `timestamp`, `ndvi_smoothed`, `evi_raw`, `ndmi_raw`, `ndwi_raw`, `is_usable`, `valid_fraction`, `source_row_count`
+- required CSV columns: `timestamp`, `ndvi_smoothed`, `evi_smoothed`, `ndmi_smoothed`, `ndwi_smoothed`, `is_usable`, `valid_fraction`, `source_row_count`
 - required quality keys: `aoi_id`, `usable_observation_count`, `gap_ratio`, `max_gap_days`, `gap_risk`
 
 Detector behavior:
 
-- detection uses T-04 smoothed NDVI as the primary activity signal
+- detection uses gap-aware smoothed NDVI as the primary activity signal
 - output field names remain season-oriented for compatibility, but `season` means detected vegetation activity window, not an agronomic crop season
-- baseline method is `local_p20_smoothed_ndvi`
-- local baseline uses the 20th percentile of smoothed NDVI within `±90.0` days; if fewer than `5` local observations exist, it falls back to the full-series 20th percentile
-- peak method is `max_smoothed_ndvi_in_candidate_window`, using only real usable observations
+- detector model is `adaptive_prominence_to_noise`; it does not use a fixed NDVI activity floor or fixed NDVI amplitude gate
+- low-envelope support uses the 20th percentile of smoothed NDVI within `±90.0` days; if fewer than `5` local observations exist, it falls back to the full-series 20th percentile
+- peak candidates are local maxima in the smoothed NDVI curve, using only real usable observations
+- each candidate is measured by `prominence_ndvi / noise_floor_ndvi`, where the noise floor is estimated from the field's own short-term movement and residual dispersion
+- confirmed candidates require `prominence_to_noise_ratio >= 3.8`; borderline candidates require `>= 2.5` and are reported separately from confirmed seasons
+- observed boundaries use a relative threshold of `20%` of candidate prominence from the local shoulder, not an absolute NDVI value
 - no interpolation is performed and no synthetic dates or peaks are created
-- low vegetation floor is `0.18`; observations below this cannot start or sustain an activity window
-- activity-window boundary threshold is `max(0.18, baseline_ndvi + 0.35 * amplitude_ndvi)`
-- minimum amplitude is `0.08`; weaker candidates are ignored as no detected activity window
 - a retained window needs at least `4` usable observations and at least `20.0` days of observed duration
 - peak date is the timestamp with maximum `ndvi_smoothed` inside the retained window
-- right-edge active windows are emitted with `is_open = true`, `provisional = true`, and `end_boundary_certainty = "open"`
+- lifecycle status is explicit: `complete`, `open_right`, `open_left`, or `open_both`
+- right-edge active windows are emitted with `is_open = true`, `provisional = true`, `lifecycle_status = "open_right"`, and `end_boundary_certainty = "open"`
+- left-edge windows that were already active at the first observation are retained with `lifecycle_status = "open_left"`, `provisional = true`, and `start_boundary_certainty = "open"`
 
 Quality labels:
 
-- `good` requires `peak_ndvi >= 0.30`, amplitude at least `0.12`, sustained duration, and non-weak confirmation
-- `interrupted` describes observed NDVI drop behavior inside the activity window, not a known crop-stage failure
-- `weak` describes detected activity that is sustained but has weaker amplitude/confirmation
-- weak EVI/NDMI/NDWI confirmation caps the activity-window label at `weak`
+- `good` means a complete window has strong field-relative prominence compared with estimated noise
+- `interrupted` describes a large one-step NDVI drop relative to the candidate prominence, not a known crop-stage failure
+- `weak` describes confirmed activity with weaker or provisional signal shape
+- EVI/NDMI/NDWI confirmation is relative to each signal's own window behavior; it does not use fixed EVI/NDMI/NDWI cutoffs and does not by itself rewrite the NDVI shape label
 
 Maximum drop is the largest one-step decrease between consecutive smoothed observations inside the activity window.
 
@@ -329,7 +325,12 @@ Top-level fields:
 
 - `aoi_id`
 - `season_count`
+- `complete_window_count`
+- `open_window_count`
+- `borderline_window_count`
+- `activity_detection_model`
 - `seasons`
+- `borderline_windows`
 
 Important season fields:
 
@@ -347,6 +348,11 @@ Important season fields:
 - `gap_overlap_risk`
 - `gap_overlap_stage`
 - `evidence_summary`
+- `lifecycle_status`
+- `detection_status`
+- `prominence_ndvi`
+- `noise_floor_ndvi`
+- `prominence_to_noise_ratio`
 - `season_confidence_note`
 - `window_type`
 - `provisional`

@@ -10,10 +10,10 @@ from pathlib import Path
 
 from farmtrust_core.scoring import build_land_assessment
 from farmtrust_core.seasonal.seasons import (
-    MIN_ACTIVITY_AMPLITUDE,
     SeasonWindow,
     SeasonalObservation,
     build_season_payload,
+    detect_activity_windows,
     detect_season_windows,
 )
 
@@ -70,13 +70,24 @@ class ActivityWindowDetectionTests(unittest.TestCase):
         )
 
         self.assertEqual(windows, [])
-        self.assertGreater(MIN_ACTIVITY_AMPLITUDE, 0.0)
+
+    def test_borderline_activity_is_reported_separately(self) -> None:
+        confirmed, borderline = detect_activity_windows(
+            _observations(
+                [0, 5, 10, 15, 20, 25],
+                [0.18, 0.19, 0.20, 0.216, 0.205, 0.19],
+            )
+        )
+
+        self.assertEqual(confirmed, [])
+        self.assertEqual(len(borderline), 1)
+        self.assertEqual(borderline[0].detection_status, "borderline")
 
     def test_sustained_activity_window_is_detected_from_smoothed_ndvi(self) -> None:
         windows = detect_season_windows(
             _observations(
-                [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
-                [0.12, 0.13, 0.15, 0.20, 0.25, 0.32, 0.42, 0.38, 0.31, 0.25, 0.17],
+                [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55],
+                [0.12, 0.13, 0.15, 0.20, 0.25, 0.32, 0.42, 0.38, 0.31, 0.25, 0.17, 0.12],
             )
         )
 
@@ -84,11 +95,13 @@ class ActivityWindowDetectionTests(unittest.TestCase):
         window = windows[0]
         self.assertEqual(window.window_type, "vegetation_activity")
         self.assertEqual(window.quality_label, "good")
-        self.assertEqual(window.confirmation_level, "strong")
-        self.assertEqual(window.start_date, "2024-01-21")
+        self.assertEqual(window.confirmation_level, "weak")
+        self.assertEqual(window.lifecycle_status, "complete")
+        self.assertEqual(window.detection_status, "confirmed")
+        self.assertEqual(window.start_date, "2024-01-16")
         self.assertEqual(window.peak_date, "2024-01-31")
         self.assertEqual(window.end_date, "2024-02-15")
-        self.assertGreaterEqual(window.amplitude_ndvi, 0.08)
+        self.assertGreater(window.prominence_to_noise_ratio, 3.8)
         self.assertFalse(window.provisional)
 
     def test_two_activity_windows_are_detected_when_separated_by_low_observations(self) -> None:
@@ -136,31 +149,63 @@ class ActivityWindowDetectionTests(unittest.TestCase):
         self.assertEqual(len(windows), 1)
         self.assertTrue(windows[0].is_open)
         self.assertTrue(windows[0].provisional)
+        self.assertEqual(windows[0].lifecycle_status, "open_right")
         self.assertEqual(windows[0].end_boundary_certainty, "open")
         self.assertIn("provisional", windows[0].evidence_summary)
 
-    def test_confirmation_support_uses_evi_ndmi_ndwi(self) -> None:
-        weak_support = detect_season_windows(
+    def test_open_left_window_is_provisional(self) -> None:
+        windows = detect_season_windows(
             _observations(
-                [0, 5, 10, 15, 20, 25, 30, 35],
-                [0.12, 0.21, 0.30, 0.40, 0.38, 0.32, 0.25, 0.13],
-                evi=0.10,
-                ndmi=0.00,
-                ndwi=0.30,
-            )
-        )
-        strong_support = detect_season_windows(
-            _observations(
-                [0, 5, 10, 15, 20, 25, 30, 35],
-                [0.12, 0.21, 0.30, 0.40, 0.38, 0.32, 0.25, 0.13],
-                evi=0.26,
-                ndmi=0.10,
-                ndwi=-0.10,
+                [0, 5, 10, 15, 20, 25, 30, 35, 40],
+                [0.43, 0.42, 0.40, 0.37, 0.33, 0.26, 0.20, 0.14, 0.12],
             )
         )
 
+        self.assertEqual(len(windows), 1)
+        self.assertEqual(windows[0].lifecycle_status, "open_left")
+        self.assertTrue(windows[0].provisional)
+        self.assertEqual(windows[0].start_boundary_certainty, "open")
+
+    def test_confirmation_support_uses_evi_ndmi_ndwi(self) -> None:
+        days = [0, 5, 10, 15, 20, 25, 30, 35]
+        ndvi = [0.12, 0.21, 0.30, 0.40, 0.38, 0.32, 0.25, 0.13]
+        weak_support = detect_season_windows(
+            [
+                SeasonalObservation(
+                    timestamp=_timestamp(day),
+                    ndvi_smoothed=ndvi_value,
+                    evi_smoothed=0.10,
+                    ndmi_smoothed=0.00,
+                    ndwi_smoothed=0.30,
+                    valid_fraction=0.95,
+                    source_row_count=1,
+                )
+                for day, ndvi_value in zip(days, ndvi)
+            ]
+        )
+        strong_support = detect_season_windows(
+            [
+                SeasonalObservation(
+                    timestamp=_timestamp(day),
+                    ndvi_smoothed=ndvi_value,
+                    evi_smoothed=evi_value,
+                    ndmi_smoothed=ndmi_value,
+                    ndwi_smoothed=ndwi_value,
+                    valid_fraction=0.95,
+                    source_row_count=1,
+                )
+                for day, ndvi_value, evi_value, ndmi_value, ndwi_value in zip(
+                    days,
+                    ndvi,
+                    [0.10, 0.16, 0.24, 0.34, 0.32, 0.27, 0.20, 0.11],
+                    [0.00, 0.04, 0.09, 0.15, 0.13, 0.10, 0.05, 0.01],
+                    [0.20, 0.10, 0.02, -0.12, -0.10, -0.05, 0.05, 0.18],
+                )
+            ]
+        )
+
         self.assertEqual(weak_support[0].confirmation_level, "weak")
-        self.assertEqual(weak_support[0].quality_label, "weak")
+        self.assertEqual(weak_support[0].quality_label, "good")
         self.assertEqual(strong_support[0].confirmation_level, "strong")
         self.assertEqual(strong_support[0].quality_label, "good")
 

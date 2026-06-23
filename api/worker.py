@@ -12,7 +12,7 @@ from sqlmodel import Session, select
 from api.database import engine
 from api.models import Job, Land, utc_now
 from api.assessment_mapper import map_land_response
-from farmtrust_core.ingest.pipeline import PipelineCancelledError
+from farmtrust_core.ingest.runner import IngestCancelled, run_ingestion
 from farmtrust_core.io.paths import (
     aoi_dir,
     assessment_dir,
@@ -142,9 +142,7 @@ def _run_job(job_id: str, land_id: str) -> None:
                     f"[INFO] Fetching Sentinel-2 scenes from {start.isoformat()} "
                     f"to {end.isoformat()} ({lookback_days} days lookback)"
                 )
-                from farmtrust_core.ingest.pipeline import write_outputs
-
-                write_outputs(
+                run_ingestion(
                     output_dir=aoi_dir(land.aoi_id),
                     aoi_id=land.aoi_id,
                     bbox=[0, 0, 0, 0],
@@ -200,7 +198,7 @@ def _run_job(job_id: str, land_id: str) -> None:
                 _append_log(session, job, "[INFO] Analysis succeeded")
                 _set_job(session, job, status="succeeded", phase="report_generation")
 
-            except PipelineCancelledError:
+            except IngestCancelled:
                 _set_job(session, job, status="cancelled")
                 _append_log(session, job, "[INFO] Job cancelled by user")
 

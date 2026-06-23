@@ -1,4 +1,4 @@
-# UI/UX Concept Document — Institutional Land Intelligence (MVP)
+# UI/UX Concept Document — Institutional Land Intelligence
 
 ## Table of Contents
 * Purpose
@@ -14,7 +14,7 @@
 
 ## Purpose
 
-Define the conceptual UI/UX for the MVP in behavioral terms: what users need to do, how they move through the system, how the system behaves, and what each screen enables. This document avoids component-level styling details except where essential to product meaning (trust, clarity, evidence).
+Define the conceptual UI/UX in behavioral terms: what users need to do, how they move through the system, how the system behaves, and what each screen enables. This document avoids component-level styling details except where essential to product meaning (trust, clarity, evidence).
 
 ## Product Positioning
 
