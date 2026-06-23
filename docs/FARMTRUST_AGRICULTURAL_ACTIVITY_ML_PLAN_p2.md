@@ -329,7 +329,7 @@ Comment at top of notebook:
 
 ### Phase C5 — Upload EuroCrops Dataset to Kaggle
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local
 
 **What it does:**
