@@ -15,10 +15,10 @@ Artifacts (siblings under output_dir):
   run_metadata.json    — run config (downstream contract; Phase 2 reads config here).
 
 Time axis: a fresh cube is pre-allocated with the full sorted day list. Existing
-cubes can append newly discovered days without rewriting old chunks, so the
-physical on-disk time axis may become append-ordered after date-range backfill.
-The JSONL ledger (not cube.time) is authoritative about which slices are real,
-and Phase 2 sorts output rows by solar_day.
+cubes append newly discovered days without re-downloading old chunks, then compact
+the local Zarr store back into physical time order. The JSONL ledger remains
+authoritative about which slices are real, and Phase 2 sorts output rows by
+solar_day.
 """
 
 from __future__ import annotations
@@ -301,6 +301,43 @@ def _append_time_slots(zarr_path: Path, group: Optional[str], days: List[str]) -
     for name in _FLOAT_TIME_VARS:
         if name in zgroup:
             zgroup[name][old_len:new_len] = np.full((len(days),), np.nan, dtype=zgroup[name].dtype)
+
+
+def _sort_cube_store_by_time(zarr_path: Path) -> bool:
+    """Rewrite cube.zarr physically sorted by time; return True if rewritten."""
+    with xr.open_zarr(str(zarr_path), consolidated=False) as root:
+        time_values = root.time.values
+        order = np.argsort(time_values)
+        if np.array_equal(order, np.arange(len(time_values))):
+            return False
+        root_sorted = root.isel(time=order).load()
+
+    native_sorted: Optional[xr.Dataset] = None
+    native = _open_group(zarr_path, _NATIVE_20M_GROUP)
+    if native is not None:
+        try:
+            native_sorted = native.isel(time=order).load()
+        finally:
+            native.close()
+
+    tmp_path = zarr_path.with_name(f"{zarr_path.name}.sorted-tmp")
+    old_path = zarr_path.with_name(f"{zarr_path.name}.unsorted-tmp")
+    if tmp_path.exists():
+        shutil.rmtree(tmp_path)
+    if old_path.exists():
+        shutil.rmtree(old_path)
+
+    root_sorted.to_zarr(str(tmp_path), mode="w", consolidated=False, **_zarr_format_kwargs(zarr_path))
+    if native_sorted is not None:
+        native_sorted.to_zarr(
+            str(tmp_path), group=_NATIVE_20M_GROUP, mode="a", consolidated=False,
+            **_zarr_format_kwargs(zarr_path),
+        )
+
+    zarr_path.rename(old_path)
+    tmp_path.rename(zarr_path)
+    shutil.rmtree(old_path)
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -960,10 +997,17 @@ def download_cubes(
             normalized_geometry=normalized_geometry, max_workers=max_workers,
             cancel_check=cancel_check, on_progress=on_progress,
         ) if zarr_path.exists() else 0
-        _write_run_metadata({"download_completed_at": utc_now_iso()})
+        sorted_cube = _sort_cube_store_by_time(zarr_path) if zarr_path.exists() else False
+        if sorted_cube:
+            logger.info("Sorted cube.zarr physically by time")
+        _write_run_metadata({
+            "cube_time_axis_sorted": True,
+            "download_completed_at": utc_now_iso(),
+        })
         if backfilled:
             _write_run_metadata({
                 "backfilled_band_day_count": backfilled,
+                "cube_time_axis_sorted": True,
                 "download_completed_at": utc_now_iso(),
             })
         return
@@ -1081,10 +1125,14 @@ def download_cubes(
         normalized_geometry=normalized_geometry, max_workers=max_workers,
         cancel_check=cancel_check, on_progress=on_progress,
     )
+    sorted_cube = _sort_cube_store_by_time(zarr_path)
+    if sorted_cube:
+        logger.info("Sorted cube.zarr physically by time")
 
     _write_run_metadata({
         "downloaded_solar_day_count": downloaded,
         "backfilled_band_day_count": backfilled,
+        "cube_time_axis_sorted": True,
         "download_completed_at": utc_now_iso(),
     })
     logger.info(f"Download done: {downloaded} solar days in cube.zarr")

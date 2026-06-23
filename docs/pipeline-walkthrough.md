@@ -51,9 +51,9 @@ This is the core efficiency and traceability win. Instead of downloading full Se
   2. Load default bands `B02`, `B03`, `B04`, `B08`, `B11`, and `SCL`; optionally backfill extra bands such as `B05`, `B06`, `B07`, `B8A`, and `B12`.
   3. Store 10m bands on the root grid and native 20m bands in the `20m` group. Use nearest-neighbor for categorical `SCL` only when aligning it for processing.
   4. Keep raw integer DN values in the cube; do not apply reflectance scaling during download.
-  5. Region-write each completed day into its sorted time slot in `cube.zarr`.
+  5. Region-write each completed day into `cube.zarr`; fresh cubes are written sorted, while date-range extensions append only missing days and then compact the local Zarr store back into physical time order.
 
-- **Why this matters:** The cube is reusable and repairable. If one band is missing or a new band is requested, Phase 1 downloads only that band for existing real days; if the SCL policy or index formulas change, Phase 2 can reprocess local pixels without re-downloading from Planetary Computer.
+- **Why this matters:** The cube is reusable and repairable. If the configured date window is extended, Phase 1 downloads only missing solar days; if one band is missing or a new band is requested, Phase 1 downloads only that band for existing real days. If the SCL policy or index formulas change, Phase 2 can reprocess local pixels without re-downloading from Planetary Computer.
 
 - **Windows write safety:** Per-day chunks and a small Zarr region-write retry prevent transient file-lock failures while writing stats or pixels.
 
@@ -129,7 +129,7 @@ Items from the same solar day are mosaicked, so overlapping tiles can jointly co
 Mean is sensitive to the overall distribution. P95 captures the "best" pixels — useful when a field has mixed conditions (e.g., partial irrigation).
 
 **"What about caching?"**
-Each solar day has a **fingerprint** based on the AOI identity (geometry and bbox), CRS, resolution, cloud threshold, SCL classes, and offset policy. If a day was previously downloaded with the same fingerprint and requested bands exist, it can be skipped or replayed from the cube. Missing requested bands are backfilled independently. The date range itself is not part of the per-day key, but the current cube time axis is fixed; extending to days absent from an existing `cube.zarr` requires a rebuild with `--force-rerun`.
+Each solar day has a **fingerprint** based on the AOI identity (geometry and bbox), CRS, resolution, cloud threshold, SCL classes, and offset policy. If a day was previously downloaded with the same fingerprint and requested bands exist, it can be skipped or replayed from the cube. Missing requested bands are backfilled independently. The date range itself is not part of the per-day key; extending to days absent from an existing `cube.zarr` downloads only those missing solar days, then physically sorts/compacts the local cube.
 
 ---
 

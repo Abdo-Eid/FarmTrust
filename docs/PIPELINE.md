@@ -47,7 +47,7 @@ uv run ingest-aoi --config scripts/ingest_demo.json
 
 Primary responsibilities (two phases, see `farmtrust_core/ingest/cube_pipeline.py`):
 
-- **Phase 1 — `download_cubes`:** search Sentinel-2 L2A through STAC (Planetary Computer), filter by `eo:cloud_cover`, group items by solar day, and load each day as an AOI-clipped mosaic across all overlapping tiles via `odc.stac.load`. Pre-allocate a time-sorted `cube.zarr` and region-write each day's raw-DN pixels into its slot as it downloads (out-of-order downloads still land sorted on disk). Missing requested bands are backfilled independently, so repairing/deleting `B11` or adding `B05` does not rewrite existing bands.
+- **Phase 1 — `download_cubes`:** search Sentinel-2 L2A through STAC (Planetary Computer), filter by `eo:cloud_cover`, group items by solar day, and load each day as an AOI-clipped mosaic across all overlapping tiles via `odc.stac.load`. Fresh runs pre-allocate a time-sorted `cube.zarr`; reruns skip current days, append only missing date-range observations, backfill missing requested bands, then compact the local Zarr store back into physical time order. Repairing/deleting `B11` or adding `B05` does not re-download existing bands.
 - **Phase 2 — `process_cubes`:** open `cube.zarr`, read 10m root bands plus native 20m grouped bands as needed, apply the AOI polygon mask + SCL validity classes, apply the BOA offset `(DN-1000)/10000`, compute per-day index statistics and `valid_fraction`, and emit `indices_timeseries.csv`. Derived stats are not written back into the source cube.
 - Separating the phases means a policy change (offset, SCL classes, a new index) reprocesses via Phase 2 only; adding or repairing a source band backfills only that band.
 
@@ -119,7 +119,7 @@ Local reuse behavior:
 - local reuse is solar-day based through `scenes_index.jsonl` (v4+ JSONL; one operational line per solar day, with per-band status when backfill is used)
 - the ledger stores `cache_key` + `status` and can store `band_status`; provenance (`item_ids`, `mgrs_tiles`, `min_cloud_cover`) lives in `cube.zarr`, while derived stats live in `indices_timeseries.csv`
 - the ledger — not the cube's time axis — is authoritative about which days are real, so failed/partial (zero-filled) slots are never processed
-- Phase 1 skips day downloads when the stored `cache_key` matches, status is `downloaded`/legacy `ok`, and all requested bands exist; missing bands trigger band-only backfill. Phase 2 recomputes derived stats from cube pixels and rewrites `indices_timeseries.csv`
+- Phase 1 skips day downloads when the stored `cache_key` matches, status is `downloaded`/legacy `ok`, and all requested bands exist; missing dates trigger day-level backfill, missing bands trigger band-only backfill, and the cube is physically sorted after local compaction. Phase 2 recomputes derived stats from cube pixels and rewrites `indices_timeseries.csv`
 - there is no active STAC query-result TTL/env-var cache
 
 ### 2. Preprocessing

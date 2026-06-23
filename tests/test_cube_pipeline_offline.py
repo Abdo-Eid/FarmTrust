@@ -247,7 +247,7 @@ def test_date_range_backfill_appends_only_missing_days(tmp_path, patched, monkey
     native = xr.open_zarr(str(tmp_path / "cube.zarr"), group="20m", consolidated=False)
     root_days = [pd.Timestamp(t).strftime("%Y-%m-%d") for t in root.time.values]
     native_days = [pd.Timestamp(t).strftime("%Y-%m-%d") for t in native.time.values]
-    assert root_days == sorted(_DAYS) + extra_days
+    assert root_days == sorted(all_days)
     assert native_days == root_days
     assert int(root["B08"].isel(time=root_days.index("2024-05-01"), y=0, x=0).values) == 5500
 

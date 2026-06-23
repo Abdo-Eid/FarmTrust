@@ -172,9 +172,9 @@ Consequences: Offset policy is part of the per-solar-day cache key. Any delta fr
 Links: T-06 D6
 
 2026-06-20 — Decision: Cache keyed by solar_day, excluding start_date/end_date (D7)
-Why: The rasterio cache included start_date/end_date in the fingerprint, so any date-range extension forced a full re-fetch of all prior scenes. The cube migration keeps the cache unit as the solar-day mosaic, keyed on params that change that day's output (geometry/bbox, CRS, resolution, resampling, SCL classes, max_cloud, offset_policy). start_date/end_date select the window, they do not change individual day outputs; absent days are appended to existing cubes and processed into sorted CSV rows.
+Why: The rasterio cache included start_date/end_date in the fingerprint, so any date-range extension forced a full re-fetch of all prior scenes. The cube migration keeps the cache unit as the solar-day mosaic, keyed on params that change that day's output (geometry/bbox, CRS, resolution, resampling, SCL classes, max_cloud, offset_policy). start_date/end_date select the window, they do not change individual day outputs; absent days are appended to existing cubes, then the local Zarr store is compacted back into physical time order.
 Alternatives: Include dates in key (rejected: breaks incremental extension); cache the full pixel cube as Zarr (rejected at the time as overkill — later reversed, see 2026-06-20 "Persist the solar-day cube as `cube.zarr`").
-Consequences: Same-window reruns can skip/replay current solar-day downloads. The offset_policy and AOI identity are in the key, so changing processing policy or bbox/geometry invalidates stale source pixels automatically. Incremental date-range extension appends only missing solar days; the on-disk time axis may be append-ordered, while the JSONL ledger and sorted CSV are the downstream contract.
+Consequences: Same-window reruns can skip/replay current solar-day downloads. The offset_policy and AOI identity are in the key, so changing processing policy or bbox/geometry invalidates stale source pixels automatically. Incremental date-range extension downloads only missing solar days; the on-disk time axis is sorted after local compaction, and the JSONL ledger remains authoritative about which slots are real.
 Links: T-06 D7
 
 2026-06-20 — Decision: Loader-agnostic ingestion seam; rasterio path removed (T-06)
