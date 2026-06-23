@@ -730,7 +730,7 @@ Wait for human to save the file at `models/sits_bert_final.pt`.
 
 ### Phase F5 — Final Evaluation
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local
 
 **What it does:**

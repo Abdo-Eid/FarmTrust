@@ -2,17 +2,3858 @@
   "schema_version": "ml-1.1",
   "pipeline_version": "farmtrust-activity-s2-v1",
   "aoi_id": "aoi_upper_egypt_03",
-  "inference_timestamp": "2026-06-22T21:06:36.304118Z",
+  "model_version": "sits-bert-transfer-v1",
+  "research_model_version": "sits-bert-advisory-v0.1",
+  "inference_timestamp": "2026-06-23T05:41:16.775695Z",
+  "thresholds": {
+    "confirmed_active": 0.8,
+    "possible_active": 0.65
+  },
   "ml_land_status": "uncertain",
   "ml_lender_decision": "insufficient_evidence",
   "ml_assessment_confidence": "low",
   "ml_false_active_risk": "high",
   "ml_review_recommendation": "manual_review_required",
-  "ml_summary": {
-    "false_active_gates_triggered": [
-      "inference_error"
-    ]
+  "ml_reliability": {
+    "small_parcel_risk": "unknown",
+    "mixed_pixel_risk": "unknown",
+    "gap_risk": "high",
+    "area_ha": null,
+    "estimated_s2_pixel_count": null,
+    "mean_valid_fraction": null
   },
-  "error": "No module named 'torch'",
+  "observations": [
+    {
+      "timestamp": "2020-01-04",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.04921717196702957,
+        "bare": 0.8457280397415161,
+        "sparse": 0.09548568725585938,
+        "uncertain": 0.009569193236529827
+      },
+      "ml_confidence": 0.8457280397415161,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-01-14",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.0476863868534565,
+        "bare": 0.8496140837669373,
+        "sparse": 0.09343529492616653,
+        "uncertain": 0.009264213033020496
+      },
+      "ml_confidence": 0.8496140837669373,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-01-24",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.04881945624947548,
+        "bare": 0.8488919734954834,
+        "sparse": 0.0931619256734848,
+        "uncertain": 0.009126639924943447
+      },
+      "ml_confidence": 0.8488919734954834,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-01-29",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.0509447306394577,
+        "bare": 0.8474564552307129,
+        "sparse": 0.09259451925754547,
+        "uncertain": 0.009004279971122742
+      },
+      "ml_confidence": 0.8474564552307129,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-02-03",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05001161992549896,
+        "bare": 0.8471848368644714,
+        "sparse": 0.09362861514091492,
+        "uncertain": 0.009174966253340244
+      },
+      "ml_confidence": 0.8471848368644714,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-02-13",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.04682464897632599,
+        "bare": 0.8510699272155762,
+        "sparse": 0.09278565645217896,
+        "uncertain": 0.009319820441305637
+      },
+      "ml_confidence": 0.8510699272155762,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-02-18",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.050164151936769485,
+        "bare": 0.8487000465393066,
+        "sparse": 0.09211672842502594,
+        "uncertain": 0.00901904609054327
+      },
+      "ml_confidence": 0.8487000465393066,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-02-28",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.055048562586307526,
+        "bare": 0.8441016674041748,
+        "sparse": 0.09108511358499527,
+        "uncertain": 0.009764636866748333
+      },
+      "ml_confidence": 0.8441016674041748,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-03-04",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05775466188788414,
+        "bare": 0.837952196598053,
+        "sparse": 0.09570161998271942,
+        "uncertain": 0.008591466583311558
+      },
+      "ml_confidence": 0.837952196598053,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-03-09",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05817496404051781,
+        "bare": 0.838715136051178,
+        "sparse": 0.0946461409330368,
+        "uncertain": 0.008463741280138493
+      },
+      "ml_confidence": 0.838715136051178,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-03-14",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05870840325951576,
+        "bare": 0.8379174470901489,
+        "sparse": 0.09490541368722916,
+        "uncertain": 0.008468660525977612
+      },
+      "ml_confidence": 0.8379174470901489,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-03-19",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.058192040771245956,
+        "bare": 0.83749920129776,
+        "sparse": 0.09574008733034134,
+        "uncertain": 0.008568751625716686
+      },
+      "ml_confidence": 0.83749920129776,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-03-24",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.059704143553972244,
+        "bare": 0.8384897708892822,
+        "sparse": 0.09347458928823471,
+        "uncertain": 0.008331459946930408
+      },
+      "ml_confidence": 0.8384897708892822,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-03-29",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.057716019451618195,
+        "bare": 0.8379250168800354,
+        "sparse": 0.09572692215442657,
+        "uncertain": 0.008632037788629532
+      },
+      "ml_confidence": 0.8379250168800354,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-04-03",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05717722699046135,
+        "bare": 0.8382403254508972,
+        "sparse": 0.09588617086410522,
+        "uncertain": 0.008696160279214382
+      },
+      "ml_confidence": 0.8382403254508972,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-04-13",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.055009953677654266,
+        "bare": 0.8422783613204956,
+        "sparse": 0.09412211179733276,
+        "uncertain": 0.008589530363678932
+      },
+      "ml_confidence": 0.8422783613204956,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-04-18",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05770610272884369,
+        "bare": 0.839462161064148,
+        "sparse": 0.09428916126489639,
+        "uncertain": 0.008542485535144806
+      },
+      "ml_confidence": 0.839462161064148,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-04-23",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05837761610746384,
+        "bare": 0.8390148282051086,
+        "sparse": 0.09407202899456024,
+        "uncertain": 0.008535507135093212
+      },
+      "ml_confidence": 0.8390148282051086,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-04-28",
+      "cycle_id": "egypt_winter_2019",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.058912716805934906,
+        "bare": 0.840286910533905,
+        "sparse": 0.09242735058069229,
+        "uncertain": 0.008373010903596878
+      },
+      "ml_confidence": 0.840286910533905,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-05-08",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13770447671413422,
+        "bare": 0.7433034777641296,
+        "sparse": 0.10637146234512329,
+        "uncertain": 0.012620598077774048
+      },
+      "ml_confidence": 0.7433034777641296,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-05-18",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13870345056056976,
+        "bare": 0.744008481502533,
+        "sparse": 0.10475143045186996,
+        "uncertain": 0.012536651454865932
+      },
+      "ml_confidence": 0.744008481502533,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-05-23",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.148771733045578,
+        "bare": 0.7360339760780334,
+        "sparse": 0.10284348577260971,
+        "uncertain": 0.012350806966423988
+      },
+      "ml_confidence": 0.7360339760780334,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-05-28",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.15042120218276978,
+        "bare": 0.7352176904678345,
+        "sparse": 0.10205533355474472,
+        "uncertain": 0.01230576355010271
+      },
+      "ml_confidence": 0.7352176904678345,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-06-07",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14283306896686554,
+        "bare": 0.7414282560348511,
+        "sparse": 0.1032407134771347,
+        "uncertain": 0.012498006224632263
+      },
+      "ml_confidence": 0.7414282560348511,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-06-17",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14247478544712067,
+        "bare": 0.7422298192977905,
+        "sparse": 0.10277984291315079,
+        "uncertain": 0.012515546754002571
+      },
+      "ml_confidence": 0.7422298192977905,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-06-22",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14666154980659485,
+        "bare": 0.7374760508537292,
+        "sparse": 0.10325350612401962,
+        "uncertain": 0.012608867138624191
+      },
+      "ml_confidence": 0.7374760508537292,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-06-27",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.15979278087615967,
+        "bare": 0.72962886095047,
+        "sparse": 0.09839344769716263,
+        "uncertain": 0.012184945866465569
+      },
+      "ml_confidence": 0.72962886095047,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-07-02",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1515265554189682,
+        "bare": 0.7359737157821655,
+        "sparse": 0.10012606531381607,
+        "uncertain": 0.012373579666018486
+      },
+      "ml_confidence": 0.7359737157821655,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-07-07",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14391960203647614,
+        "bare": 0.7411981821060181,
+        "sparse": 0.10225050151348114,
+        "uncertain": 0.012631818652153015
+      },
+      "ml_confidence": 0.7411981821060181,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-07-12",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1466858685016632,
+        "bare": 0.7392902374267578,
+        "sparse": 0.10144327580928802,
+        "uncertain": 0.012580577284097672
+      },
+      "ml_confidence": 0.7392902374267578,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-07-17",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14712031185626984,
+        "bare": 0.7396082282066345,
+        "sparse": 0.10074086487293243,
+        "uncertain": 0.01253059133887291
+      },
+      "ml_confidence": 0.7396082282066345,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-07-22",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14814671874046326,
+        "bare": 0.7383900880813599,
+        "sparse": 0.10088571161031723,
+        "uncertain": 0.012577494606375694
+      },
+      "ml_confidence": 0.7383900880813599,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-07-27",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14791728556156158,
+        "bare": 0.7390914559364319,
+        "sparse": 0.10043701529502869,
+        "uncertain": 0.012554336339235306
+      },
+      "ml_confidence": 0.7390914559364319,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-08-06",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14058300852775574,
+        "bare": 0.7464502453804016,
+        "sparse": 0.10036987066268921,
+        "uncertain": 0.012596797198057175
+      },
+      "ml_confidence": 0.7464502453804016,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-08-11",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1450420320034027,
+        "bare": 0.7409364581108093,
+        "sparse": 0.1012471541762352,
+        "uncertain": 0.012774328701198101
+      },
+      "ml_confidence": 0.7409364581108093,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-08-16",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14383772015571594,
+        "bare": 0.7424843311309814,
+        "sparse": 0.10090982913970947,
+        "uncertain": 0.012768181972205639
+      },
+      "ml_confidence": 0.7424843311309814,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-08-21",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14412978291511536,
+        "bare": 0.7419983744621277,
+        "sparse": 0.10104098170995712,
+        "uncertain": 0.012830819003283978
+      },
+      "ml_confidence": 0.7419983744621277,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-08-26",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1432289481163025,
+        "bare": 0.7434725761413574,
+        "sparse": 0.10049187391996384,
+        "uncertain": 0.012806519865989685
+      },
+      "ml_confidence": 0.7434725761413574,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-08-31",
+      "cycle_id": "egypt_summer_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14445191621780396,
+        "bare": 0.7423040270805359,
+        "sparse": 0.10040466487407684,
+        "uncertain": 0.01283936109393835
+      },
+      "ml_confidence": 0.7423040270805359,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-09-05",
+      "cycle_id": "egypt_nile_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1248338520526886,
+        "bare": 0.7722020745277405,
+        "sparse": 0.08824397623538971,
+        "uncertain": 0.014720014296472073
+      },
+      "ml_confidence": 0.7722020745277405,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-09-10",
+      "cycle_id": "egypt_nile_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12459512054920197,
+        "bare": 0.7715945839881897,
+        "sparse": 0.0889560803771019,
+        "uncertain": 0.014854240231215954
+      },
+      "ml_confidence": 0.7715945839881897,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-09-15",
+      "cycle_id": "egypt_nile_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12392975389957428,
+        "bare": 0.7724155187606812,
+        "sparse": 0.08879058063030243,
+        "uncertain": 0.014864111319184303
+      },
+      "ml_confidence": 0.7724155187606812,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-09-20",
+      "cycle_id": "egypt_nile_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12502089142799377,
+        "bare": 0.7717982530593872,
+        "sparse": 0.0883345752954483,
+        "uncertain": 0.014846278354525566
+      },
+      "ml_confidence": 0.7717982530593872,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-09-25",
+      "cycle_id": "egypt_nile_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12348396331071854,
+        "bare": 0.7726744413375854,
+        "sparse": 0.088875412940979,
+        "uncertain": 0.014966211281716824
+      },
+      "ml_confidence": 0.7726744413375854,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-09-30",
+      "cycle_id": "egypt_nile_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12297794222831726,
+        "bare": 0.7730898857116699,
+        "sparse": 0.08890889585018158,
+        "uncertain": 0.015023249201476574
+      },
+      "ml_confidence": 0.7730898857116699,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-10-05",
+      "cycle_id": "egypt_nile_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12321382015943527,
+        "bare": 0.77314293384552,
+        "sparse": 0.08861231803894043,
+        "uncertain": 0.01503082923591137
+      },
+      "ml_confidence": 0.77314293384552,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-10-10",
+      "cycle_id": "egypt_nile_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12447461485862732,
+        "bare": 0.7721304297447205,
+        "sparse": 0.08833629637956619,
+        "uncertain": 0.015058637596666813
+      },
+      "ml_confidence": 0.7721304297447205,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-10-15",
+      "cycle_id": "egypt_nile_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12045617401599884,
+        "bare": 0.7755104303359985,
+        "sparse": 0.0890745297074318,
+        "uncertain": 0.014958878047764301
+      },
+      "ml_confidence": 0.7755104303359985,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-10-20",
+      "cycle_id": "egypt_nile_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1182597279548645,
+        "bare": 0.7769919037818909,
+        "sparse": 0.08954031765460968,
+        "uncertain": 0.015208076685667038
+      },
+      "ml_confidence": 0.7769919037818909,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-10-25",
+      "cycle_id": "egypt_nile_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11154965311288834,
+        "bare": 0.7841740250587463,
+        "sparse": 0.0889948382973671,
+        "uncertain": 0.015281543135643005
+      },
+      "ml_confidence": 0.7841740250587463,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-11-04",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05342657119035721,
+        "bare": 0.856247067451477,
+        "sparse": 0.08001276105642319,
+        "uncertain": 0.010313605889678001
+      },
+      "ml_confidence": 0.856247067451477,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-11-09",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.055518217384815216,
+        "bare": 0.8531301021575928,
+        "sparse": 0.08090167492628098,
+        "uncertain": 0.010450135916471481
+      },
+      "ml_confidence": 0.8531301021575928,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-11-14",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.055738843977451324,
+        "bare": 0.8534750938415527,
+        "sparse": 0.0803731381893158,
+        "uncertain": 0.010412929579615593
+      },
+      "ml_confidence": 0.8534750938415527,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-11-19",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.055982477962970734,
+        "bare": 0.8530880808830261,
+        "sparse": 0.0804906114935875,
+        "uncertain": 0.010438933968544006
+      },
+      "ml_confidence": 0.8530880808830261,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-11-24",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05521292984485626,
+        "bare": 0.8536076545715332,
+        "sparse": 0.08066631108522415,
+        "uncertain": 0.010513169690966606
+      },
+      "ml_confidence": 0.8536076545715332,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-11-29",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05475986376404762,
+        "bare": 0.8532403111457825,
+        "sparse": 0.08136145025491714,
+        "uncertain": 0.010638431645929813
+      },
+      "ml_confidence": 0.8532403111457825,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-12-04",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05564567819237709,
+        "bare": 0.8527873158454895,
+        "sparse": 0.08098268508911133,
+        "uncertain": 0.010584221221506596
+      },
+      "ml_confidence": 0.8527873158454895,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-12-09",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.056560393422842026,
+        "bare": 0.8518384099006653,
+        "sparse": 0.08103322237730026,
+        "uncertain": 0.010568013414740562
+      },
+      "ml_confidence": 0.8518384099006653,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-12-14",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05786675587296486,
+        "bare": 0.8509353399276733,
+        "sparse": 0.08070623874664307,
+        "uncertain": 0.010491767898201942
+      },
+      "ml_confidence": 0.8509353399276733,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-12-19",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.056939247995615005,
+        "bare": 0.8498671650886536,
+        "sparse": 0.08244876563549042,
+        "uncertain": 0.010744894854724407
+      },
+      "ml_confidence": 0.8498671650886536,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2020-12-29",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.053708743304014206,
+        "bare": 0.8539960980415344,
+        "sparse": 0.08158332854509354,
+        "uncertain": 0.010711847804486752
+      },
+      "ml_confidence": 0.8539960980415344,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-01-03",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.055491648614406586,
+        "bare": 0.8456940054893494,
+        "sparse": 0.08861379325389862,
+        "uncertain": 0.010200491175055504
+      },
+      "ml_confidence": 0.8456940054893494,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-01-08",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05440297722816467,
+        "bare": 0.8455366492271423,
+        "sparse": 0.08971472084522247,
+        "uncertain": 0.010345671325922012
+      },
+      "ml_confidence": 0.8455366492271423,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-01-18",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05197659879922867,
+        "bare": 0.8489997386932373,
+        "sparse": 0.08871175348758698,
+        "uncertain": 0.010311933234333992
+      },
+      "ml_confidence": 0.8489997386932373,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-01-23",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.054294317960739136,
+        "bare": 0.8466490507125854,
+        "sparse": 0.0888446494936943,
+        "uncertain": 0.010211971588432789
+      },
+      "ml_confidence": 0.8466490507125854,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-01-28",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.055257171392440796,
+        "bare": 0.8450111150741577,
+        "sparse": 0.08954385668039322,
+        "uncertain": 0.010187862440943718
+      },
+      "ml_confidence": 0.8450111150741577,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-02-02",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.0560804046690464,
+        "bare": 0.8444183468818665,
+        "sparse": 0.08941109478473663,
+        "uncertain": 0.010090252384543419
+      },
+      "ml_confidence": 0.8444183468818665,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-02-07",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.0569746308028698,
+        "bare": 0.8429924845695496,
+        "sparse": 0.08995942026376724,
+        "uncertain": 0.01007347833365202
+      },
+      "ml_confidence": 0.8429924845695496,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-02-12",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05749187991023064,
+        "bare": 0.8432047963142395,
+        "sparse": 0.08934194594621658,
+        "uncertain": 0.009961327537894249
+      },
+      "ml_confidence": 0.8432047963142395,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-02-22",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05570795387029648,
+        "bare": 0.8449122309684753,
+        "sparse": 0.08942572772502899,
+        "uncertain": 0.009954102337360382
+      },
+      "ml_confidence": 0.8449122309684753,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-02-27",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.06283862888813019,
+        "bare": 0.838121235370636,
+        "sparse": 0.08694232255220413,
+        "uncertain": 0.012097775936126709
+      },
+      "ml_confidence": 0.838121235370636,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-03-04",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05892794951796532,
+        "bare": 0.8424245715141296,
+        "sparse": 0.08835791796445847,
+        "uncertain": 0.010289511643350124
+      },
+      "ml_confidence": 0.8424245715141296,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-03-09",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.05974751338362694,
+        "bare": 0.8398414254188538,
+        "sparse": 0.09043397009372711,
+        "uncertain": 0.009977039881050587
+      },
+      "ml_confidence": 0.8398414254188538,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-03-19",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.06268864870071411,
+        "bare": 0.8387906551361084,
+        "sparse": 0.0889531597495079,
+        "uncertain": 0.00956746656447649
+      },
+      "ml_confidence": 0.8387906551361084,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-03-24",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.06278446316719055,
+        "bare": 0.8345749974250793,
+        "sparse": 0.0926978811621666,
+        "uncertain": 0.009942678734660149
+      },
+      "ml_confidence": 0.8345749974250793,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-03-29",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.06394121795892715,
+        "bare": 0.8353000283241272,
+        "sparse": 0.09099096804857254,
+        "uncertain": 0.00976781640201807
+      },
+      "ml_confidence": 0.8353000283241272,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-04-03",
+      "cycle_id": "egypt_winter_2020",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07259371131658554,
+        "bare": 0.8333140015602112,
+        "sparse": 0.08498471230268478,
+        "uncertain": 0.009107566438615322
+      },
+      "ml_confidence": 0.8333140015602112,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-05-03",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.16356927156448364,
+        "bare": 0.7192027568817139,
+        "sparse": 0.10545330494642258,
+        "uncertain": 0.01177469827234745
+      },
+      "ml_confidence": 0.7192027568817139,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-05-08",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.181337371468544,
+        "bare": 0.7056691646575928,
+        "sparse": 0.1016957238316536,
+        "uncertain": 0.01129778753966093
+      },
+      "ml_confidence": 0.7056691646575928,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-06-12",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14925871789455414,
+        "bare": 0.7311831116676331,
+        "sparse": 0.10752920806407928,
+        "uncertain": 0.012028929777443409
+      },
+      "ml_confidence": 0.7311831116676331,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-06-17",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.17543698847293854,
+        "bare": 0.7105279564857483,
+        "sparse": 0.10248416662216187,
+        "uncertain": 0.011550815775990486
+      },
+      "ml_confidence": 0.7105279564857483,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-07-02",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.17047342658042908,
+        "bare": 0.7185739278793335,
+        "sparse": 0.0995655283331871,
+        "uncertain": 0.01138711255043745
+      },
+      "ml_confidence": 0.7185739278793335,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-07-07",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.18945211172103882,
+        "bare": 0.7018393278121948,
+        "sparse": 0.09740931540727615,
+        "uncertain": 0.011299345642328262
+      },
+      "ml_confidence": 0.7018393278121948,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-07-12",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1694001853466034,
+        "bare": 0.7173108458518982,
+        "sparse": 0.10164183378219604,
+        "uncertain": 0.011647146195173264
+      },
+      "ml_confidence": 0.7173108458518982,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-07-17",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1685456931591034,
+        "bare": 0.7172102332115173,
+        "sparse": 0.10247565805912018,
+        "uncertain": 0.011768399737775326
+      },
+      "ml_confidence": 0.7172102332115173,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-07-22",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.17262913286685944,
+        "bare": 0.7153918147087097,
+        "sparse": 0.10038915276527405,
+        "uncertain": 0.011589794419705868
+      },
+      "ml_confidence": 0.7153918147087097,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-07-27",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.17147554457187653,
+        "bare": 0.7153688669204712,
+        "sparse": 0.1014392226934433,
+        "uncertain": 0.011716365814208984
+      },
+      "ml_confidence": 0.7153688669204712,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-08-01",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.16964229941368103,
+        "bare": 0.7165340185165405,
+        "sparse": 0.10203491151332855,
+        "uncertain": 0.011788803152740002
+      },
+      "ml_confidence": 0.7165340185165405,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-08-06",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.17135737836360931,
+        "bare": 0.7145921587944031,
+        "sparse": 0.10222726315259933,
+        "uncertain": 0.01182321086525917
+      },
+      "ml_confidence": 0.7145921587944031,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-08-11",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.17417335510253906,
+        "bare": 0.7126950621604919,
+        "sparse": 0.1013801321387291,
+        "uncertain": 0.011751513928174973
+      },
+      "ml_confidence": 0.7126950621604919,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-08-16",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.17436006665229797,
+        "bare": 0.7123279571533203,
+        "sparse": 0.10152653604745865,
+        "uncertain": 0.011785343289375305
+      },
+      "ml_confidence": 0.7123279571533203,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-08-21",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.17322130501270294,
+        "bare": 0.7134966254234314,
+        "sparse": 0.10148084163665771,
+        "uncertain": 0.01180120650678873
+      },
+      "ml_confidence": 0.7134966254234314,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-08-26",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.17431212961673737,
+        "bare": 0.7126467823982239,
+        "sparse": 0.10123106092214584,
+        "uncertain": 0.011810075491666794
+      },
+      "ml_confidence": 0.7126467823982239,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-08-31",
+      "cycle_id": "egypt_summer_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1729189157485962,
+        "bare": 0.7144700884819031,
+        "sparse": 0.10081174224615097,
+        "uncertain": 0.011799300089478493
+      },
+      "ml_confidence": 0.7144700884819031,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-09-05",
+      "cycle_id": "egypt_nile_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13755670189857483,
+        "bare": 0.7561437487602234,
+        "sparse": 0.09100021421909332,
+        "uncertain": 0.015299313701689243
+      },
+      "ml_confidence": 0.7561437487602234,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-09-10",
+      "cycle_id": "egypt_nile_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13630951941013336,
+        "bare": 0.7579054832458496,
+        "sparse": 0.09050815552473068,
+        "uncertain": 0.015276787802577019
+      },
+      "ml_confidence": 0.7579054832458496,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-09-15",
+      "cycle_id": "egypt_nile_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1350887268781662,
+        "bare": 0.7584051489830017,
+        "sparse": 0.0910850241780281,
+        "uncertain": 0.015421166084706783
+      },
+      "ml_confidence": 0.7584051489830017,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-09-20",
+      "cycle_id": "egypt_nile_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13374342024326324,
+        "bare": 0.7598634958267212,
+        "sparse": 0.09093835204839706,
+        "uncertain": 0.01545475423336029
+      },
+      "ml_confidence": 0.7598634958267212,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-09-25",
+      "cycle_id": "egypt_nile_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13310973346233368,
+        "bare": 0.7602434754371643,
+        "sparse": 0.09110855311155319,
+        "uncertain": 0.015538189560174942
+      },
+      "ml_confidence": 0.7602434754371643,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-09-30",
+      "cycle_id": "egypt_nile_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13452643156051636,
+        "bare": 0.7593240141868591,
+        "sparse": 0.0906325951218605,
+        "uncertain": 0.015516940504312515
+      },
+      "ml_confidence": 0.7593240141868591,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-10-05",
+      "cycle_id": "egypt_nile_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1344858705997467,
+        "bare": 0.7586336135864258,
+        "sparse": 0.09123001992702484,
+        "uncertain": 0.01565052755177021
+      },
+      "ml_confidence": 0.7586336135864258,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-10-10",
+      "cycle_id": "egypt_nile_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13537663221359253,
+        "bare": 0.7586367130279541,
+        "sparse": 0.09041441231966019,
+        "uncertain": 0.01557228248566389
+      },
+      "ml_confidence": 0.7586367130279541,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-10-15",
+      "cycle_id": "egypt_nile_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1340770274400711,
+        "bare": 0.7590160965919495,
+        "sparse": 0.09116946160793304,
+        "uncertain": 0.015737392008304596
+      },
+      "ml_confidence": 0.7590160965919495,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-10-20",
+      "cycle_id": "egypt_nile_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13310781121253967,
+        "bare": 0.760274350643158,
+        "sparse": 0.09087914228439331,
+        "uncertain": 0.01573871076107025
+      },
+      "ml_confidence": 0.760274350643158,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-10-25",
+      "cycle_id": "egypt_nile_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12872003018856049,
+        "bare": 0.7630180716514587,
+        "sparse": 0.09213785827159882,
+        "uncertain": 0.016123974695801735
+      },
+      "ml_confidence": 0.7630180716514587,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-11-04",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07439503818750381,
+        "bare": 0.828741192817688,
+        "sparse": 0.08598478883504868,
+        "uncertain": 0.010878948494791985
+      },
+      "ml_confidence": 0.828741192817688,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-11-14",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.0730559453368187,
+        "bare": 0.8308362364768982,
+        "sparse": 0.08520638197660446,
+        "uncertain": 0.010901391506195068
+      },
+      "ml_confidence": 0.8308362364768982,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-11-19",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.0749218612909317,
+        "bare": 0.8281857371330261,
+        "sparse": 0.08583945780992508,
+        "uncertain": 0.011052911169826984
+      },
+      "ml_confidence": 0.8281857371330261,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-11-24",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07356727123260498,
+        "bare": 0.8285017013549805,
+        "sparse": 0.08671168237924576,
+        "uncertain": 0.011219332925975323
+      },
+      "ml_confidence": 0.8285017013549805,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-11-29",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.0713597759604454,
+        "bare": 0.8307468891143799,
+        "sparse": 0.08663231134414673,
+        "uncertain": 0.011261006817221642
+      },
+      "ml_confidence": 0.8307468891143799,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-12-04",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07070126384496689,
+        "bare": 0.8311219811439514,
+        "sparse": 0.08683580160140991,
+        "uncertain": 0.011340918950736523
+      },
+      "ml_confidence": 0.8311219811439514,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-12-09",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.0724475160241127,
+        "bare": 0.8309181332588196,
+        "sparse": 0.08546699583530426,
+        "uncertain": 0.011167350225150585
+      },
+      "ml_confidence": 0.8309181332588196,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-12-19",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.070841945707798,
+        "bare": 0.8316300511360168,
+        "sparse": 0.08625248819589615,
+        "uncertain": 0.011275607161223888
+      },
+      "ml_confidence": 0.8316300511360168,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-12-24",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07458881288766861,
+        "bare": 0.8264012336730957,
+        "sparse": 0.0875212550163269,
+        "uncertain": 0.011488675139844418
+      },
+      "ml_confidence": 0.8264012336730957,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2021-12-29",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07412785291671753,
+        "bare": 0.827019453048706,
+        "sparse": 0.08736080676317215,
+        "uncertain": 0.011491973884403706
+      },
+      "ml_confidence": 0.827019453048706,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-01-08",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.0703757032752037,
+        "bare": 0.8259725570678711,
+        "sparse": 0.09307798743247986,
+        "uncertain": 0.010573661886155605
+      },
+      "ml_confidence": 0.8259725570678711,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-01-18",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07129999250173569,
+        "bare": 0.8243814706802368,
+        "sparse": 0.09382318705320358,
+        "uncertain": 0.010495342314243317
+      },
+      "ml_confidence": 0.8243814706802368,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-01-23",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07431675493717194,
+        "bare": 0.8185284733772278,
+        "sparse": 0.09658550471067429,
+        "uncertain": 0.0105692557990551
+      },
+      "ml_confidence": 0.8185284733772278,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-01-28",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07402458786964417,
+        "bare": 0.8176875114440918,
+        "sparse": 0.09737512469291687,
+        "uncertain": 0.01091270986944437
+      },
+      "ml_confidence": 0.8176875114440918,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-02-02",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.0757889673113823,
+        "bare": 0.8146636486053467,
+        "sparse": 0.09876605868339539,
+        "uncertain": 0.01078135147690773
+      },
+      "ml_confidence": 0.8146636486053467,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-02-07",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07657725363969803,
+        "bare": 0.8138230443000793,
+        "sparse": 0.09889751672744751,
+        "uncertain": 0.010702123865485191
+      },
+      "ml_confidence": 0.8138230443000793,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-02-12",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07702139765024185,
+        "bare": 0.8131410479545593,
+        "sparse": 0.0991254672408104,
+        "uncertain": 0.010712084360420704
+      },
+      "ml_confidence": 0.8131410479545593,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-02-22",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.0747215524315834,
+        "bare": 0.8169867396354675,
+        "sparse": 0.09769624471664429,
+        "uncertain": 0.01059537474066019
+      },
+      "ml_confidence": 0.8169867396354675,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-02-27",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07675233483314514,
+        "bare": 0.8140393495559692,
+        "sparse": 0.09855487942695618,
+        "uncertain": 0.010653495788574219
+      },
+      "ml_confidence": 0.8140393495559692,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-03-09",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07957460731267929,
+        "bare": 0.816322922706604,
+        "sparse": 0.09395910799503326,
+        "uncertain": 0.010143387131392956
+      },
+      "ml_confidence": 0.816322922706604,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-03-14",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07837997376918793,
+        "bare": 0.8126241564750671,
+        "sparse": 0.0983491912484169,
+        "uncertain": 0.010646690614521503
+      },
+      "ml_confidence": 0.8126241564750671,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-03-19",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07871569693088531,
+        "bare": 0.8127075433731079,
+        "sparse": 0.09795166552066803,
+        "uncertain": 0.010625055991113186
+      },
+      "ml_confidence": 0.8127075433731079,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-03-24",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07879648357629776,
+        "bare": 0.8127108812332153,
+        "sparse": 0.0978492945432663,
+        "uncertain": 0.010643426328897476
+      },
+      "ml_confidence": 0.8127108812332153,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-04-08",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.07621756941080093,
+        "bare": 0.8181124925613403,
+        "sparse": 0.09523282945156097,
+        "uncertain": 0.010437087155878544
+      },
+      "ml_confidence": 0.8181124925613403,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-04-13",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.0801805630326271,
+        "bare": 0.8126171827316284,
+        "sparse": 0.09661000221967697,
+        "uncertain": 0.010592331178486347
+      },
+      "ml_confidence": 0.8126171827316284,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-04-23",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.0796322152018547,
+        "bare": 0.8174681663513184,
+        "sparse": 0.09264857321977615,
+        "uncertain": 0.010251092724502087
+      },
+      "ml_confidence": 0.8174681663513184,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-04-28",
+      "cycle_id": "egypt_winter_2021",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.08046290278434753,
+        "bare": 0.8137951493263245,
+        "sparse": 0.09518659859895706,
+        "uncertain": 0.010555422864854336
+      },
+      "ml_confidence": 0.8137951493263245,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-05-03",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13754884898662567,
+        "bare": 0.7448257207870483,
+        "sparse": 0.10558940470218658,
+        "uncertain": 0.01203592773526907
+      },
+      "ml_confidence": 0.7448257207870483,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-05-08",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12943284213542938,
+        "bare": 0.7492533326148987,
+        "sparse": 0.10883495956659317,
+        "uncertain": 0.012478875927627087
+      },
+      "ml_confidence": 0.7492533326148987,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-05-13",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1298852264881134,
+        "bare": 0.7490618228912354,
+        "sparse": 0.10855746269226074,
+        "uncertain": 0.01249554194509983
+      },
+      "ml_confidence": 0.7490618228912354,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-05-18",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1287863552570343,
+        "bare": 0.7507678866386414,
+        "sparse": 0.1079569160938263,
+        "uncertain": 0.01248883455991745
+      },
+      "ml_confidence": 0.7507678866386414,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-05-23",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12976151704788208,
+        "bare": 0.7503175735473633,
+        "sparse": 0.10744769871234894,
+        "uncertain": 0.012473187409341335
+      },
+      "ml_confidence": 0.7503175735473633,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-05-28",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12840868532657623,
+        "bare": 0.7519766688346863,
+        "sparse": 0.10712417960166931,
+        "uncertain": 0.012490428984165192
+      },
+      "ml_confidence": 0.7519766688346863,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-06-02",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13136179745197296,
+        "bare": 0.7507264614105225,
+        "sparse": 0.10556220263242722,
+        "uncertain": 0.01234951801598072
+      },
+      "ml_confidence": 0.7507264614105225,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-06-07",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13510489463806152,
+        "bare": 0.7500638365745544,
+        "sparse": 0.10274821519851685,
+        "uncertain": 0.012083005160093307
+      },
+      "ml_confidence": 0.7500638365745544,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-06-12",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13404160737991333,
+        "bare": 0.7505747079849243,
+        "sparse": 0.10320238023996353,
+        "uncertain": 0.012181413359940052
+      },
+      "ml_confidence": 0.7505747079849243,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-06-17",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.128937765955925,
+        "bare": 0.7537448406219482,
+        "sparse": 0.1048901230096817,
+        "uncertain": 0.012427150271832943
+      },
+      "ml_confidence": 0.7537448406219482,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-06-22",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12965548038482666,
+        "bare": 0.7530157566070557,
+        "sparse": 0.10486830025911331,
+        "uncertain": 0.012460476718842983
+      },
+      "ml_confidence": 0.7530157566070557,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-06-27",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1309502273797989,
+        "bare": 0.753372848033905,
+        "sparse": 0.10335436463356018,
+        "uncertain": 0.012322534807026386
+      },
+      "ml_confidence": 0.753372848033905,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-07-02",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12958931922912598,
+        "bare": 0.7533230185508728,
+        "sparse": 0.10459104925394058,
+        "uncertain": 0.012496627867221832
+      },
+      "ml_confidence": 0.7533230185508728,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-07-07",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12938295304775238,
+        "bare": 0.7540035247802734,
+        "sparse": 0.10414429754018784,
+        "uncertain": 0.012469245120882988
+      },
+      "ml_confidence": 0.7540035247802734,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-07-12",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13081441819667816,
+        "bare": 0.7526238560676575,
+        "sparse": 0.1040787622332573,
+        "uncertain": 0.012482928112149239
+      },
+      "ml_confidence": 0.7526238560676575,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-07-17",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13069994747638702,
+        "bare": 0.7531794905662537,
+        "sparse": 0.10366518050432205,
+        "uncertain": 0.012455410324037075
+      },
+      "ml_confidence": 0.7531794905662537,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-07-22",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13208776712417603,
+        "bare": 0.7518303394317627,
+        "sparse": 0.10360882431268692,
+        "uncertain": 0.012473080307245255
+      },
+      "ml_confidence": 0.7518303394317627,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-07-27",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13162800669670105,
+        "bare": 0.7527354955673218,
+        "sparse": 0.10318827629089355,
+        "uncertain": 0.01244819164276123
+      },
+      "ml_confidence": 0.7527354955673218,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-08-01",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13242891430854797,
+        "bare": 0.7519956827163696,
+        "sparse": 0.10310274362564087,
+        "uncertain": 0.012472681701183319
+      },
+      "ml_confidence": 0.7519956827163696,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-08-06",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13144944608211517,
+        "bare": 0.7534368634223938,
+        "sparse": 0.10266084969043732,
+        "uncertain": 0.012452781200408936
+      },
+      "ml_confidence": 0.7534368634223938,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-08-11",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.132033571600914,
+        "bare": 0.7528578042984009,
+        "sparse": 0.10261853039264679,
+        "uncertain": 0.012490054592490196
+      },
+      "ml_confidence": 0.7528578042984009,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-08-16",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13092562556266785,
+        "bare": 0.7543426752090454,
+        "sparse": 0.10225016623735428,
+        "uncertain": 0.012481505051255226
+      },
+      "ml_confidence": 0.7543426752090454,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-08-21",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1314459592103958,
+        "bare": 0.7537194490432739,
+        "sparse": 0.10230458527803421,
+        "uncertain": 0.012530026026070118
+      },
+      "ml_confidence": 0.7537194490432739,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-08-26",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1304505318403244,
+        "bare": 0.7549999356269836,
+        "sparse": 0.10202427953481674,
+        "uncertain": 0.012525269761681557
+      },
+      "ml_confidence": 0.7549999356269836,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-08-31",
+      "cycle_id": "egypt_summer_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13111773133277893,
+        "bare": 0.7541723251342773,
+        "sparse": 0.10213464498519897,
+        "uncertain": 0.012575256638228893
+      },
+      "ml_confidence": 0.7541723251342773,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-09-05",
+      "cycle_id": "egypt_nile_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13767215609550476,
+        "bare": 0.7546899914741516,
+        "sparse": 0.09254352003335953,
+        "uncertain": 0.015094338916242123
+      },
+      "ml_confidence": 0.7546899914741516,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-09-15",
+      "cycle_id": "egypt_nile_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13294938206672668,
+        "bare": 0.7600760459899902,
+        "sparse": 0.09192796796560287,
+        "uncertain": 0.015046603046357632
+      },
+      "ml_confidence": 0.7600760459899902,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-09-20",
+      "cycle_id": "egypt_nile_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13691043853759766,
+        "bare": 0.755295991897583,
+        "sparse": 0.09260257333517075,
+        "uncertain": 0.015190988779067993
+      },
+      "ml_confidence": 0.755295991897583,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-09-25",
+      "cycle_id": "egypt_nile_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13647451996803284,
+        "bare": 0.7557020783424377,
+        "sparse": 0.0925954282283783,
+        "uncertain": 0.015227963216602802
+      },
+      "ml_confidence": 0.7557020783424377,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-10-05",
+      "cycle_id": "egypt_nile_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13099664449691772,
+        "bare": 0.7619246244430542,
+        "sparse": 0.0918739065527916,
+        "uncertain": 0.01520474348217249
+      },
+      "ml_confidence": 0.7619246244430542,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-10-10",
+      "cycle_id": "egypt_nile_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13558442890644073,
+        "bare": 0.7563086748123169,
+        "sparse": 0.09270305931568146,
+        "uncertain": 0.015403926372528076
+      },
+      "ml_confidence": 0.7563086748123169,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-10-15",
+      "cycle_id": "egypt_nile_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14729902148246765,
+        "bare": 0.7490514516830444,
+        "sparse": 0.08873710036277771,
+        "uncertain": 0.014912421815097332
+      },
+      "ml_confidence": 0.7490514516830444,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-10-25",
+      "cycle_id": "egypt_nile_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1303306519985199,
+        "bare": 0.7618824243545532,
+        "sparse": 0.09236915409564972,
+        "uncertain": 0.015417720191180706
+      },
+      "ml_confidence": 0.7618824243545532,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-10-30",
+      "cycle_id": "egypt_nile_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1352873295545578,
+        "bare": 0.7556867003440857,
+        "sparse": 0.09340167790651321,
+        "uncertain": 0.01562431175261736
+      },
+      "ml_confidence": 0.7556867003440857,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-11-04",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1186959519982338,
+        "bare": 0.7702614665031433,
+        "sparse": 0.09847570955753326,
+        "uncertain": 0.012566895224153996
+      },
+      "ml_confidence": 0.7702614665031433,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-11-09",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11936815828084946,
+        "bare": 0.769085705280304,
+        "sparse": 0.09890066087245941,
+        "uncertain": 0.012645427137613297
+      },
+      "ml_confidence": 0.769085705280304,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-11-19",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11396483331918716,
+        "bare": 0.7757306098937988,
+        "sparse": 0.09778209775686264,
+        "uncertain": 0.012522384524345398
+      },
+      "ml_confidence": 0.7757306098937988,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-11-24",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11773509532213211,
+        "bare": 0.7703576683998108,
+        "sparse": 0.09915710240602493,
+        "uncertain": 0.012750145979225636
+      },
+      "ml_confidence": 0.7703576683998108,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-11-29",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11822758615016937,
+        "bare": 0.7692704200744629,
+        "sparse": 0.09965402632951736,
+        "uncertain": 0.012847923673689365
+      },
+      "ml_confidence": 0.7692704200744629,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-12-09",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1128852516412735,
+        "bare": 0.7756119966506958,
+        "sparse": 0.09873872995376587,
+        "uncertain": 0.012763992883265018
+      },
+      "ml_confidence": 0.7756119966506958,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-12-14",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11667060106992722,
+        "bare": 0.7700898051261902,
+        "sparse": 0.10023040324449539,
+        "uncertain": 0.013009208254516125
+      },
+      "ml_confidence": 0.7700898051261902,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-12-19",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11740875989198685,
+        "bare": 0.7686662077903748,
+        "sparse": 0.10081060230731964,
+        "uncertain": 0.013114478439092636
+      },
+      "ml_confidence": 0.7686662077903748,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-12-24",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11663980782032013,
+        "bare": 0.7693498134613037,
+        "sparse": 0.10086391866207123,
+        "uncertain": 0.013146467506885529
+      },
+      "ml_confidence": 0.7693498134613037,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2022-12-29",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11742503941059113,
+        "bare": 0.767851710319519,
+        "sparse": 0.10146939009428024,
+        "uncertain": 0.013253943994641304
+      },
+      "ml_confidence": 0.767851710319519,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-01-03",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11070611327886581,
+        "bare": 0.767850935459137,
+        "sparse": 0.10944025963544846,
+        "uncertain": 0.012002735398709774
+      },
+      "ml_confidence": 0.767850935459137,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-01-13",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.10785874724388123,
+        "bare": 0.7717617750167847,
+        "sparse": 0.10853023082017899,
+        "uncertain": 0.011849314905703068
+      },
+      "ml_confidence": 0.7717617750167847,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-01-18",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11113747954368591,
+        "bare": 0.7669323682785034,
+        "sparse": 0.11001008003950119,
+        "uncertain": 0.011920047923922539
+      },
+      "ml_confidence": 0.7669323682785034,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-01-23",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11043540388345718,
+        "bare": 0.7679483294487,
+        "sparse": 0.10974615067243576,
+        "uncertain": 0.011870181187987328
+      },
+      "ml_confidence": 0.7679483294487,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-02-02",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.10799647867679596,
+        "bare": 0.7715762853622437,
+        "sparse": 0.10867670923471451,
+        "uncertain": 0.011750505305826664
+      },
+      "ml_confidence": 0.7715762853622437,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-02-12",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.10785555094480515,
+        "bare": 0.7719435691833496,
+        "sparse": 0.10848144441843033,
+        "uncertain": 0.011719460599124432
+      },
+      "ml_confidence": 0.7719435691833496,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-02-17",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11051098257303238,
+        "bare": 0.7681692838668823,
+        "sparse": 0.10952715575695038,
+        "uncertain": 0.011792576871812344
+      },
+      "ml_confidence": 0.7681692838668823,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-03-04",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.10702114552259445,
+        "bare": 0.7741949558258057,
+        "sparse": 0.10720919817686081,
+        "uncertain": 0.011574777774512768
+      },
+      "ml_confidence": 0.7741949558258057,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-03-09",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11250454187393188,
+        "bare": 0.7667649388313293,
+        "sparse": 0.1090247705578804,
+        "uncertain": 0.011705792509019375
+      },
+      "ml_confidence": 0.7667649388313293,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-03-19",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.10937097668647766,
+        "bare": 0.7718470096588135,
+        "sparse": 0.10715091228485107,
+        "uncertain": 0.011631174013018608
+      },
+      "ml_confidence": 0.7718470096588135,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-03-29",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11034783720970154,
+        "bare": 0.77156001329422,
+        "sparse": 0.10648199170827866,
+        "uncertain": 0.011610200628638268
+      },
+      "ml_confidence": 0.77156001329422,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-04-03",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11438417434692383,
+        "bare": 0.766725480556488,
+        "sparse": 0.107236847281456,
+        "uncertain": 0.01165354810655117
+      },
+      "ml_confidence": 0.766725480556488,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-04-08",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11398754268884659,
+        "bare": 0.7677567601203918,
+        "sparse": 0.10661961883306503,
+        "uncertain": 0.011636044830083847
+      },
+      "ml_confidence": 0.7677567601203918,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-04-13",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1151837483048439,
+        "bare": 0.7667138576507568,
+        "sparse": 0.10646084696054459,
+        "uncertain": 0.011641568504273891
+      },
+      "ml_confidence": 0.7667138576507568,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-04-18",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11461044102907181,
+        "bare": 0.7680071592330933,
+        "sparse": 0.1057584211230278,
+        "uncertain": 0.011623965576291084
+      },
+      "ml_confidence": 0.7680071592330933,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-04-28",
+      "cycle_id": "egypt_winter_2022",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11133550107479095,
+        "bare": 0.7732303738594055,
+        "sparse": 0.1038598120212555,
+        "uncertain": 0.011574234813451767
+      },
+      "ml_confidence": 0.7732303738594055,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-05-03",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1267198622226715,
+        "bare": 0.7529876232147217,
+        "sparse": 0.10808941721916199,
+        "uncertain": 0.012203140184283257
+      },
+      "ml_confidence": 0.7529876232147217,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-05-08",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1265372633934021,
+        "bare": 0.753760814666748,
+        "sparse": 0.10751765221357346,
+        "uncertain": 0.012184292078018188
+      },
+      "ml_confidence": 0.753760814666748,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-05-13",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1385512501001358,
+        "bare": 0.7474946975708008,
+        "sparse": 0.10234156250953674,
+        "uncertain": 0.011612615548074245
+      },
+      "ml_confidence": 0.7474946975708008,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-05-18",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12916521728038788,
+        "bare": 0.7531759738922119,
+        "sparse": 0.1056227907538414,
+        "uncertain": 0.012036153115332127
+      },
+      "ml_confidence": 0.7531759738922119,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-05-28",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1353149116039276,
+        "bare": 0.7527387738227844,
+        "sparse": 0.10039123147726059,
+        "uncertain": 0.011555159464478493
+      },
+      "ml_confidence": 0.7527387738227844,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-06-02",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1274697631597519,
+        "bare": 0.7549426555633545,
+        "sparse": 0.10541343688964844,
+        "uncertain": 0.012174144387245178
+      },
+      "ml_confidence": 0.7549426555633545,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-06-12",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12490980327129364,
+        "bare": 0.7590584754943848,
+        "sparse": 0.10395646095275879,
+        "uncertain": 0.012075230479240417
+      },
+      "ml_confidence": 0.7590584754943848,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-06-17",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1299913227558136,
+        "bare": 0.7537925243377686,
+        "sparse": 0.10412463545799255,
+        "uncertain": 0.012091515585780144
+      },
+      "ml_confidence": 0.7537925243377686,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-06-22",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1309727281332016,
+        "bare": 0.7528107166290283,
+        "sparse": 0.10410076379776001,
+        "uncertain": 0.0121157830581069
+      },
+      "ml_confidence": 0.7528107166290283,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-06-27",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13062044978141785,
+        "bare": 0.7536888122558594,
+        "sparse": 0.1035996749997139,
+        "uncertain": 0.012091039679944515
+      },
+      "ml_confidence": 0.7536888122558594,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-07-02",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13099956512451172,
+        "bare": 0.7535975575447083,
+        "sparse": 0.10331670939922333,
+        "uncertain": 0.012086127884685993
+      },
+      "ml_confidence": 0.7535975575447083,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-07-12",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12722066044807434,
+        "bare": 0.7586409449577332,
+        "sparse": 0.10212252289056778,
+        "uncertain": 0.012015868909657001
+      },
+      "ml_confidence": 0.7586409449577332,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-07-22",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12701241672039032,
+        "bare": 0.7593566179275513,
+        "sparse": 0.10160863399505615,
+        "uncertain": 0.012022393755614758
+      },
+      "ml_confidence": 0.7593566179275513,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-08-01",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1267598420381546,
+        "bare": 0.7600491642951965,
+        "sparse": 0.10115788877010345,
+        "uncertain": 0.012033185921609402
+      },
+      "ml_confidence": 0.7600491642951965,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-08-06",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1374211311340332,
+        "bare": 0.7517312169075012,
+        "sparse": 0.09901337325572968,
+        "uncertain": 0.011834288947284222
+      },
+      "ml_confidence": 0.7517312169075012,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-08-11",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13090132176876068,
+        "bare": 0.7554300427436829,
+        "sparse": 0.10153187811374664,
+        "uncertain": 0.012136824429035187
+      },
+      "ml_confidence": 0.7554300427436829,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-08-16",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13177832961082458,
+        "bare": 0.7544808387756348,
+        "sparse": 0.10156992822885513,
+        "uncertain": 0.012170875445008278
+      },
+      "ml_confidence": 0.7544808387756348,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-08-21",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1310381144285202,
+        "bare": 0.7555268406867981,
+        "sparse": 0.10127636790275574,
+        "uncertain": 0.012158574536442757
+      },
+      "ml_confidence": 0.7555268406867981,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-08-26",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13188351690769196,
+        "bare": 0.7545673251152039,
+        "sparse": 0.10135003924369812,
+        "uncertain": 0.012199039570987225
+      },
+      "ml_confidence": 0.7545673251152039,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-08-31",
+      "cycle_id": "egypt_summer_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13093377649784088,
+        "bare": 0.7558073997497559,
+        "sparse": 0.10106641799211502,
+        "uncertain": 0.012192408554255962
+      },
+      "ml_confidence": 0.7558073997497559,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-09-05",
+      "cycle_id": "egypt_nile_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.139626145362854,
+        "bare": 0.7504327893257141,
+        "sparse": 0.09451533854007721,
+        "uncertain": 0.015425696037709713
+      },
+      "ml_confidence": 0.7504327893257141,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-09-15",
+      "cycle_id": "egypt_nile_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1337122768163681,
+        "bare": 0.7572660446166992,
+        "sparse": 0.09365858137607574,
+        "uncertain": 0.015363074839115143
+      },
+      "ml_confidence": 0.7572660446166992,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-09-20",
+      "cycle_id": "egypt_nile_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13759785890579224,
+        "bare": 0.7525628209114075,
+        "sparse": 0.0943283960223198,
+        "uncertain": 0.015510951168835163
+      },
+      "ml_confidence": 0.7525628209114075,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-09-25",
+      "cycle_id": "egypt_nile_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13740888237953186,
+        "bare": 0.7526904344558716,
+        "sparse": 0.09435272961854935,
+        "uncertain": 0.0155479209497571
+      },
+      "ml_confidence": 0.7526904344558716,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-09-30",
+      "cycle_id": "egypt_nile_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13716597855091095,
+        "bare": 0.752862274646759,
+        "sparse": 0.09438394010066986,
+        "uncertain": 0.015587803907692432
+      },
+      "ml_confidence": 0.752862274646759,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-10-15",
+      "cycle_id": "egypt_nile_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12866894900798798,
+        "bare": 0.7623350024223328,
+        "sparse": 0.09347851574420929,
+        "uncertain": 0.015517491847276688
+      },
+      "ml_confidence": 0.7623350024223328,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-10-20",
+      "cycle_id": "egypt_nile_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13622216880321503,
+        "bare": 0.753231942653656,
+        "sparse": 0.09475617110729218,
+        "uncertain": 0.015789665281772614
+      },
+      "ml_confidence": 0.753231942653656,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-10-25",
+      "cycle_id": "egypt_nile_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13671892881393433,
+        "bare": 0.7523781061172485,
+        "sparse": 0.09502837806940079,
+        "uncertain": 0.01587461493909359
+      },
+      "ml_confidence": 0.7523781061172485,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-10-30",
+      "cycle_id": "egypt_nile_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13552013039588928,
+        "bare": 0.75359708070755,
+        "sparse": 0.09497831761837006,
+        "uncertain": 0.015904441475868225
+      },
+      "ml_confidence": 0.75359708070755,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-11-04",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11740507930517197,
+        "bare": 0.771726131439209,
+        "sparse": 0.09814433008432388,
+        "uncertain": 0.01272447407245636
+      },
+      "ml_confidence": 0.771726131439209,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-11-09",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11651527881622314,
+        "bare": 0.7726972699165344,
+        "sparse": 0.09805718809366226,
+        "uncertain": 0.012730223126709461
+      },
+      "ml_confidence": 0.7726972699165344,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-11-14",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11722869426012039,
+        "bare": 0.7714344263076782,
+        "sparse": 0.09851773083209991,
+        "uncertain": 0.01281913835555315
+      },
+      "ml_confidence": 0.7714344263076782,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-11-19",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11661452800035477,
+        "bare": 0.7721307277679443,
+        "sparse": 0.0984344333410263,
+        "uncertain": 0.012820348143577576
+      },
+      "ml_confidence": 0.7721307277679443,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-11-29",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11252760887145996,
+        "bare": 0.7769860625267029,
+        "sparse": 0.09773333370685577,
+        "uncertain": 0.01275290921330452
+      },
+      "ml_confidence": 0.7769860625267029,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-12-04",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11700033396482468,
+        "bare": 0.7704349160194397,
+        "sparse": 0.09951349347829819,
+        "uncertain": 0.013051251880824566
+      },
+      "ml_confidence": 0.7704349160194397,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-12-14",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11172129958868027,
+        "bare": 0.7767406105995178,
+        "sparse": 0.09857556223869324,
+        "uncertain": 0.01296252105385065
+      },
+      "ml_confidence": 0.7767406105995178,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-12-19",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11579623818397522,
+        "bare": 0.770867109298706,
+        "sparse": 0.10012398660182953,
+        "uncertain": 0.013212649151682854
+      },
+      "ml_confidence": 0.770867109298706,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-12-24",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11660093069076538,
+        "bare": 0.769466757774353,
+        "sparse": 0.10062380880117416,
+        "uncertain": 0.013308563269674778
+      },
+      "ml_confidence": 0.769466757774353,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2023-12-29",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11572279036045074,
+        "bare": 0.7701371312141418,
+        "sparse": 0.10078989714384079,
+        "uncertain": 0.013350113295018673
+      },
+      "ml_confidence": 0.7701371312141418,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-01-03",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11034043878316879,
+        "bare": 0.7678934931755066,
+        "sparse": 0.10964903980493546,
+        "uncertain": 0.012117085978388786
+      },
+      "ml_confidence": 0.7678934931755066,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-01-08",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.10943834483623505,
+        "bare": 0.7690678834915161,
+        "sparse": 0.10943552851676941,
+        "uncertain": 0.0120581965893507
+      },
+      "ml_confidence": 0.7690678834915161,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-01-13",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.109853096306324,
+        "bare": 0.7682737112045288,
+        "sparse": 0.10982102900743484,
+        "uncertain": 0.01205220352858305
+      },
+      "ml_confidence": 0.7682737112045288,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-01-18",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.10889610648155212,
+        "bare": 0.7695633769035339,
+        "sparse": 0.10954034328460693,
+        "uncertain": 0.012000129558146
+      },
+      "ml_confidence": 0.7695633769035339,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-01-28",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.10561629384756088,
+        "bare": 0.7741140127182007,
+        "sparse": 0.1083916649222374,
+        "uncertain": 0.01187808159738779
+      },
+      "ml_confidence": 0.7741140127182007,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-02-02",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.10880890488624573,
+        "bare": 0.7694695591926575,
+        "sparse": 0.10977020859718323,
+        "uncertain": 0.011951250024139881
+      },
+      "ml_confidence": 0.7694695591926575,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-02-07",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.10817886143922806,
+        "bare": 0.7705096006393433,
+        "sparse": 0.1094050332903862,
+        "uncertain": 0.011906522326171398
+      },
+      "ml_confidence": 0.7705096006393433,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-02-17",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1059468612074852,
+        "bare": 0.7741039395332336,
+        "sparse": 0.1081535667181015,
+        "uncertain": 0.011795775033533573
+      },
+      "ml_confidence": 0.7741039395332336,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-02-27",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.10647669434547424,
+        "bare": 0.7739088535308838,
+        "sparse": 0.10785313695669174,
+        "uncertain": 0.011761297471821308
+      },
+      "ml_confidence": 0.7739088535308838,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-03-03",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11007702350616455,
+        "bare": 0.7691352963447571,
+        "sparse": 0.10896492749452591,
+        "uncertain": 0.011822747066617012
+      },
+      "ml_confidence": 0.7691352963447571,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-03-08",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.10964179784059525,
+        "bare": 0.7701276540756226,
+        "sparse": 0.10843584686517715,
+        "uncertain": 0.011794762685894966
+      },
+      "ml_confidence": 0.7701276540756226,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-03-23",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.10479015111923218,
+        "bare": 0.777851939201355,
+        "sparse": 0.10567061603069305,
+        "uncertain": 0.011687345802783966
+      },
+      "ml_confidence": 0.777851939201355,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-04-02",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.10839739441871643,
+        "bare": 0.7740910053253174,
+        "sparse": 0.10580398887395859,
+        "uncertain": 0.011707735247910023
+      },
+      "ml_confidence": 0.7740910053253174,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-04-07",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11156588047742844,
+        "bare": 0.7703474164009094,
+        "sparse": 0.10633864998817444,
+        "uncertain": 0.011748047545552254
+      },
+      "ml_confidence": 0.7703474164009094,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-04-12",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1127869039773941,
+        "bare": 0.7692650556564331,
+        "sparse": 0.10619008541107178,
+        "uncertain": 0.011757857166230679
+      },
+      "ml_confidence": 0.7692650556564331,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-04-17",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11258164048194885,
+        "bare": 0.7701908946037292,
+        "sparse": 0.10549353063106537,
+        "uncertain": 0.01173386536538601
+      },
+      "ml_confidence": 0.7701908946037292,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-04-22",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11859968304634094,
+        "bare": 0.7678288817405701,
+        "sparse": 0.10216380655765533,
+        "uncertain": 0.011407604441046715
+      },
+      "ml_confidence": 0.7678288817405701,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-04-27",
+      "cycle_id": "egypt_winter_2023",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.11317659914493561,
+        "bare": 0.7705646753311157,
+        "sparse": 0.10453163832426071,
+        "uncertain": 0.011727065779268742
+      },
+      "ml_confidence": 0.7705646753311157,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-05-02",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12524130940437317,
+        "bare": 0.7523406744003296,
+        "sparse": 0.11002370715141296,
+        "uncertain": 0.012394375167787075
+      },
+      "ml_confidence": 0.7523406744003296,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-05-07",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12445096671581268,
+        "bare": 0.75383460521698,
+        "sparse": 0.10933161526918411,
+        "uncertain": 0.01238278578966856
+      },
+      "ml_confidence": 0.75383460521698,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-05-12",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12514545023441315,
+        "bare": 0.7534591555595398,
+        "sparse": 0.1090046688914299,
+        "uncertain": 0.01239076629281044
+      },
+      "ml_confidence": 0.7534591555595398,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-05-17",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1244453638792038,
+        "bare": 0.7548385262489319,
+        "sparse": 0.10833900421857834,
+        "uncertain": 0.0123771196231246
+      },
+      "ml_confidence": 0.7548385262489319,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-05-22",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12557101249694824,
+        "bare": 0.7539403438568115,
+        "sparse": 0.10810790210962296,
+        "uncertain": 0.012380667962133884
+      },
+      "ml_confidence": 0.7539403438568115,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-05-27",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12533962726593018,
+        "bare": 0.7547515034675598,
+        "sparse": 0.10755001753568649,
+        "uncertain": 0.01235883217304945
+      },
+      "ml_confidence": 0.7547515034675598,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-06-01",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12683071196079254,
+        "bare": 0.7534065246582031,
+        "sparse": 0.10740358382463455,
+        "uncertain": 0.012359253130853176
+      },
+      "ml_confidence": 0.7534065246582031,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-06-06",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12669271230697632,
+        "bare": 0.7540948390960693,
+        "sparse": 0.10687752068042755,
+        "uncertain": 0.012334932573139668
+      },
+      "ml_confidence": 0.7540948390960693,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-06-11",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1281207799911499,
+        "bare": 0.7528253793716431,
+        "sparse": 0.10671529173851013,
+        "uncertain": 0.012338494881987572
+      },
+      "ml_confidence": 0.7528253793716431,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-06-21",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12473077327013016,
+        "bare": 0.7578004598617554,
+        "sparse": 0.105206198990345,
+        "uncertain": 0.012262484058737755
+      },
+      "ml_confidence": 0.7578004598617554,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-06-26",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1278366595506668,
+        "bare": 0.7543889880180359,
+        "sparse": 0.10545848309993744,
+        "uncertain": 0.0123158423230052
+      },
+      "ml_confidence": 0.7543889880180359,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-07-01",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1279260218143463,
+        "bare": 0.7546263933181763,
+        "sparse": 0.10513029992580414,
+        "uncertain": 0.012317250482738018
+      },
+      "ml_confidence": 0.7546263933181763,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-07-06",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12875092029571533,
+        "bare": 0.7539103627204895,
+        "sparse": 0.10499806702136993,
+        "uncertain": 0.012340703047811985
+      },
+      "ml_confidence": 0.7539103627204895,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-07-11",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1288713961839676,
+        "bare": 0.7541559338569641,
+        "sparse": 0.10463236272335052,
+        "uncertain": 0.012340255081653595
+      },
+      "ml_confidence": 0.7541559338569641,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-07-16",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12811438739299774,
+        "bare": 0.7553473114967346,
+        "sparse": 0.1042102724313736,
+        "uncertain": 0.012328024953603745
+      },
+      "ml_confidence": 0.7553473114967346,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-07-21",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12824393808841705,
+        "bare": 0.7554863095283508,
+        "sparse": 0.10394002497196198,
+        "uncertain": 0.012329740449786186
+      },
+      "ml_confidence": 0.7554863095283508,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-07-26",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12928394973278046,
+        "bare": 0.7544667720794678,
+        "sparse": 0.10389760136604309,
+        "uncertain": 0.012351729907095432
+      },
+      "ml_confidence": 0.7544667720794678,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-07-31",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12955884635448456,
+        "bare": 0.7543962597846985,
+        "sparse": 0.10369079560041428,
+        "uncertain": 0.012354163452982903
+      },
+      "ml_confidence": 0.7543962597846985,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-08-05",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1290236860513687,
+        "bare": 0.7553042769432068,
+        "sparse": 0.10333593934774399,
+        "uncertain": 0.012336060404777527
+      },
+      "ml_confidence": 0.7553042769432068,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-08-10",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12931986153125763,
+        "bare": 0.7551617622375488,
+        "sparse": 0.10317627340555191,
+        "uncertain": 0.012342074885964394
+      },
+      "ml_confidence": 0.7551617622375488,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-08-15",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1304132044315338,
+        "bare": 0.7539668679237366,
+        "sparse": 0.10324297845363617,
+        "uncertain": 0.012376894243061543
+      },
+      "ml_confidence": 0.7539668679237366,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-08-20",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13043572008609772,
+        "bare": 0.7540681958198547,
+        "sparse": 0.10310538858175278,
+        "uncertain": 0.012390746735036373
+      },
+      "ml_confidence": 0.7540681958198547,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-08-25",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.129333034157753,
+        "bare": 0.7554931044578552,
+        "sparse": 0.10279028862714767,
+        "uncertain": 0.012383528053760529
+      },
+      "ml_confidence": 0.7554931044578552,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-08-30",
+      "cycle_id": "egypt_summer_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.12892912328243256,
+        "bare": 0.7560015916824341,
+        "sparse": 0.10266595333814621,
+        "uncertain": 0.012403332628309727
+      },
+      "ml_confidence": 0.7560015916824341,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-09-04",
+      "cycle_id": "egypt_nile_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14172810316085815,
+        "bare": 0.7471442222595215,
+        "sparse": 0.09543353319168091,
+        "uncertain": 0.015694130212068558
+      },
+      "ml_confidence": 0.7471442222595215,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-09-09",
+      "cycle_id": "egypt_nile_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14138628542423248,
+        "bare": 0.7474761605262756,
+        "sparse": 0.09541291743516922,
+        "uncertain": 0.0157246645539999
+      },
+      "ml_confidence": 0.7474761605262756,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-09-24",
+      "cycle_id": "egypt_nile_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13061510026454926,
+        "bare": 0.759850263595581,
+        "sparse": 0.09394454956054688,
+        "uncertain": 0.015590016730129719
+      },
+      "ml_confidence": 0.759850263595581,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-09-29",
+      "cycle_id": "egypt_nile_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1397375464439392,
+        "bare": 0.7490271925926208,
+        "sparse": 0.0953681692481041,
+        "uncertain": 0.015867099165916443
+      },
+      "ml_confidence": 0.7490271925926208,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-10-04",
+      "cycle_id": "egypt_nile_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1389140635728836,
+        "bare": 0.7499518394470215,
+        "sparse": 0.09525745362043381,
+        "uncertain": 0.015876630321145058
+      },
+      "ml_confidence": 0.7499518394470215,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-10-09",
+      "cycle_id": "egypt_nile_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13982312381267548,
+        "bare": 0.7486459612846375,
+        "sparse": 0.09557285904884338,
+        "uncertain": 0.015958037227392197
+      },
+      "ml_confidence": 0.7486459612846375,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-10-14",
+      "cycle_id": "egypt_nile_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1388566493988037,
+        "bare": 0.7496398687362671,
+        "sparse": 0.09552394598722458,
+        "uncertain": 0.01597950980067253
+      },
+      "ml_confidence": 0.7496398687362671,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-10-19",
+      "cycle_id": "egypt_nile_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1395541876554489,
+        "bare": 0.748568058013916,
+        "sparse": 0.09581258893013,
+        "uncertain": 0.016065126284956932
+      },
+      "ml_confidence": 0.748568058013916,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-10-24",
+      "cycle_id": "egypt_nile_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1384585201740265,
+        "bare": 0.7496894001960754,
+        "sparse": 0.09576297551393509,
+        "uncertain": 0.016089173033833504
+      },
+      "ml_confidence": 0.7496894001960754,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-10-29",
+      "cycle_id": "egypt_nile_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.13914664089679718,
+        "bare": 0.7486082315444946,
+        "sparse": 0.09606747329235077,
+        "uncertain": 0.01617773436009884
+      },
+      "ml_confidence": 0.7486082315444946,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-11-03",
+      "cycle_id": "egypt_winter_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1505242884159088,
+        "bare": 0.7396177649497986,
+        "sparse": 0.09442208707332611,
+        "uncertain": 0.015435798093676567
+      },
+      "ml_confidence": 0.7396177649497986,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-11-08",
+      "cycle_id": "egypt_winter_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1514940857887268,
+        "bare": 0.7382230758666992,
+        "sparse": 0.09475541114807129,
+        "uncertain": 0.01552742812782526
+      },
+      "ml_confidence": 0.7382230758666992,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-11-13",
+      "cycle_id": "egypt_winter_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.15049631893634796,
+        "bare": 0.7391585111618042,
+        "sparse": 0.09477953612804413,
+        "uncertain": 0.01556564774364233
+      },
+      "ml_confidence": 0.7391585111618042,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-11-18",
+      "cycle_id": "egypt_winter_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.15130753815174103,
+        "bare": 0.7378804683685303,
+        "sparse": 0.09514680504798889,
+        "uncertain": 0.015665192157030106
+      },
+      "ml_confidence": 0.7378804683685303,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-11-23",
+      "cycle_id": "egypt_winter_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.15004417300224304,
+        "bare": 0.7390571236610413,
+        "sparse": 0.09518814831972122,
+        "uncertain": 0.015710586681962013
+      },
+      "ml_confidence": 0.7390571236610413,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-11-28",
+      "cycle_id": "egypt_winter_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1507003903388977,
+        "bare": 0.7379206418991089,
+        "sparse": 0.0955648347735405,
+        "uncertain": 0.015814216807484627
+      },
+      "ml_confidence": 0.7379206418991089,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-12-03",
+      "cycle_id": "egypt_winter_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1493217647075653,
+        "bare": 0.739189863204956,
+        "sparse": 0.09562364965677261,
+        "uncertain": 0.015864744782447815
+      },
+      "ml_confidence": 0.739189863204956,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-12-08",
+      "cycle_id": "egypt_winter_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.1499393880367279,
+        "bare": 0.7380702495574951,
+        "sparse": 0.0960182324051857,
+        "uncertain": 0.01597221940755844
+      },
+      "ml_confidence": 0.7380702495574951,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-12-13",
+      "cycle_id": "egypt_winter_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14857575297355652,
+        "bare": 0.7393231391906738,
+        "sparse": 0.0960778295993805,
+        "uncertain": 0.016023287549614906
+      },
+      "ml_confidence": 0.7393231391906738,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-12-23",
+      "cycle_id": "egypt_winter_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14315804839134216,
+        "bare": 0.7449494004249573,
+        "sparse": 0.09583617001771927,
+        "uncertain": 0.016056403517723083
+      },
+      "ml_confidence": 0.7449494004249573,
+      "is_usable": true
+    },
+    {
+      "timestamp": "2024-12-28",
+      "cycle_id": "egypt_winter_2024",
+      "ml_label": "bare",
+      "ml_probabilities": {
+        "active": 0.14805439114570618,
+        "bare": 0.7387526631355286,
+        "sparse": 0.09690672904253006,
+        "uncertain": 0.01628623530268669
+      },
+      "ml_confidence": 0.7387526631355286,
+      "is_usable": true
+    }
+  ],
+  "ml_activity_windows": [],
+  "ml_summary": {
+    "pct_observations_active": 0.0,
+    "pct_observations_bare": 1.0,
+    "pct_observations_sparse": 0.0,
+    "pct_observations_uncertain": 0.0,
+    "ml_activity_window_count": 0,
+    "false_active_gates_triggered": []
+  },
   "advisory_note": "ML output is advisory. Rule-based assessment in land_assessment.json remains authoritative until ml_promoted=true."
 }

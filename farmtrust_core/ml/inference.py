@@ -119,13 +119,15 @@ def _build_artifact(
         cycle_probs = probabilities[cycle_index]
         real_indices = np.where(mask)[0]
         for index in real_indices:
-            probs = {name: float(cycle_probs[index, class_index]) for class_index, name in enumerate(CLASS_NAMES)}
+            raw_probs = {name: float(cycle_probs[index, class_index]) for class_index, name in enumerate(CLASS_NAMES)}
+            probs = _apply_active_threshold(raw_probs)
             label = max(probs, key=probs.get)
             observations.append(
                 {
                     "timestamp": timestamps[index],
                     "cycle_id": cycle["cycle_id"],
                     "ml_label": label,
+                    "ml_raw_probabilities": raw_probs,
                     "ml_probabilities": probs,
                     "ml_confidence": float(max(probs.values())),
                     "is_usable": True,
@@ -232,6 +234,16 @@ def _active_status(mean_active: float) -> str:
     if mean_active >= POSSIBLE_ACTIVE_THRESHOLD:
         return "possible_active"
     return "not_active"
+
+
+def _apply_active_threshold(probs: dict[str, float]) -> dict[str, float]:
+    if probs.get("active", 0.0) >= POSSIBLE_ACTIVE_THRESHOLD:
+        return dict(probs)
+    gated = dict(probs)
+    active_probability = gated.get("active", 0.0)
+    gated["active"] = 0.0
+    gated["uncertain"] = gated.get("uncertain", 0.0) + active_probability
+    return gated
 
 
 def _false_active_gates(
