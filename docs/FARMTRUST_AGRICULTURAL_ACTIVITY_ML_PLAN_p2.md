@@ -137,7 +137,7 @@ Print full output.
 
 ### Phase C2 — Inspect EuroCropsML Schema
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local
 
 **What it does:**
