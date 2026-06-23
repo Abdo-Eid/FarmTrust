@@ -494,7 +494,7 @@ After implementing, do NOT run it yet — that happens in Phase A3.
 
 ### Phase A2 — Create `scripts/merge_annotations.py`
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local
 
 **What it does:**
