@@ -567,7 +567,7 @@ Show the full annotation file so Fares can confirm.
 
 ### Phase F1 — Confirm Transfer Model Downloaded
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local
 
 **What it does:**
