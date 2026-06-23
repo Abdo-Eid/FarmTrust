@@ -605,7 +605,7 @@ Then stop. Do not continue until the file is valid.
 
 ### Phase F2 — Merge Annotations
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local
 
 **What it does:**
