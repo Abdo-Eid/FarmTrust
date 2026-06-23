@@ -239,7 +239,7 @@ Print full manifest output.
 
 ### Phase C4 — Create `kaggle/notebooks/05_transfer_finetune.ipynb`
 
-**STATUS:** `[ ]`
+**STATUS:** `[x]`
 **Runs on:** Local (write) → Kaggle (execute in C6)
 
 **What it does:**
