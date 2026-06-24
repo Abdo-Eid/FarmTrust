@@ -191,6 +191,14 @@ Consequences: Four sibling artifacts per AOI — `cube.zarr` (primary source art
 Links: ENGINEERING §Pipeline boundary | PIPELINE §Ingestion
 Refines: 2026-06-20 — Cache keyed by solar_day, excluding start_date/end_date (D7)
 
+2026-06-24 — Decision: Pipeline correction — fill+smooth preprocessing, hybrid-threshold activity detection
+Why: The old gap-aware local-median smoother left usable-only values and did not fill across gaps, so the seasonal detector saw disconnected short segments and missed real vegetation activity windows. The old prominence-to-noise detector exaggerated small noise blips and missed plateau/double-crop behavior. A hybrid threshold (fixed floor + dynamic baseline margin) finds activity windows that match the visible NDVI curve.
+Alternatives: Whittaker smoother (rejected: user prefers Savitzky-Golay); fill-then-Whittaker; prominence-only with lower threshold (rejected: still missed plateau windows).
+Consequences: Preprocessing now produces `*_filled` columns (linear interpolation across usable anchors then Savitzky-Golay) for every observed timestamp. Seasonal analysis uses all rows (not just usable) and hybrid threshold: confirmed ≥ max(0.35, baseline+0.10), borderline ≥ max(0.20, baseline+0.05). Gap metrics remain separate confidence evidence. `gap_aware_local_median_weighted_mean` is replaced by linear-interpolation-then-Savitzky-Golay as the smoothing method. The pipeline now outputs 4 activity windows and `active` land status for the demo AOI.
+Links: PIPELINE §Preprocessing | PIPELINE §Activity-window analysis
+Supersedes: 2026-01-25 — Current-build gap handling uses smoothing + light interpolation with assessment-confidence penalty
+Refines: 2026-05-18 — Current-build preprocessing does not interpolate or synthesize timestamps
+
 2026-06-17 — Decision: Insufficient satellite evidence requires manual review
 Why: A completed pipeline run can still lack enough usable evidence for a final automated land assessment. In that case, the product must avoid implying land/farmer failure or issuing unsupported financing-review signals.
 Alternatives: Return a provisional automated land status; return no assessment object; treat insufficient evidence as a high-risk land result.

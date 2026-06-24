@@ -19,6 +19,7 @@ from .gaps import (
     compute_gap_windows,
 )
 from .smoothing import smoothing_metadata, smooth_usable_values
+from .smoothing import build_analysis_values
 
 
 REQUIRED_COLUMNS = (
@@ -60,12 +61,16 @@ class ProcessedObservation:
     timestamp: datetime
     valid_fraction: float
     ndvi_raw: float
+    ndvi_filled: float
     ndvi_smoothed: Optional[float]
     evi_raw: float
+    evi_filled: float
     evi_smoothed: Optional[float]
     ndmi_raw: float
+    ndmi_filled: float
     ndmi_smoothed: Optional[float]
     ndwi_raw: float
+    ndwi_filled: float
     ndwi_smoothed: Optional[float]
     is_usable: bool
     source_row_count: int
@@ -176,62 +181,51 @@ def build_processed_observations(
     *,
     valid_fraction_threshold: float = DEFAULT_VALID_FRACTION_THRESHOLD,
 ) -> list[ProcessedObservation]:
-    usable_observations = [
-        observation
+    timestamps = [observation.timestamp for observation in merged_observations]
+    usable_flags = [
+        observation.valid_fraction >= valid_fraction_threshold
         for observation in merged_observations
-        if observation.valid_fraction >= valid_fraction_threshold
     ]
-    usable_timestamps = [observation.timestamp for observation in usable_observations]
-    usable_valid_fractions = [observation.valid_fraction for observation in usable_observations]
-    ndvi_smoothed_values = smooth_usable_values(
-        timestamps=usable_timestamps,
-        values=[observation.ndvi_raw for observation in usable_observations],
-        valid_fractions=usable_valid_fractions,
+    ndvi_filled_values, ndvi_smoothed_values = build_analysis_values(
+        timestamps=timestamps,
+        values=[observation.ndvi_raw for observation in merged_observations],
+        is_usable=usable_flags,
     )
-    evi_smoothed_values = smooth_usable_values(
-        timestamps=usable_timestamps,
-        values=[observation.evi_raw for observation in usable_observations],
-        valid_fractions=usable_valid_fractions,
+    evi_filled_values, evi_smoothed_values = build_analysis_values(
+        timestamps=timestamps,
+        values=[observation.evi_raw for observation in merged_observations],
+        is_usable=usable_flags,
     )
-    ndmi_smoothed_values = smooth_usable_values(
-        timestamps=usable_timestamps,
-        values=[observation.ndmi_raw for observation in usable_observations],
-        valid_fractions=usable_valid_fractions,
+    ndmi_filled_values, ndmi_smoothed_values = build_analysis_values(
+        timestamps=timestamps,
+        values=[observation.ndmi_raw for observation in merged_observations],
+        is_usable=usable_flags,
     )
-    ndwi_smoothed_values = smooth_usable_values(
-        timestamps=usable_timestamps,
-        values=[observation.ndwi_raw for observation in usable_observations],
-        valid_fractions=usable_valid_fractions,
+    ndwi_filled_values, ndwi_smoothed_values = build_analysis_values(
+        timestamps=timestamps,
+        values=[observation.ndwi_raw for observation in merged_observations],
+        is_usable=usable_flags,
     )
 
     processed: list[ProcessedObservation] = []
-    smoothed_index = 0
-    for observation in merged_observations:
-        is_usable = observation.valid_fraction >= valid_fraction_threshold
-        ndvi_smoothed: Optional[float] = None
-        evi_smoothed: Optional[float] = None
-        ndmi_smoothed: Optional[float] = None
-        ndwi_smoothed: Optional[float] = None
-        if is_usable:
-            ndvi_smoothed = ndvi_smoothed_values[smoothed_index]
-            evi_smoothed = evi_smoothed_values[smoothed_index]
-            ndmi_smoothed = ndmi_smoothed_values[smoothed_index]
-            ndwi_smoothed = ndwi_smoothed_values[smoothed_index]
-            smoothed_index += 1
-
+    for index, observation in enumerate(merged_observations):
         processed.append(
             ProcessedObservation(
                 timestamp=observation.timestamp,
                 valid_fraction=observation.valid_fraction,
                 ndvi_raw=observation.ndvi_raw,
-                ndvi_smoothed=ndvi_smoothed,
+                ndvi_filled=ndvi_filled_values[index],
+                ndvi_smoothed=ndvi_smoothed_values[index],
                 evi_raw=observation.evi_raw,
-                evi_smoothed=evi_smoothed,
+                evi_filled=evi_filled_values[index],
+                evi_smoothed=evi_smoothed_values[index],
                 ndmi_raw=observation.ndmi_raw,
-                ndmi_smoothed=ndmi_smoothed,
+                ndmi_filled=ndmi_filled_values[index],
+                ndmi_smoothed=ndmi_smoothed_values[index],
                 ndwi_raw=observation.ndwi_raw,
-                ndwi_smoothed=ndwi_smoothed,
-                is_usable=is_usable,
+                ndwi_filled=ndwi_filled_values[index],
+                ndwi_smoothed=ndwi_smoothed_values[index],
+                is_usable=usable_flags[index],
                 source_row_count=observation.source_row_count,
             )
         )
@@ -336,12 +330,16 @@ def write_preprocess_outputs(
             [
                 "timestamp",
                 "ndvi_raw",
+                "ndvi_filled",
                 "ndvi_smoothed",
                 "evi_raw",
+                "evi_filled",
                 "evi_smoothed",
                 "ndmi_raw",
+                "ndmi_filled",
                 "ndmi_smoothed",
                 "ndwi_raw",
+                "ndwi_filled",
                 "ndwi_smoothed",
                 "valid_fraction",
                 "is_usable",
@@ -353,13 +351,17 @@ def write_preprocess_outputs(
                 [
                     _isoformat_utc(observation.timestamp),
                     observation.ndvi_raw,
-                    "" if observation.ndvi_smoothed is None else observation.ndvi_smoothed,
+                    observation.ndvi_filled,
+                    observation.ndvi_smoothed,
                     observation.evi_raw,
-                    "" if observation.evi_smoothed is None else observation.evi_smoothed,
+                    observation.evi_filled,
+                    observation.evi_smoothed,
                     observation.ndmi_raw,
-                    "" if observation.ndmi_smoothed is None else observation.ndmi_smoothed,
+                    observation.ndmi_filled,
+                    observation.ndmi_smoothed,
                     observation.ndwi_raw,
-                    "" if observation.ndwi_smoothed is None else observation.ndwi_smoothed,
+                    observation.ndwi_filled,
+                    observation.ndwi_smoothed,
                     observation.valid_fraction,
                     str(observation.is_usable).lower(),
                     observation.source_row_count,

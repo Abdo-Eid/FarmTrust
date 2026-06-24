@@ -1,4 +1,4 @@
-"""Gap-aware smoothing methods for time-series signals."""
+"""Gap filling and smoothing methods for time-series signals."""
 
 from __future__ import annotations
 
@@ -6,13 +6,17 @@ import statistics
 from datetime import datetime
 from typing import Sequence
 
+import numpy as np
+
 
 MAX_SMOOTHING_GAP_DAYS = 12.0
 LOCAL_WINDOW_DAYS = 12.0
 MIN_LOCAL_NEIGHBORS = 2
-SMOOTHING_METHOD_NAME = "gap_aware_local_median_weighted_mean"
-SMOOTHING_WEIGHTING_POLICY = "valid_fraction_time_distance"
-SMOOTHING_INTERPOLATION_POLICY = "none"
+SMOOTHING_METHOD_NAME = "linear_fill_savitzky_golay"
+SMOOTHING_WEIGHTING_POLICY = "none"
+SMOOTHING_INTERPOLATION_POLICY = "full_curve_linear_between_usable_observations"
+SAVGOL_WINDOW_OBSERVATIONS = 11
+SAVGOL_POLYORDER = 3
 
 
 def smoothing_metadata() -> dict[str, object]:
@@ -25,8 +29,104 @@ def smoothing_metadata() -> dict[str, object]:
         "weighting_policy": SMOOTHING_WEIGHTING_POLICY,
         "interpolation_policy": SMOOTHING_INTERPOLATION_POLICY,
         "creates_synthetic_timestamps": False,
-        "smooths_only_usable_observations": True,
+        "smooths_only_usable_observations": False,
+        "fill_policy": "fill_all_observed_timestamps_from_usable_anchors",
+        "savgol_window_observations": SAVGOL_WINDOW_OBSERVATIONS,
+        "savgol_polyorder": SAVGOL_POLYORDER,
     }
+
+
+def _is_finite(value: float) -> bool:
+    return bool(np.isfinite(float(value)))
+
+
+def _to_day_offsets(timestamps: Sequence[datetime]) -> list[float]:
+    origin = timestamps[0]
+    return [(timestamp - origin).total_seconds() / 86400.0 for timestamp in timestamps]
+
+
+def fill_analysis_values(
+    *,
+    timestamps: Sequence[datetime],
+    values: Sequence[float],
+    is_usable: Sequence[bool],
+) -> list[float]:
+    """Fill every observed timestamp from usable finite anchors, without creating dates."""
+    if not (len(timestamps) == len(values) == len(is_usable)):
+        raise ValueError("timestamps, values, and is_usable must have the same length")
+    if not values:
+        return []
+
+    anchor_indices = [
+        index
+        for index, (value, usable) in enumerate(zip(values, is_usable))
+        if usable and _is_finite(value)
+    ]
+    if not anchor_indices:
+        raise ValueError("Cannot fill analysis curve without usable finite observations")
+    if len(anchor_indices) == 1:
+        return [float(values[anchor_indices[0]]) for _value in values]
+
+    x = np.asarray(_to_day_offsets(timestamps), dtype=float)
+    anchor_x = np.asarray([x[index] for index in anchor_indices], dtype=float)
+    anchor_y = np.asarray([float(values[index]) for index in anchor_indices], dtype=float)
+    filled = np.interp(x, anchor_x, anchor_y)
+    return [float(value) for value in filled]
+
+
+def _odd_window_length(length: int, requested: int) -> int:
+    window = min(length, requested)
+    if window % 2 == 0:
+        window -= 1
+    return max(window, 1)
+
+
+def smooth_filled_values(
+    values: Sequence[float],
+    *,
+    window_observations: int = SAVGOL_WINDOW_OBSERVATIONS,
+    polyorder: int = SAVGOL_POLYORDER,
+) -> list[float]:
+    """Apply a small Savitzky-Golay smoother on the filled observed-timestamp curve."""
+    if not values:
+        return []
+    if window_observations <= 0:
+        raise ValueError("window_observations must be positive")
+    if polyorder < 0:
+        raise ValueError("polyorder must be non-negative")
+
+    raw = np.asarray([float(value) for value in values], dtype=float)
+    window = _odd_window_length(len(raw), window_observations)
+    if window <= polyorder or len(raw) <= polyorder:
+        return [float(value) for value in raw]
+
+    half_window = window // 2
+    smoothed: list[float] = []
+    for index in range(len(raw)):
+        start = max(0, index - half_window)
+        end = min(len(raw), index + half_window + 1)
+        if end - start <= polyorder:
+            smoothed.append(float(raw[index]))
+            continue
+        local_x = np.arange(start, end, dtype=float) - float(index)
+        local_y = raw[start:end]
+        coeffs = np.polynomial.polynomial.polyfit(local_x, local_y, deg=polyorder)
+        smoothed.append(float(coeffs[0]))
+    return smoothed
+
+
+def build_analysis_values(
+    *,
+    timestamps: Sequence[datetime],
+    values: Sequence[float],
+    is_usable: Sequence[bool],
+) -> tuple[list[float], list[float]]:
+    filled = fill_analysis_values(
+        timestamps=timestamps,
+        values=values,
+        is_usable=is_usable,
+    )
+    return filled, smooth_filled_values(filled)
 
 
 def _day_delta(left: datetime, right: datetime) -> float:
