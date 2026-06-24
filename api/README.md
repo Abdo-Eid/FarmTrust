@@ -70,7 +70,7 @@ Deleting a land via `DELETE /lands/{id}` removes all four directories.
 
 ## Database
 
-SQLite at `farmtrust.db` (auto-created on first run). Schema is managed by SQLModel `create_all` + a lightweight `ALTER TABLE ADD COLUMN` migration in `database.py` that silently skips columns that already exist — no migration tool needed for the current build.
+SQLite at `data/farmtrust.sqlite3` by default, or the path in `FARMTRUST_DATABASE_URL` if set. It is auto-created on first run. Schema is managed by SQLModel `create_all` + a lightweight `ALTER TABLE ADD COLUMN` migration in `database.py` that silently skips columns that already exist — no migration tool needed for the current build.
 
 ## Key modules
 

@@ -187,6 +187,32 @@ def test_process_recomputes_derived_csv_without_mutating_cube(tmp_path, patched,
     assert [r["solar_day"] for r in rows] == sorted(_DAYS)
 
 
+def test_validate_rejects_stale_csv(tmp_path, patched):
+    _run_download(tmp_path)
+    cp.process_cubes(output_dir=tmp_path)
+
+    csv_path = tmp_path / "indices_timeseries.csv"
+    with csv_path.open(newline="", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    with csv_path.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=cp.CSV_HEADERS)
+        writer.writeheader()
+        writer.writerows(rows[:-1])
+
+    with pytest.raises(cp.IngestionArtifactConsistencyError, match="stale or inconsistent"):
+        cp.validate_ingestion_artifacts(tmp_path)
+
+
+def test_process_rejects_root_native_time_mismatch(tmp_path, patched):
+    _run_download(tmp_path)
+    group = cp.zarr.open_group(str(tmp_path / "cube.zarr"), mode="a")["20m"]
+    times = group["time"][:]
+    group["time"][:] = times[::-1]
+
+    with pytest.raises(cp.IngestionArtifactConsistencyError, match="20m time axis"):
+        cp.process_cubes(output_dir=tmp_path)
+
+
 def test_download_skips_current_days_on_rerun(tmp_path, patched, monkeypatch):
     _run_download(tmp_path)
     cp.process_cubes(output_dir=tmp_path)
@@ -247,7 +273,7 @@ def test_date_range_backfill_appends_only_missing_days(tmp_path, patched, monkey
     native = xr.open_zarr(str(tmp_path / "cube.zarr"), group="20m", consolidated=False)
     root_days = [pd.Timestamp(t).strftime("%Y-%m-%d") for t in root.time.values]
     native_days = [pd.Timestamp(t).strftime("%Y-%m-%d") for t in native.time.values]
-    assert root_days == sorted(_DAYS) + extra_days
+    assert root_days == sorted(all_days)
     assert native_days == root_days
     assert int(root["B08"].isel(time=root_days.index("2024-05-01"), y=0, x=0).values) == 5500
 

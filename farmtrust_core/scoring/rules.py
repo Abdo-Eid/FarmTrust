@@ -114,8 +114,6 @@ def load_assessment_observations(csv_path: Path) -> list[AssessmentObservation]:
 
         observations: list[AssessmentObservation] = []
         for row in reader:
-            if row["is_usable"].strip().lower() != "true":
-                continue
             if not row["ndvi_smoothed"].strip():
                 continue
             observations.append(

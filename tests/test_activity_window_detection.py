@@ -74,8 +74,8 @@ class ActivityWindowDetectionTests(unittest.TestCase):
     def test_borderline_activity_is_reported_separately(self) -> None:
         confirmed, borderline = detect_activity_windows(
             _observations(
-                [0, 5, 10, 15, 20, 25],
-                [0.18, 0.19, 0.20, 0.216, 0.205, 0.19],
+                [0, 5, 10, 15, 20, 25, 30, 35],
+                [0.12, 0.22, 0.28, 0.32, 0.31, 0.29, 0.28, 0.12],
             )
         )
 

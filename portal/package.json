@@ -7,10 +7,7 @@
         "build": "bun --bun next build",
         "start": "bun --bun next start",
         "lint": "next lint",
-        "typecheck": "tsc --noEmit",
-        "db:migrate": "bunx --bun auth@latest migrate",
-        "db:seed": "bun scripts/seed.ts",
-        "setup": "bun db:migrate && bun db:seed"
+        "typecheck": "tsc --noEmit"
     },
     "dependencies": {
         "@hookform/resolvers": "^3.4.2",
@@ -21,7 +18,6 @@
         "@radix-ui/react-tooltip": "^1.0.7",
         "@react-pdf/renderer": "^3.4.4",
         "@tanstack/react-query": "^5.40.0",
-        "better-auth": "^1.2.8",
         "clsx": "^2.1.1",
         "date-fns": "^3.6.0",
         "leaflet": "^1.9.4",

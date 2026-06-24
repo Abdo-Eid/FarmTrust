@@ -51,9 +51,9 @@ This is the core efficiency and traceability win. Instead of downloading full Se
   2. Load default bands `B02`, `B03`, `B04`, `B08`, `B11`, and `SCL`; optionally backfill extra bands such as `B05`, `B06`, `B07`, `B8A`, and `B12`.
   3. Store 10m bands on the root grid and native 20m bands in the `20m` group. Use nearest-neighbor for categorical `SCL` only when aligning it for processing.
   4. Keep raw integer DN values in the cube; do not apply reflectance scaling during download.
-  5. Region-write each completed day into its sorted time slot in `cube.zarr`.
+  5. Region-write each completed day into `cube.zarr`; fresh cubes are written sorted, while date-range extensions append only missing days and then compact the local Zarr store back into physical time order.
 
-- **Why this matters:** The cube is reusable and repairable. If one band is missing or a new band is requested, Phase 1 downloads only that band for existing real days; if the SCL policy or index formulas change, Phase 2 can reprocess local pixels without re-downloading from Planetary Computer.
+- **Why this matters:** The cube is reusable and repairable. If the configured date window is extended, Phase 1 downloads only missing solar days; if one band is missing or a new band is requested, Phase 1 downloads only that band for existing real days. If the SCL policy or index formulas change, Phase 2 can reprocess local pixels without re-downloading from Planetary Computer.
 
 - **Windows write safety:** Per-day chunks and a small Zarr region-write retry prevent transient file-lock failures while writing stats or pixels.
 
@@ -129,7 +129,7 @@ Items from the same solar day are mosaicked, so overlapping tiles can jointly co
 Mean is sensitive to the overall distribution. P95 captures the "best" pixels — useful when a field has mixed conditions (e.g., partial irrigation).
 
 **"What about caching?"**
-Each solar day has a **fingerprint** based on the AOI identity (geometry and bbox), CRS, resolution, cloud threshold, SCL classes, and offset policy. If a day was previously downloaded with the same fingerprint and requested bands exist, it can be skipped or replayed from the cube. Missing requested bands are backfilled independently. The date range itself is not part of the per-day key, but the current cube time axis is fixed; extending to days absent from an existing `cube.zarr` requires a rebuild with `--force-rerun`.
+Each solar day has a **fingerprint** based on the AOI identity (geometry and bbox), CRS, resolution, cloud threshold, SCL classes, and offset policy. If a day was previously downloaded with the same fingerprint and requested bands exist, it can be skipped or replayed from the cube. Missing requested bands are backfilled independently. The date range itself is not part of the per-day key; extending to days absent from an existing `cube.zarr` downloads only those missing solar days, then physically sorts/compacts the local cube.
 
 ---
 
@@ -239,20 +239,17 @@ After merging, we apply a **`valid_fraction ≥ 0.90`** threshold. Any observati
 
 - **Code:** `pipeline.py:206-207`
 
-**4. Smoothing — Gap-Aware Local Median Then Weighted Mean**
+**4. Smoothing — Linear Interpolation Then Savitzky-Golay**
 
-The smoothing method is **`gap_aware_local_median_weighted_mean`**. It smooths noisy observations, but it refuses to hide evidence gaps or create fake vegetation continuity.
+The smoothing method is **`linear_fill_savitzky_golay`**. Unlike the earlier gap-aware median approach that kept gaps unfilled, the current method reconstructs a continuous analysis curve over the observed time span so downstream activity detection sees the full vegetation signal.
 
 The rules are:
 
-1. Keep the existing usability gate: only observations with `valid_fraction >= 0.90` can be smoothed.
-2. Split usable observations into continuous segments. Any usable-observation gap **greater than 12 days** starts a new segment.
-3. For each real usable observation, look only within the same segment and within a local `±12 day` window.
-4. First pass: local median removes spikes.
-5. Second pass: weighted mean smooths the curve. Weight = `valid_fraction / (1 + abs(delta_days) / 12.0)`.
-6. If a point has fewer than 2 neighboring usable observations in its segment/window, keep the raw value.
-7. 1-point and 2-point segments keep raw values.
-8. No interpolation. No synthetic dates. Only real observations remain.
+1. Keep the existing usability gate: observations with `valid_fraction >= 0.90` are used as interpolation anchors.
+2. **Phase 1 — Fill:** linearly interpolate across usable anchors to produce a `*_filled` value for **every observed timestamp**, including low-quality ones. Non-usable rows get values between the nearest usable neighbors; usable rows keep their raw values. This is not extrapolation — fill stays within the observed timestamp span.
+3. **Phase 2 — Smooth:** apply a **Savitzky-Golay filter** (window=11, polyorder=3) to the filled values, producing `*_smoothed` values for every row.
+4. No synthetic timestamps are created — the filter operates only over real observation dates.
+5. Gap metrics remain separate as confidence evidence — filling the analysis curve does not hide gaps from the assessment.
 
 **Graph from the current data**
 
@@ -302,50 +299,51 @@ Then these drive a **gap risk classification**:
 
 ### Outputs
 
-**1. `ndvi_smoothed.csv`** — One row per real merged observation date, sorted by time. It is not a regular daily grid and does not include invented dates:
+**1. `ndvi_smoothed.csv`** — One row per real merged observation date, sorted by time. It is not a regular daily grid and does not include invented dates. Unlike the earlier pipeline, **every row now has filled and smoothed values**, not only usable rows:
 
-| timestamp | ndvi_raw | ndvi_smoothed | evi_raw | evi_smoothed | ndmi_raw | ndmi_smoothed | ndwi_raw | ndwi_smoothed | valid_fraction | is_usable | source_row_count |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 2026-05-01 | 0.30 | 0.31 | 0.18 | 0.19 | 0.12 | 0.13 | -0.09 | -0.10 | 0.96 | true | 1 |
-| 2026-05-06 | 0.72 | 0.33 | 0.46 | 0.21 | 0.29 | 0.14 | -0.18 | -0.11 | 0.94 | true | 1 |
-| 2026-05-11 | 0.31 | 0.31 | 0.19 | 0.19 | 0.13 | 0.13 | -0.10 | -0.10 | 0.97 | true | 1 |
-| 2026-05-20 | 0.65 | — | 0.38 | — | 0.31 | — | -0.18 | — | 0.78 | false | 2 |
-| 2026-05-29 | 0.68 | 0.68 | 0.40 | 0.40 | 0.30 | 0.30 | -0.17 | -0.17 | 0.95 | true | 1 |
+| timestamp | ndvi_raw | ndvi_filled | ndvi_smoothed | evi_raw | evi_filled | evi_smoothed | valid_fraction | is_usable |
+|---|---|---|---|---|---|---|---|---|
+| 2026-05-01 | 0.30 | 0.30 | 0.31 | 0.18 | 0.18 | 0.19 | 0.96 | true |
+| 2026-05-06 | 0.72 | 0.72 | 0.33 | 0.46 | 0.46 | 0.21 | 0.94 | true |
+| 2026-05-11 | 0.31 | 0.31 | 0.31 | 0.19 | 0.19 | 0.19 | 0.97 | true |
+| 2026-05-20 | 0.65 | 0.50 | 0.49 | 0.38 | 0.29 | 0.28 | 0.78 | false |
+| 2026-05-29 | 0.68 | 0.68 | 0.68 | 0.40 | 0.40 | 0.40 | 0.95 | true |
 
 How to read this example:
 
-- May 1, May 6, and May 11 are usable and close enough together, so they form one smoothing segment. The May 6 NDVI spike is dampened by the local median plus weighted mean.
-- May 20 is kept for transparency, but it has no smoothed values because `valid_fraction = 0.78`, below the 0.90 usability threshold.
-- May 29 is usable, but the 18-day gap from May 11 is greater than the 12-day smoothing limit. It starts a new 1-point segment, so its smoothed values equal its raw values instead of borrowing from the earlier segment.
+- May 1, May 6, and May 11 are usable (green bars). Their `ndvi_filled` equals `ndvi_raw` — fill preserves the original at usable anchors.
+- May 20 is not usable (`valid_fraction = 0.78`), but it now gets `ndvi_filled = 0.50` (linearly interpolated between May 11 and May 29) and `ndvi_smoothed = 0.49` (after Savitzky-Golay). In the old pipeline, this row had empty smoothed values.
+- May 29 is usable and gets the same treatment. All five rows participate in the Savitzky-Golay window, so the smoothed curve is continuous.
+- The `*_filled` and `*_smoothed` columns exist for NDVI, EVI, NDMI, and NDWI — four indices, each with `_raw`, `_filled`, and `_smoothed` fields.
 
 **2. `quality_metrics.json`** — All the gap/confidence metadata:
 
 ```json
 {
   "aoi_id": "aoi_demo_01",
-  "total_observation_count": 186,
-  "merged_observation_count": 98,
-  "usable_observation_count": 67,
-  "dropped_observation_count": 31,
-  "gap_ratio": 0.12,
-  "max_gap_days": 14.2,
-  "median_gap_days": 4.8,
-  "long_gap_count": 2,
+  "total_observation_count": 280,
+  "merged_observation_count": 280,
+  "usable_observation_count": 241,
+  "dropped_observation_count": 39,
+  "gap_ratio": 0.10,
+  "max_gap_days": 15.0,
+  "median_gap_days": 3.0,
+  "long_gap_count": 4,
   "long_gap_windows": [
-    {"start": "2025-12-20", "end": "2026-01-03", "gap_days": 14.2},
+    {"start_timestamp": "2024-09-12T00:00:00+00:00", "end_timestamp": "2024-09-24T00:00:00+00:00", "gap_days": 12.0, "excess_gap_days": 7.0},
     ...
   ],
   "gap_risk": "moderate",
   "confidence_penalty": "moderate",
-  "smoothing_method": "gap_aware_local_median_weighted_mean",
-  "max_smoothing_gap_days": 12.0,
-  "local_window_days": 12.0,
-  "minimum_local_neighbors": 2,
-  "minimum_local_neighbors_excludes_center": true,
-  "weighting_policy": "valid_fraction_time_distance",
-  "interpolation_policy": "none",
+  "smoothing_method": "linear_fill_savitzky_golay",
+  "interpolation_policy": "full_curve_linear_between_usable_observations",
+  "fill_policy": "fill_all_observed_timestamps_from_usable_anchors",
   "creates_synthetic_timestamps": false,
-  "smooths_only_usable_observations": true
+  "smooths_only_usable_observations": false,
+  "savgol_window_observations": 11,
+  "savgol_polyorder": 3,
+  "usable_valid_fraction_threshold": 0.9,
+  "weighting_policy": "none"
 }
 ```
 
@@ -353,21 +351,21 @@ How to read this example:
 
 ### Common Questions Your Professor Might Ask
 
-**"Why not interpolate to fill gaps?"**
+**"Why interpolate now when the old pipeline said no interpolation?"**
 
-Deliberate choice. If a 2-week gap hides a drought or a growing-season start, interpolation would **fabricate data** that looks smooth but is wrong. The pipeline is honest about gaps — they lower confidence explicitly.
+Two different objectives. The **analysis curve** (what we show to users and use for activity detection) needs continuity so the detector sees full vegetation cycles — filling across gaps with linear interpolation from usable anchors gives the most honest continuous curve without inventing behavior where no data exists. **Gap metrics remain separate evidence** for confidence, so the assessment still penalizes data gaps. The old pipeline refused to fill, which meant seasonal analysis received disconnected fragments and missed real activity windows.
 
-**"Why both median AND mean smoothing?"**
+**"Why Savitzky-Golay instead of median + weighted mean?"**
 
-Median kills spikes without being pulled by them. Weighted mean makes the local curve smoother. Both passes are time-aware and gap-aware: they only use observations inside the same continuous segment and within `±12` days.
+Savitzky-Golay is a standard smoothing filter for evenly-spaced time series. It fits a low-degree polynomial (order 3) in a sliding window (11 observations), which preserves the shape and height of peaks better than a local median. Linear interpolation first creates a regular-enough grid from the irregular observations so that the fixed-window SG filter works correctly.
 
-**"What does `is_usable = false` mean for downstream?"**
+**"What does `is_usable = false` mean for downstream now?"**
 
-That row's raw values are present for transparency, but its smoothed value is empty (`""` in CSV). Seasonal analysis skips it entirely. The raw values can still be helpful for manual review ("the field was cloudy that day, but here's what the sensor saw through thin clouds").
+The `is_usable` flag remains as an **evidence flag** — it tells downstream that the observation had low valid_fraction and should be treated with caution. But every row now has `*_filled` and `*_smoothed` values regardless. Seasonal analysis and scoring use the full curve; the evidence flag and gap metrics are what lower confidence, not the absence of smoothed values.
 
 ---
 
-**Summary for your professor:** *Preprocessing takes the scattered raw scenes, merges same-day duplicates weighted by quality, filters to only 90%+ clear observations, smooths the signal with a gap-aware local median then weighted-mean filter, and measures gaps explicitly. It does not smooth across gaps greater than 12 days or invent missing observations.*
+**Summary for your professor:** *Preprocessing merges same-day duplicates weighted by quality, marks usable observations with a 0.90 valid_fraction threshold, fills every observed timestamp via linear interpolation across usable anchors, then applies Savitzky-Golay smoothing for a continuous analysis curve. Gap metrics remain separate as confidence evidence — filling the analysis curve does not hide observation gaps from the assessment.*
 
 ## Seasonal Analysis — Detailed Explanation
 
@@ -381,35 +379,34 @@ It turns a signal into **discrete events** — growing windows with start, peak,
 
 ### Step-by-Step
 
-**1. Load Only Usable, Smoothed Data**
+**1. Load All Smoothed Data**
 
-It reads the preprocessing CSV but **filters** to rows where `is_usable = true` AND `ndvi_smoothed` is not empty. Non-usable days are invisible to the detector — they had too much cloud to trust.
+It reads the preprocessing CSV and uses **every row** that has `ndvi_smoothed`. Since the fill+smooth pipeline produces values for all observed timestamps, no rows are filtered out by `is_usable`. The `is_usable` evidence flag remains available for gap-overlap and confidence calculations, but the detector itself sees the full continuous curve.
 
 - **Code:** `seasons.py:109-144` — `load_preprocess_observations()`
 
-**2. Find Candidate Activity — Adaptive Peak Prominence**
+**2. Find Candidate Activity — Hybrid Threshold**
 
-The detector scans the smoothed NDVI curve for local peaks and compares each peak with the field's own nearby low points. It does **not** use a fixed NDVI floor or fixed NDVI amplitude gate.
+The detector uses a **hybrid threshold** that combines a fixed NDVI floor with a dynamic baseline margin. This catches both strong vegetation cycles (where the fixed floor suffices) and weak-but-real cycles in naturally low-biomass fields.
 
-- **Local low envelope:** the detector keeps a local 20th-percentile NDVI reference inside a 90-day window for review/context.
-- **Prominence:** the important signal is how far the peak rises above surrounding low shoulders.
-- **Noise floor:** the detector estimates the field's own noise from short-term movement and residual variation.
-- **Decision:** `prominence_to_noise_ratio >= 3.8` becomes a confirmed activity window; `>= 2.5` becomes a borderline window for review.
+- **Global baseline:** the 20th percentile of smoothed NDVI across the full series.
+- **Confirmed threshold:** `max(0.35, global_baseline + 0.10)` — must be bright enough to be real vegetation, but adaptive to the field's own range.
+- **Borderline threshold:** `max(0.20, global_baseline + 0.05)` — weaker signals that may still be partial activity.
+- **Inactive-break merge:** consecutive below-threshold gaps up to **15 days** are merged into the same window (short fallow periods between crops don't break window continuity).
 
 ```
 NDVI
  0.7 │            ▄▄▄▄▄▄▄
  0.6 │         ▄▄▤        ▄▄▄
- 0.5 │       ▄▤                ▄
+ 0.5 │       ▄▤                ▄      ← confirmed (≥ 0.35 or baseline+0.10)
  0.4 │     ▄▤                    ▄
- 0.3 │   ▄▤                        ▄
- 0.2 │ ▄▤  ← rising above local shoulder
- 0.1 │▤                               ▄
+ 0.3 │   ▄▤       ████████████    ▄   ← borderline (≥ 0.20 or baseline+0.05)
+ 0.2 │ ▄▤         merge zone        ▄
+ 0.1 │▤        (≤ 15 days gap)        ▄
      └──────────────────────────────────── time
-       ^ candidate must be prominent compared with field-specific noise
 ```
 
-- **Code:** `seasons.py` — `build_activity_signal_model()`, `detect_activity_windows()`, `detect_season_windows()`
+- **Code:** `seasons.py` — `detect_season_windows()`
 
 **3. Bound the Activity Window**
 
@@ -421,13 +418,12 @@ After finding a candidate peak, the detector bounds the activity window using a 
 
 **4. Filter Out Noise — Minimum Requirements**
 
-A brief or weak blip is not a season. Three filters remove false positives:
+A brief or weak blip is not a season. Two filters remove false positives:
 
 | Filter | Value | Why |
 |---|---|---|
-| Min signal evidence | `prominence_to_noise_ratio >= 3.8` for confirmed; `>= 2.5` for borderline | Need a meaningful rise compared with field-specific noise |
-| Min observations | **4** smoothed points | Need enough data to confirm a pattern |
-| Min duration | **20 days** | A real growing season spans weeks, not days |
+| Min observations | **3** smoothed points | Need enough data to confirm a pattern |
+| Min duration | **15 days** | A real growing season spans weeks, not days |
 
 If the curve starts in the middle of an activity cycle, it is no longer silently excluded. It is emitted as `open_left`, with `start_boundary_certainty = "open"` and `provisional = true`.
 
@@ -439,25 +435,26 @@ If the curve starts in the middle of an activity cycle, it is no longer silently
 
 How to read it:
 
-- The blue line is the smoothed NDVI signal from usable observations.
-- Candidate peaks are compared against surrounding low shoulders and field-specific noise.
+- The green line is the smoothed NDVI signal.
+- The confirmed threshold line and borderline threshold line are shown for reference.
+- Consecutive observations above the confirmed threshold form segments; segments within 15 days of each other are merged.
 - Confirmed windows become `seasons[]` and count toward `season_count`.
 - Borderline windows are reported separately in `borderline_windows[]` and do not count as confirmed seasons.
 - Incomplete windows are preserved as `open_right` or `open_left` instead of being treated as finished seasons.
-- In the current data example, the detector finds **1 confirmed open-right activity window** peaking on `2026-04-22` and **1 borderline complete candidate** from late 2025 / early 2026.
+- In the current data example, the detector finds **4 confirmed activity windows** across the 2-year interval, including the winter 2024-25 and late-2025 / spring-2026 cycles.
 
 **5. Label Quality — Good / Interrupted / Weak**
 
 Each detected season gets a quality label based on signal shape:
 
-**Prominence-to-noise ratio** — Is the peak strong compared with this field's noise?
+**Peak NDVI** — How lush did the window get?
 **Lifecycle status** — Did we observe a complete cycle, or is it still open?
-**Max single-step drop** — Did the signal crash suddenly relative to its prominence?
+**Max single-step drop** — Did the signal crash suddenly relative to its amplitude?
 
 | Label | Conditions | What it means |
 |---|---|---|
-| **Good** | Complete window with strong prominence/noise evidence | Strong observed activity window |
-| **Interrupted** | Large one-step drop relative to prominence | Activity signal has a sharp interruption-like dip |
+| **Good** | Complete window with peak NDVI >= 0.50 and strong confirmation | Strong observed activity window |
+| **Interrupted** | Large one-step drop relative to window amplitude | Activity signal has a sharp interruption-like dip |
 | **Weak** | Confirmed but weaker or provisional signal shape | Activity exists, but confidence in strength is lower |
 
 - **Code:** `seasons.py:214-255` — `_label_quality()`
@@ -606,7 +603,7 @@ It's the stage where data turns into a **decision** — but with an evidence gat
 | Stage | File | What It Uses |
 |---|---|---|
 | Ingestion | `run_metadata.json` | Date interval |
-| Preprocessing | `ndvi_smoothed.csv` | Raw values for all merged observations, plus smoothed NDVI/EVI/NDMI/NDWI for usable rows only |
+| Preprocessing | `ndvi_smoothed.csv` | Raw, filled, and smoothed values for all merged observations across all rows |
 | Preprocessing | `quality_metrics.json` | Gap risk, usable count, long gap windows |
 | Seasonal | `season_windows.json` | Each season's dates, quality, confirmation, gap overlap |
 
@@ -632,7 +629,7 @@ Each season from the seasonal analysis gets enriched with **additional metrics**
 Simple but powerful: of all usable smoothed observations, what fraction falls inside confirmed activity windows?
 
 ```
-activity_coverage_fraction = observations_inside_confirmed_windows / total_usable_observations
+activity_coverage_fraction = observations_inside_confirmed_windows / total_observations
 ```
 
 - **0.70** = field was inside confirmed activity windows most of the time (multiple seasons, or one long one)
@@ -1116,22 +1113,26 @@ Here is the **complete inventory of every metric** the current pipeline produces
 ---
 
 ### Stage 2: Preprocessing — `ndvi_smoothed.csv`
-*One row per real merged observation date. Only usable observations can receive smoothed values; tiny usable segments may keep raw values unchanged.*
+*One row per real merged observation date. Every row now has filled and smoothed values regardless of `is_usable`.*
 
 | # | Metric | What it is | Notes |
 |---|---|---|---|
 | 16 | `timestamp` | UTC datetime of the observation | |
 | 17 | `ndvi_raw` | NDVI after same-day weighted merge | Weighted by valid_fraction |
-| 18 | `ndvi_smoothed` | Gap-aware local median then weighted-mean smoothed NDVI | Only filled if `is_usable = true` |
-| 19 | `evi_raw` | Raw merged EVI | |
-| 20 | `evi_smoothed` | Gap-aware smoothed EVI | |
-| 21 | `ndmi_raw` | Raw merged NDMI | |
-| 22 | `ndmi_smoothed` | Gap-aware smoothed NDMI | |
-| 23 | `ndwi_raw` | Raw merged NDWI | |
-| 24 | `ndwi_smoothed` | Gap-aware smoothed NDWI | |
-| 25 | `valid_fraction` | Weighted valid_fraction for the merged day | |
-| 26 | `is_usable` | `true` if `valid_fraction ≥ 0.90` | Controls whether it enters smoothing & seasonal analysis |
-| 27 | `source_row_count` | How many raw scenes were merged into this row | 1 = single scene, 2+ = duplicate day |
+| 18 | `ndvi_filled` | Linear interpolation from usable anchors | Every row has this |
+| 19 | `ndvi_smoothed` | Savitzky-Golay of filled values | Every row has this |
+| 20 | `evi_raw` | Raw merged EVI | |
+| 21 | `evi_filled` | Linear interpolation from usable anchors | |
+| 22 | `evi_smoothed` | Savitzky-Golay of filled EVI | |
+| 23 | `ndmi_raw` | Raw merged NDMI | |
+| 24 | `ndmi_filled` | Linear interpolation from usable anchors | |
+| 25 | `ndmi_smoothed` | Savitzky-Golay of filled NDMI | |
+| 26 | `ndwi_raw` | Raw merged NDWI | |
+| 27 | `ndwi_filled` | Linear interpolation from usable anchors | |
+| 28 | `ndwi_smoothed` | Savitzky-Golay of filled NDWI | |
+| 29 | `valid_fraction` | Weighted valid_fraction for the merged day | |
+| 30 | `is_usable` | `true` if `valid_fraction ≥ 0.90` | Evidence flag; all rows now have filled+smoothed |
+| 31 | `source_row_count` | How many raw scenes were merged into this row | 1 = single scene, 2+ = duplicate day |
 
 ---
 
@@ -1140,29 +1141,27 @@ Here is the **complete inventory of every metric** the current pipeline produces
 
 | # | Metric | What it is | Notes |
 |---|---|---|---|
-| 28 | `total_observation_count` | Raw scenes from ingestion | Before any merging |
-| 29 | `merged_observation_count` | Days after same-day collapse | |
-| 30 | `usable_observation_count` | Days with `valid_fraction ≥ 0.90` | Core input to confidence |
-| 31 | `dropped_observation_count` | Days below usability threshold | Present but not trusted for smoothing |
-| 32 | `gap_ratio` | Sum of excess gap days ÷ total span | Range [0,1]. E.g. 0.12 = 12% of the time is "extra gap" beyond expected 5-day cadence |
-| 33 | `max_gap_days` | **Longest gap between usable observations** | E.g. 14.2 = two weeks with no clear view |
-| 34 | `median_gap_days` | Typical gap between usable observations | E.g. 4.8 = good (close to 5-day revisit) |
-| 35 | `long_gap_count` | Number of gaps exceeding 10 days | 2 = two significant gaps |
-| 36 | `long_gap_windows` | Array of `{start, end, gap_days}` for each long gap | Exact windows for season overlap check |
-| 37 | `smoothing_method` | Algorithm name | Currently `gap_aware_local_median_weighted_mean` |
-| 38 | `max_smoothing_gap_days` | Gap size that breaks smoothing continuity | Currently 12.0; gaps greater than this start a new segment |
-| 39 | `local_window_days` | Local time window around each usable observation | Currently ±12 days |
-| 40 | `minimum_local_neighbors` | Neighbor count required before smoothing | Currently 2, excluding the center point |
-| 41 | `minimum_local_neighbors_excludes_center` | Whether the center observation counts as a neighbor | Currently `true` |
-| 42 | `weighting_policy` | How weighted mean weights observations | `valid_fraction_time_distance` |
-| 43 | `interpolation_policy` | Whether gaps are filled | `none` |
+| 32 | `total_observation_count` | Raw scenes from ingestion | Before any merging |
+| 33 | `merged_observation_count` | Days after same-day collapse | In cube path this equals total_observation_count (one row = one solar-day mosaic) |
+| 34 | `usable_observation_count` | Days with `valid_fraction ≥ 0.90` | Core input to confidence |
+| 35 | `dropped_observation_count` | Days below usability threshold | Present but all rows now get filled+smoothed values |
+| 36 | `gap_ratio` | Sum of excess gap days ÷ total span | Range [0,1]. E.g. 0.10 = 10% of the time is "extra gap" beyond expected 5-day cadence |
+| 37 | `max_gap_days` | **Longest gap between usable observations** | E.g. 15.0 = two weeks with no clear view |
+| 38 | `median_gap_days` | Typical gap between usable observations | E.g. 3.0 = good (close to 5-day revisit) |
+| 39 | `long_gap_count` | Number of gaps exceeding 10 days | 4 = four significant gaps |
+| 40 | `long_gap_windows` | Array of `{start_timestamp, end_timestamp, gap_days, excess_gap_days}` for each long gap | Exact windows for season overlap check |
+| 41 | `smoothing_method` | Algorithm name | Currently `linear_fill_savitzky_golay` |
+| 42 | `interpolation_policy` | How gaps are filled for the analysis curve | `full_curve_linear_between_usable_observations` |
+| 43 | `fill_policy` | Which timestamps receive filled values | `fill_all_observed_timestamps_from_usable_anchors` |
 | 44 | `creates_synthetic_timestamps` | Whether preprocessing invents dates | `false` |
-| 45 | `smooths_only_usable_observations` | Whether non-usable rows can be smoothed | `true` |
-| 46 | `usable_valid_fraction_threshold` | The cutoff used | Currently 0.90 |
-| 47 | `gap_risk` | **Classification of observation continuity** | `low` / `moderate` / `high` |
-| 48 | `confidence_penalty` | How much gaps penalize assessment confidence | `low` / `moderate` / `high` |
-| 49 | `gap_risk_reason` | Human-readable explanation | e.g. "Some continuity is missing..." |
-| 50 | `confidence_inputs` | Raw numbers used for confidence calc | `usable_observation_count`, `gap_ratio`, `max_gap_days` |
+| 45 | `smooths_only_usable_observations` | Whether non-usable rows can be smoothed | `false` |
+| 46 | `savgol_window_observations` | Savitzky-Golay window size | Currently 11 |
+| 47 | `savgol_polyorder` | Savitzky-Golay polynomial order | Currently 3 |
+| 48 | `usable_valid_fraction_threshold` | Usability cutoff | Currently 0.90 |
+| 49 | `gap_risk` | **Classification of observation continuity** | `low` / `moderate` / `high` |
+| 50 | `confidence_penalty` | How much gaps penalize assessment confidence | `low` / `moderate` / `high` |
+| 51 | `gap_risk_reason` | Human-readable explanation | e.g. "Some continuity is missing..." |
+| 52 | `confidence_inputs` | Raw numbers used for confidence calc | `usable_observation_count`, `gap_ratio`, `max_gap_days` |
 
 ---
 
@@ -1171,28 +1170,28 @@ Here is the **complete inventory of every metric** the current pipeline produces
 
 | # | Metric | What it is | Notes |
 |---|---|---|---|
-| 51 | `season_id` | `season_01`, `season_02`, ... | |
-| 52 | `crossing_date` | First date of the accepted activity window | Legacy field name; this now points to the detected adaptive window boundary |
-| 53 | `start_date` | Start date of the accepted activity window | Same boundary logic uses the local baseline and activity amplitude |
-| 54 | `peak_date` | Date of **maximum smoothed NDVI** | |
-| 55 | `end_date` | Last observation in the season | |
-| 56 | `is_open` | Season still active at end of data? | `true` = we don't know when it ends yet |
-| 57 | `peak_ndvi` | Maximum smoothed NDVI in the season | Core strength indicator |
-| 58 | `duration_days` | Length of season in days | |
-| 59 | `quality_label` | **Overall season quality** | `good` / `interrupted` / `weak` |
-| 60 | `evidence_summary` | Concise text explaining the label | e.g. "Good season: peak_ndvi=0.550, rise_gain=0.350" |
-| 61 | `confirmation_level` | How well do EVI/NDMI/NDWI support the NDVI signal? | `strong` / `moderate` / `weak` |
-| 62 | `gap_overlap_count` | Number of long gaps overlapping this season | 0 is ideal |
-| 63 | `gap_overlap_risk` | How seriously does gap overlap affect this season? | `low` / `moderate` / `high` |
-| 64 | `gap_overlap_stage` | Which part of the season was obscured | `onset` / `peak` / `tail` / `multiple` / `none` |
-| 65 | `season_confidence_note` | Overall confidence note | |
+| 53 | `season_id` | `season_01`, `season_02`, ... | |
+| 54 | `crossing_date` | First date of the accepted activity window | |
+| 55 | `start_date` | Start date of the accepted activity window | |
+| 56 | `peak_date` | Date of **maximum smoothed NDVI** | |
+| 57 | `end_date` | Last observation in the season | |
+| 58 | `is_open` | Season still active at end of data? | `true` = we don't know when it ends yet |
+| 59 | `peak_ndvi` | Maximum smoothed NDVI in the season | Core strength indicator |
+| 60 | `duration_days` | Length of season in days | |
+| 61 | `quality_label` | **Overall season quality** | `good` / `interrupted` / `weak` |
+| 62 | `evidence_summary` | Concise text explaining the label | |
+| 63 | `confirmation_level` | How well do EVI/NDMI/NDWI support the NDVI signal? | `strong` / `moderate` / `weak` |
+| 64 | `gap_overlap_count` | Number of long gaps overlapping this season | 0 is ideal |
+| 65 | `gap_overlap_risk` | How seriously does gap overlap affect this season? | `low` / `moderate` / `high` |
+| 66 | `gap_overlap_stage` | Which part of the season was obscured | `onset` / `peak` / `tail` / `multiple` / `none` |
+| 67 | `season_confidence_note` | Overall confidence note | |
 
 **Top-level in same file:**
 
 | # | Metric | What it is |
 |---|---|---|
-| 66 | `season_count` | Number of seasons detected across the 2-year interval |
-| 67 | `gap_risk` | Copied from quality_metrics for convenience |
+| 68 | `season_count` | Number of seasons detected across the 2-year interval |
+| 69 | `gap_risk` | Copied from quality_metrics for convenience |
 
 ---
 
@@ -1202,70 +1201,70 @@ Here is the **complete inventory of every metric** the current pipeline produces
 **Core decisions:**
 
 | # | Metric | What it is | Possible values |
-|---|---|---|---|
-| 68 | `assessment_status` | **Can the automated result be presented as final?** | `complete` / `manual_review_required` |
-| 69 | `land_status` | **Is this land actively farmed?** | `active` / `intermittent` / `inactive`; `null` when manual review is required |
-| 70 | `trend_2y` | **Is the land getting better or worse?** | `improving` / `stable` / `declining` / `uncertain`; `null` when manual review is required |
-| 71 | `latest_season_performance.label` | How did the most recent season go? | `good` / `interrupted` / `weak`; `null` when manual review is required |
-| 72 | `latest_season_performance.provisional` | Is the latest season still open? | `true` = not fully assessed yet |
-| 73 | `latest_season_performance.confirmation_level` | Multi-index support for latest season | `strong` / `moderate` / `weak` |
+|---|---|---|---|---|
+| 70 | `assessment_status` | **Can the automated result be presented as final?** | `complete` / `manual_review_required` |
+| 71 | `land_status` | **Is this land actively farmed?** | `active` / `intermittent` / `inactive`; `null` when manual review is required |
+| 72 | `trend_2y` | **Is the land getting better or worse?** | `improving` / `stable` / `declining` / `uncertain`; `null` when manual review is required |
+| 73 | `latest_season_performance.label` | How did the most recent season go? | `good` / `interrupted` / `weak`; `null` when manual review is required |
+| 74 | `latest_season_performance.provisional` | Is the latest season still open? | `true` = not fully assessed yet |
+| 75 | `latest_season_performance.confirmation_level` | Multi-index support for latest season | `strong` / `moderate` / `weak` |
 
 **Confidence system:**
 
 | # | Metric | What it is | Notes |
-|---|---|---|---|
-| 74 | `confidence.level` | **Overall assessment confidence** | `high` / `medium` / `low`; capped by evidence coverage |
-| 75 | `confidence.reasons` | List of human-readable reasons | e.g. "Usable count is solid (72)" |
-| 76 | `confidence.components.continuity` | Satellite coverage quality | `high` / `medium` / `low` |
-| 77 | `confidence.components.season_clarity` | How clear were the season boundaries? | `high` / `medium` / `low` |
-| 78 | `confidence.components.signal_strength` | How strong was the vegetation signal? | `high` / `medium` / `low` |
+|---|---|---|---|---|
+| 76 | `confidence.level` | **Overall assessment confidence** | `high` / `medium` / `low`; capped by evidence coverage |
+| 77 | `confidence.reasons` | List of human-readable reasons | e.g. "Usable count is solid (72)" |
+| 78 | `confidence.components.continuity` | Satellite coverage quality | `high` / `medium` / `low` |
+| 79 | `confidence.components.season_clarity` | How clear were the season boundaries? | `high` / `medium` / `low` |
+| 80 | `confidence.components.signal_strength` | How strong was the vegetation signal? | `high` / `medium` / `low` |
 
 **Satellite evidence quality (separate from land quality):**
 
 | # | Metric | What it is | Notes |
-|---|---|---|---|
-| 79 | `satellite_evidence_coverage.status` | **How good was the satellite data itself?** | `good` / `fair` / `limited` / `insufficient` |
-| 80 | `satellite_evidence_coverage.rationale` | Why that status | Insufficient evidence triggers manual review |
+|---|---|---|---|---|
+| 81 | `satellite_evidence_coverage.status` | **How good was the satellite data itself?** | `good` / `fair` / `limited` / `insufficient` |
+| 82 | `satellite_evidence_coverage.rationale` | Why that status | Insufficient evidence triggers manual review |
 
 **Risk flags (array, each entry):**
 
 | # | Metric | What it is | Example values |
-|---|---|---|---|
-| 81 | `risk_flags[].code` | Machine-readable flag ID | `water_stress_risk`, `weak_activity_risk`, `possible_inactivity`, etc. |
-| 82 | `risk_flags[].severity` | How seriously to take this flag | `high` / `moderate` / `low` |
-| 83 | `risk_flags[].reason` | Human-readable explanation | "Latest season median NDMI is low" |
+|---|---|---|---|---|
+| 83 | `risk_flags[].code` | Machine-readable flag ID | `water_stress_risk`, `weak_activity_risk`, `possible_inactivity`, etc. |
+| 84 | `risk_flags[].severity` | How seriously to take this flag | `high` / `moderate` / `low` |
+| 85 | `risk_flags[].reason` | Human-readable explanation | "Latest season median NDMI is low" |
 
 **Evidence trail (why the system said what it said):**
 
 | # | Metric | What it is |
-|---|---|---|
-| 84 | `evidence.land_status_basis` | Text explaining why active/inactive, or why manual review is required |
-| 85 | `evidence.trend_basis` | Text explaining improving/declining, or why trend is suppressed |
-| 86 | `evidence.latest_season_basis` | Raw evidence for latest season |
-| 87 | `evidence.gap_note` | Gap-related limitation note |
+|---|---|---|---|
+| 86 | `evidence.land_status_basis` | Text explaining why active/inactive, or why manual review is required |
+| 87 | `evidence.trend_basis` | Text explaining improving/declining, or why trend is suppressed |
+| 88 | `evidence.latest_season_basis` | Raw evidence for latest season |
+| 89 | `evidence.gap_note` | Gap-related limitation note |
 
 **Interval-level aggregate metrics:**
 
 | # | Metric | What it is | Notes |
-|---|---|---|---|
-| 88 | `metrics_summary.active_observation_fraction` / `activity_coverage_fraction` | **Fraction of usable observations inside confirmed activity windows** | Key input to land_status. 0.55 = 55% of usable observations fall within confirmed windows |
-| 89 | `metrics_summary.interval_max_ndvi` | Highest smoothed NDVI across the entire 2 years | |
-| 90 | `metrics_summary.interval_max_evi` | Highest smoothed EVI across the 2 years | |
-| 91 | `metrics_summary.interval_median_ndmi` | Typical NDMI across the 2 years | Negative = dry, positive = moist |
-| 92 | `metrics_summary.interval_median_ndwi` | Typical NDWI across the 2 years | Negative = vegetation, positive = water |
+|---|---|---|---|---|
+| 90 | `metrics_summary.active_observation_fraction` / `activity_coverage_fraction` | **Fraction of observations inside confirmed activity windows** | Key input to land_status. 0.75 = 75% of observations fall within confirmed windows |
+| 91 | `metrics_summary.interval_max_ndvi` | Highest smoothed NDVI across the entire 2 years | |
+| 92 | `metrics_summary.interval_max_evi` | Highest smoothed EVI across the 2 years | |
+| 93 | `metrics_summary.interval_median_ndmi` | Typical NDMI across the 2 years | Negative = dry, positive = moist |
+| 94 | `metrics_summary.interval_median_ndwi` | Typical NDWI across the 2 years | Negative = vegetation, positive = water |
 
 **Per-season metrics (inside `metrics_summary.season_strength[]`):**
 
 | # | Metric | What it is | Notes |
-|---|---|---|---|
-| 93 | `auc_ndvi` | **Area under the NDVI curve** during the season | Measures total "greenwork" — more complete than just peak |
-| 94 | `peak_evi` | Max EVI during the season | Cross-check on density |
-| 95 | `median_ndmi` | Typical moisture during the season | |
-| 96 | `median_ndwi` | Typical wetness during the season | |
+|---|---|---|---|---|
+| 95 | `auc_ndvi` | **Area under the NDVI curve** during the season | Measures total "greenwork" — more complete than just peak |
+| 96 | `peak_evi` | Max EVI during the season | Cross-check on density |
+| 97 | `median_ndmi` | Typical moisture during the season | |
+| 98 | `median_ndwi` | Typical wetness during the season | |
 
 ---
 
-### Grand Total: **96 distinct metrics** across all 4 stages
+### Grand Total: **98 distinct metrics** across all 4 stages
 
 For a **condensed reference** or one-pager for a professor, these are the most important:
 

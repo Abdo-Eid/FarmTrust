@@ -15,10 +15,10 @@ Artifacts (siblings under output_dir):
   run_metadata.json    — run config (downstream contract; Phase 2 reads config here).
 
 Time axis: a fresh cube is pre-allocated with the full sorted day list. Existing
-cubes can append newly discovered days without rewriting old chunks, so the
-physical on-disk time axis may become append-ordered after date-range backfill.
-The JSONL ledger (not cube.time) is authoritative about which slices are real,
-and Phase 2 sorts output rows by solar_day.
+cubes append newly discovered days without re-downloading old chunks, then compact
+the local Zarr store back into physical time order. The JSONL ledger remains
+authoritative about which slices are real, and Phase 2 sorts output rows by
+solar_day.
 """
 
 from __future__ import annotations
@@ -66,6 +66,10 @@ STAC_COLLECTION = "sentinel-2-l2a"
 
 class CubePipelineCancelledError(Exception):
     pass
+
+
+class IngestionArtifactConsistencyError(Exception):
+    """Raised when cube/ledger/CSV artifacts disagree."""
 
 
 class CubeRangeChangedError(Exception):
@@ -301,6 +305,100 @@ def _append_time_slots(zarr_path: Path, group: Optional[str], days: List[str]) -
     for name in _FLOAT_TIME_VARS:
         if name in zgroup:
             zgroup[name][old_len:new_len] = np.full((len(days),), np.nan, dtype=zgroup[name].dtype)
+
+
+def _sort_cube_store_by_time(zarr_path: Path) -> bool:
+    """Rewrite cube.zarr physically sorted by time; return True if rewritten."""
+    with xr.open_zarr(str(zarr_path), consolidated=False) as root:
+        time_values = root.time.values
+        order = np.argsort(time_values)
+        if np.array_equal(order, np.arange(len(time_values))):
+            return False
+        root_sorted = root.isel(time=order).load()
+
+    native_sorted: Optional[xr.Dataset] = None
+    native = _open_group(zarr_path, _NATIVE_20M_GROUP)
+    if native is not None:
+        try:
+            native_sorted = native.isel(time=order).load()
+        finally:
+            native.close()
+
+    tmp_path = zarr_path.with_name(f"{zarr_path.name}.sorted-tmp")
+    old_path = zarr_path.with_name(f"{zarr_path.name}.unsorted-tmp")
+    if tmp_path.exists():
+        shutil.rmtree(tmp_path)
+    if old_path.exists():
+        shutil.rmtree(old_path)
+
+    root_sorted.to_zarr(str(tmp_path), mode="w", consolidated=False, **_zarr_format_kwargs(zarr_path))
+    if native_sorted is not None:
+        native_sorted.to_zarr(
+            str(tmp_path), group=_NATIVE_20M_GROUP, mode="a", consolidated=False,
+            **_zarr_format_kwargs(zarr_path),
+        )
+
+    zarr_path.rename(old_path)
+    tmp_path.rename(zarr_path)
+    shutil.rmtree(old_path)
+    return True
+
+
+def validate_ingestion_artifacts(output_dir: Path, require_csv: bool = True) -> None:
+    """Fail loudly when ingestion artifacts are internally inconsistent.
+
+    The ledger is authoritative for which time slots are real. The cube may have
+    historical failed/preallocated slots, but root and native groups must share a
+    sorted time axis, and the CSV must match confirmed ledger days.
+    """
+    zarr_path = output_dir / "cube.zarr"
+    index_path = output_dir / "scenes_index.jsonl"
+    csv_path = output_dir / "indices_timeseries.csv"
+
+    if not zarr_path.exists():
+        if require_csv:
+            raise IngestionArtifactConsistencyError(f"Missing source cube: {zarr_path}")
+        return
+
+    with xr.open_zarr(str(zarr_path), consolidated=False) as cube:
+        cube_days = [_day_str(t) for t in cube.time.values]
+    if cube_days != sorted(cube_days):
+        raise IngestionArtifactConsistencyError("cube.zarr time axis is not sorted ascending")
+
+    native_20m = _open_group(zarr_path, _NATIVE_20M_GROUP)
+    if native_20m is not None:
+        try:
+            native_days = [_day_str(t) for t in native_20m.time.values]
+        finally:
+            native_20m.close()
+        if native_days != cube_days:
+            raise IngestionArtifactConsistencyError(
+                "cube.zarr/20m time axis does not match root cube.zarr time axis"
+            )
+
+    if not require_csv:
+        return
+    if not csv_path.exists():
+        raise IngestionArtifactConsistencyError(f"Missing derived CSV: {csv_path}")
+
+    with csv_path.open(newline="", encoding="utf-8") as handle:
+        csv_days = [row.get("solar_day", "") for row in csv.DictReader(handle)]
+
+    if index_path.exists():
+        day_index = _load_index(index_path)
+        cube_day_set = set(cube_days)
+        expected_days = sorted(
+            day for day, rec in day_index["days"].items()
+            if rec.get("status") in ("downloaded", "ok") and day in cube_day_set
+        )
+    else:
+        expected_days = cube_days
+
+    if csv_days != expected_days:
+        raise IngestionArtifactConsistencyError(
+            "indices_timeseries.csv is stale or inconsistent with cube.zarr/scenes_index.jsonl: "
+            f"csv has {len(csv_days)} row(s), expected {len(expected_days)}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -960,10 +1058,17 @@ def download_cubes(
             normalized_geometry=normalized_geometry, max_workers=max_workers,
             cancel_check=cancel_check, on_progress=on_progress,
         ) if zarr_path.exists() else 0
-        _write_run_metadata({"download_completed_at": utc_now_iso()})
+        sorted_cube = _sort_cube_store_by_time(zarr_path) if zarr_path.exists() else False
+        if sorted_cube:
+            logger.info("Sorted cube.zarr physically by time")
+        _write_run_metadata({
+            "cube_time_axis_sorted": True,
+            "download_completed_at": utc_now_iso(),
+        })
         if backfilled:
             _write_run_metadata({
                 "backfilled_band_day_count": backfilled,
+                "cube_time_axis_sorted": True,
                 "download_completed_at": utc_now_iso(),
             })
         return
@@ -1081,10 +1186,14 @@ def download_cubes(
         normalized_geometry=normalized_geometry, max_workers=max_workers,
         cancel_check=cancel_check, on_progress=on_progress,
     )
+    sorted_cube = _sort_cube_store_by_time(zarr_path)
+    if sorted_cube:
+        logger.info("Sorted cube.zarr physically by time")
 
     _write_run_metadata({
         "downloaded_solar_day_count": downloaded,
         "backfilled_band_day_count": backfilled,
+        "cube_time_axis_sorted": True,
         "download_completed_at": utc_now_iso(),
     })
     logger.info(f"Download done: {downloaded} solar days in cube.zarr")
@@ -1169,6 +1278,7 @@ def process_cubes(
         raise FileNotFoundError(
             f"run_metadata.json not found at {metadata_path}. Run download_cubes() first."
         )
+    validate_ingestion_artifacts(output_dir, require_csv=False)
 
     meta = json.loads(metadata_path.read_text(encoding="utf-8"))
     geometry: Optional[Dict[str, Any]] = meta.get("geometry")
@@ -1241,6 +1351,7 @@ def process_cubes(
     meta["newly_computed_count"] = computed
     meta["process_completed_at"] = utc_now_iso()
     safe_write_text(metadata_path, json.dumps(meta, indent=2, sort_keys=True))
+    validate_ingestion_artifacts(output_dir, require_csv=True)
     logger.info(f"Process done: {len(rows)} solar-day rows → {csv_path}")
 
 
