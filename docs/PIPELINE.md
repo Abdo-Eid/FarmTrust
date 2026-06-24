@@ -120,6 +120,7 @@ Local reuse behavior:
 - the ledger stores `cache_key` + `status` and can store `band_status`; provenance (`item_ids`, `mgrs_tiles`, `min_cloud_cover`) lives in `cube.zarr`, while derived stats live in `indices_timeseries.csv`
 - the ledger — not the cube's time axis — is authoritative about which days are real, so failed/partial (zero-filled) slots are never processed
 - Phase 1 skips day downloads when the stored `cache_key` matches, status is `downloaded`/legacy `ok`, and all requested bands exist; missing dates trigger day-level backfill, missing bands trigger band-only backfill, and the cube is physically sorted after local compaction. Phase 2 recomputes derived stats from cube pixels and rewrites `indices_timeseries.csv`
+- ingestion artifact validation fails loudly when root/`20m` time axes diverge, when the cube time axis is unsorted, or when `indices_timeseries.csv` does not match confirmed ledger days; preprocessing runs the same guard before consuming the CSV
 - there is no active STAC query-result TTL/env-var cache
 
 ### 2. Preprocessing
@@ -159,17 +160,13 @@ Processing behavior:
 - same-day duplicates are merged using valid-fraction-weighted averaging
 - negative weights are clamped to `0`; when total weight is `0`, a simple arithmetic mean is used
 - usable observations require `valid_fraction >= 0.90`
-- non-usable rows remain in the output for review, but do not receive smoothed values
-- smoothing is applied only to real usable observations
-- the current smoothing method is `gap_aware_local_median_weighted_mean`
-- usable-observation gaps greater than `12` days break smoothing continuity; gaps exactly `12` days remain continuous
-- local smoothing uses a `±12` day window inside each continuous segment
-- smoothing uses a local median pass followed by a weighted-mean pass
-- weighted mean uses `valid_fraction / (1 + abs(delta_days) / 12.0)`
-- observations with fewer than `2` usable neighbors inside the same segment/window keep raw values
-- 1-point and 2-point continuous segments keep raw values
-- no synthetic timestamps are created
-- no interpolation is performed
+- non-usable rows remain in the output for review and now also receive filled+smoothed analysis values
+- smoothing consists of two phases applied to all indices (NDVI, EVI, NDMI, NDWI):
+  - **Phase 1 — fill:** `fill_analysis_values()` performs linear interpolation across usable-anchor observations, producing `*_filled` values for every observed timestamp. Non-usable rows are filled from the nearest usable anchors; usable rows keep their raw values.
+  - **Phase 2 — smooth:** `smooth_filled_values()` applies a Savitzky-Golay filter (window=`11`, polyorder=`3`) to the filled values, producing `*_smoothed` values. The filter operates over the real observation grid (no synthetic timestamps are created).
+- no synthetic timestamps are created (only observed timestamps are filled and smoothed)
+- the smoothing method name is `linear_interpolation_then_savitzky_golay`
+- `interpolation_policy` is `linear_across_usable_anchors`
 
 Current smoothed signals:
 
@@ -187,15 +184,19 @@ Main outputs:
 
 - `timestamp`
 - `ndvi_raw`
-- `ndvi_smoothed`
+- `ndvi_filled` — linear interpolation from usable anchors (all rows have this)
+- `ndvi_smoothed` — Savitzky-Golay of filled values (all rows have this)
 - `evi_raw`
+- `evi_filled`
 - `evi_smoothed`
 - `ndmi_raw`
+- `ndmi_filled`
 - `ndmi_smoothed`
 - `ndwi_raw`
+- `ndwi_filled`
 - `ndwi_smoothed`
 - `valid_fraction`
-- `is_usable`
+- `is_usable` — evidence flag; all rows now have filled+smoothed values regardless
 - `source_row_count`
 
 Important quality fields:
@@ -209,15 +210,14 @@ Important quality fields:
 - `max_gap_days`
 - `median_gap_days`
 - `smoothing_method`
-- `max_smoothing_gap_days`
-- `local_window_days`
-- `minimum_local_neighbors`
-- `minimum_local_neighbors_excludes_center`
-- `weighting_policy`
 - `interpolation_policy`
+- `fill_policy`
 - `creates_synthetic_timestamps`
 - `smooths_only_usable_observations`
 - `usable_valid_fraction_threshold`
+- `savgol_window_observations`
+- `savgol_polyorder`
+- `weighting_policy`
 - `gap_risk`
 - `confidence_penalty`
 - `gap_risk_reason`
@@ -295,23 +295,23 @@ Detector behavior:
 
 - detection uses gap-aware smoothed NDVI as the primary activity signal
 - output field names remain season-oriented for compatibility, but `season` means detected vegetation activity window, not an agronomic crop season
-- detector model is `adaptive_prominence_to_noise`; it does not use a fixed NDVI activity floor or fixed NDVI amplitude gate
-- low-envelope support uses the 20th percentile of smoothed NDVI within `±90.0` days; if fewer than `5` local observations exist, it falls back to the full-series 20th percentile
-- peak candidates are local maxima in the smoothed NDVI curve, using only real usable observations
-- each candidate is measured by `prominence_ndvi / noise_floor_ndvi`, where the noise floor is estimated from the field's own short-term movement and residual dispersion
-- confirmed candidates require `prominence_to_noise_ratio >= 3.8`; borderline candidates require `>= 2.5` and are reported separately from confirmed seasons
-- observed boundaries use a relative threshold of `20%` of candidate prominence from the local shoulder, not an absolute NDVI value
-- no interpolation is performed and no synthetic dates or peaks are created
-- a retained window needs at least `4` usable observations and at least `20.0` days of observed duration
-- peak date is the timestamp with maximum `ndvi_smoothed` inside the retained window
+- detector model is `hybrid_threshold`; it does not use a fixed NDVI activity floor or fixed NDVI amplitude gate alone
+- detection uses the smoothed NDVI curve across all rows (not only usable-flagged rows), since the fill+smooth pipeline produces analysis values for every observed timestamp
+- a global baseline is computed as the 20th percentile of all smoothed NDVI values across the full series
+- confirmed activity windows require NDVI `>= max(0.35, global_baseline + 0.10)`
+- borderline activity windows require NDVI `>= max(0.20, global_baseline + 0.05)` and are reported separately from confirmed windows
+- consecutive observations above the confirmed threshold form a contiguous activity-window segment
+- segments separated by up to `15` days of inactivity (below threshold) are merged into one window
+- a window needs at least `3` observations and at least `15` days of observed duration
+- peak date is the timestamp with maximum `ndvi` inside the retained window
 - lifecycle status is explicit: `complete`, `open_right`, `open_left`, or `open_both`
 - right-edge active windows are emitted with `is_open = true`, `provisional = true`, `lifecycle_status = "open_right"`, and `end_boundary_certainty = "open"`
 - left-edge windows that were already active at the first observation are retained with `lifecycle_status = "open_left"`, `provisional = true`, and `start_boundary_certainty = "open"`
 
 Quality labels:
 
-- `good` means a complete window has strong field-relative prominence compared with estimated noise
-- `interrupted` describes a large one-step NDVI drop relative to the candidate prominence, not a known crop-stage failure
+- `good` means a complete window has peak NDVI `>= 0.50` and confirmation `strong`
+- `interrupted` describes a large one-step NDVI drop relative to the window amplitude
 - `weak` describes confirmed activity with weaker or provisional signal shape
 - EVI/NDMI/NDWI confirmation is relative to each signal's own window behavior; it does not use fixed EVI/NDMI/NDWI cutoffs and does not by itself rewrite the NDVI shape label
 

@@ -13,6 +13,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from farmtrust_core.preprocess import build_preprocess_artifacts, write_preprocess_outputs
+from farmtrust_core.ingest.cube_pipeline import validate_ingestion_artifacts
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -54,6 +55,8 @@ def main() -> int:
         raise FileNotFoundError(f"Missing ingestion CSV: {csv_path}")
     if not metadata_path.exists():
         raise FileNotFoundError(f"Missing metadata JSON: {metadata_path}")
+    if (input_dir / "cube.zarr").exists():
+        validate_ingestion_artifacts(input_dir, require_csv=True)
 
     aoi_id = args.aoi_id or _load_aoi_id_from_metadata(metadata_path, fallback=input_dir.name)
     output_dir = Path(args.output_dir) if args.output_dir else Path("data") / "preprocess" / aoi_id

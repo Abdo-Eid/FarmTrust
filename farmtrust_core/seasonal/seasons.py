@@ -36,12 +36,17 @@ REQUIRED_QUALITY_KEYS = (
     "gap_risk",
 )
 
-SIGNAL_MODEL_METHOD = "adaptive_prominence_to_noise"
+SIGNAL_MODEL_METHOD = "hybrid_threshold_activity_windows"
 LOW_ENVELOPE_PERCENTILE = 20.0
 HIGH_ENVELOPE_PERCENTILE = 80.0
 LOCAL_ENVELOPE_WINDOW_DAYS = 90.0
 MIN_LOCAL_ENVELOPE_OBSERVATIONS = 5
 BOUNDARY_PROMINENCE_FRACTION = 0.20
+FIXED_ACTIVITY_THRESHOLD_NDVI = 0.35
+DYNAMIC_ACTIVITY_MARGIN_NDVI = 0.10
+BORDERLINE_FIXED_ACTIVITY_THRESHOLD_NDVI = 0.20
+BORDERLINE_DYNAMIC_ACTIVITY_MARGIN_NDVI = 0.05
+MAX_INACTIVE_BREAK_DAYS = 15.0
 CONFIRMED_PROMINENCE_NOISE_RATIO = 3.8
 BORDERLINE_PROMINENCE_NOISE_RATIO = 2.5
 STRONG_PROMINENCE_NOISE_RATIO = 4.0
@@ -162,8 +167,6 @@ def load_preprocess_observations(csv_path: Path) -> list[SeasonalObservation]:
 
         observations: list[SeasonalObservation] = []
         for row in reader:
-            if row["is_usable"].strip().lower() != "true":
-                continue
             if not row["ndvi_smoothed"].strip():
                 continue
             if not row["evi_smoothed"].strip():
@@ -456,33 +459,91 @@ def _find_activity_candidates(
     observations: list[SeasonalObservation],
     model: ActivitySignalModel,
 ) -> list[ActivityCandidate]:
-    candidates = [
-        candidate
-        for peak_index in _local_peak_indices(observations)
-        if (candidate := _candidate_from_peak(observations, model, peak_index)) is not None
-    ]
-    candidates.sort(
-        key=lambda candidate: (
-            candidate.detection_status == "confirmed",
-            candidate.prominence_to_noise_ratio,
-            candidate.prominence_ndvi,
-        ),
-        reverse=True,
+    if not observations:
+        return []
+
+    values = [row.ndvi_smoothed for row in observations]
+    global_baseline = _percentile(values, LOW_ENVELOPE_PERCENTILE)
+    confirmed_threshold = max(
+        FIXED_ACTIVITY_THRESHOLD_NDVI,
+        global_baseline + DYNAMIC_ACTIVITY_MARGIN_NDVI,
+    )
+    borderline_threshold = max(
+        BORDERLINE_FIXED_ACTIVITY_THRESHOLD_NDVI,
+        global_baseline + BORDERLINE_DYNAMIC_ACTIVITY_MARGIN_NDVI,
     )
 
-    selected: list[ActivityCandidate] = []
-    used_ranges: list[tuple[int, int]] = []
-    for candidate in candidates:
-        if any(
-            not (candidate.end_index < start or candidate.start_index > end)
-            for start, end in used_ranges
-        ):
-            continue
-        selected.append(candidate)
-        used_ranges.append((candidate.start_index, candidate.end_index))
+    def _build_segments(threshold: float) -> list[tuple[int, int]]:
+        active_indices = [index for index, value in enumerate(values) if value >= threshold]
+        if not active_indices:
+            return []
 
-    selected.sort(key=lambda candidate: candidate.start_index)
-    return selected
+        segments: list[tuple[int, int]] = []
+        start = active_indices[0]
+        previous = active_indices[0]
+        for index in active_indices[1:]:
+            inactive_break_days = (
+                observations[index].timestamp - observations[previous].timestamp
+            ).total_seconds() / 86400.0
+            if inactive_break_days > MAX_INACTIVE_BREAK_DAYS:
+                segments.append((start, previous))
+                start = index
+            previous = index
+        segments.append((start, previous))
+        return segments
+
+    candidate_ranges = []
+    for start, end in _build_segments(borderline_threshold):
+        peak_value = max(values[start : end + 1])
+        if peak_value >= confirmed_threshold:
+            candidate_ranges.append((start, end, "confirmed", confirmed_threshold))
+        else:
+            candidate_ranges.append((start, end, "borderline", borderline_threshold))
+
+    candidates: list[ActivityCandidate] = []
+    for start_index, end_index, detection_status, threshold in candidate_ranges:
+        segment = observations[start_index : end_index + 1]
+        if len(segment) < MIN_ACTIVITY_WINDOW_OBSERVATIONS:
+            continue
+        if _duration_days(segment) < MIN_ACTIVITY_WINDOW_DURATION_DAYS:
+            continue
+
+        peak_index = max(range(start_index, end_index + 1), key=lambda index: values[index])
+        baseline = min(model.low_envelope[peak_index], global_baseline)
+        amplitude = values[peak_index] - baseline
+        if amplitude <= 0:
+            continue
+
+        if start_index == 0 and end_index == len(observations) - 1:
+            lifecycle_status = "open_both"
+        elif start_index == 0:
+            lifecycle_status = "open_left"
+        elif end_index == len(observations) - 1:
+            lifecycle_status = "open_right"
+        else:
+            lifecycle_status = "complete"
+
+        if model.noise_floor_ndvi > 0:
+            ratio = amplitude / model.noise_floor_ndvi
+        else:
+            ratio = float("inf")
+
+        candidates.append(
+            ActivityCandidate(
+                start_index=start_index,
+                peak_index=peak_index,
+                end_index=end_index,
+                detection_status=detection_status,
+                lifecycle_status=lifecycle_status,
+                baseline_ndvi=baseline,
+                prominence_ndvi=amplitude,
+                boundary_threshold_ndvi=threshold,
+                prominence_to_noise_ratio=ratio,
+            )
+        )
+
+    candidates.sort(key=lambda candidate: candidate.start_index)
+    return candidates
 
 
 def _label_quality(
@@ -508,7 +569,7 @@ def _label_quality(
             "moderate",
         )
 
-    if prominence_to_noise_ratio >= STRONG_PROMINENCE_NOISE_RATIO and lifecycle_status == "complete":
+    if prominence_ndvi >= 0.15 and lifecycle_status == "complete":
         return (
             "good",
             (
@@ -879,11 +940,12 @@ def build_season_payload(
         "activity_detection_model": {
             "method": SIGNAL_MODEL_METHOD,
             "low_envelope_percentile": LOW_ENVELOPE_PERCENTILE,
-            "high_envelope_percentile": HIGH_ENVELOPE_PERCENTILE,
             "local_envelope_window_days": LOCAL_ENVELOPE_WINDOW_DAYS,
-            "boundary_prominence_fraction": BOUNDARY_PROMINENCE_FRACTION,
-            "confirmed_prominence_noise_ratio": CONFIRMED_PROMINENCE_NOISE_RATIO,
-            "borderline_prominence_noise_ratio": BORDERLINE_PROMINENCE_NOISE_RATIO,
+            "fixed_activity_threshold_ndvi": FIXED_ACTIVITY_THRESHOLD_NDVI,
+            "dynamic_activity_margin_ndvi": DYNAMIC_ACTIVITY_MARGIN_NDVI,
+            "borderline_fixed_activity_threshold_ndvi": BORDERLINE_FIXED_ACTIVITY_THRESHOLD_NDVI,
+            "borderline_dynamic_activity_margin_ndvi": BORDERLINE_DYNAMIC_ACTIVITY_MARGIN_NDVI,
+            "max_inactive_break_days": MAX_INACTIVE_BREAK_DAYS,
         },
         "terminology": {
             "season": "detected vegetation activity window, not an agronomic crop season",

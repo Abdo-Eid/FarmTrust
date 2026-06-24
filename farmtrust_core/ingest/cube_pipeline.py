@@ -68,6 +68,10 @@ class CubePipelineCancelledError(Exception):
     pass
 
 
+class IngestionArtifactConsistencyError(Exception):
+    """Raised when cube/ledger/CSV artifacts disagree."""
+
+
 class CubeRangeChangedError(Exception):
     """Raised when an existing cube/group cannot be incrementally extended."""
 
@@ -338,6 +342,63 @@ def _sort_cube_store_by_time(zarr_path: Path) -> bool:
     tmp_path.rename(zarr_path)
     shutil.rmtree(old_path)
     return True
+
+
+def validate_ingestion_artifacts(output_dir: Path, require_csv: bool = True) -> None:
+    """Fail loudly when ingestion artifacts are internally inconsistent.
+
+    The ledger is authoritative for which time slots are real. The cube may have
+    historical failed/preallocated slots, but root and native groups must share a
+    sorted time axis, and the CSV must match confirmed ledger days.
+    """
+    zarr_path = output_dir / "cube.zarr"
+    index_path = output_dir / "scenes_index.jsonl"
+    csv_path = output_dir / "indices_timeseries.csv"
+
+    if not zarr_path.exists():
+        if require_csv:
+            raise IngestionArtifactConsistencyError(f"Missing source cube: {zarr_path}")
+        return
+
+    with xr.open_zarr(str(zarr_path), consolidated=False) as cube:
+        cube_days = [_day_str(t) for t in cube.time.values]
+    if cube_days != sorted(cube_days):
+        raise IngestionArtifactConsistencyError("cube.zarr time axis is not sorted ascending")
+
+    native_20m = _open_group(zarr_path, _NATIVE_20M_GROUP)
+    if native_20m is not None:
+        try:
+            native_days = [_day_str(t) for t in native_20m.time.values]
+        finally:
+            native_20m.close()
+        if native_days != cube_days:
+            raise IngestionArtifactConsistencyError(
+                "cube.zarr/20m time axis does not match root cube.zarr time axis"
+            )
+
+    if not require_csv:
+        return
+    if not csv_path.exists():
+        raise IngestionArtifactConsistencyError(f"Missing derived CSV: {csv_path}")
+
+    with csv_path.open(newline="", encoding="utf-8") as handle:
+        csv_days = [row.get("solar_day", "") for row in csv.DictReader(handle)]
+
+    if index_path.exists():
+        day_index = _load_index(index_path)
+        cube_day_set = set(cube_days)
+        expected_days = sorted(
+            day for day, rec in day_index["days"].items()
+            if rec.get("status") in ("downloaded", "ok") and day in cube_day_set
+        )
+    else:
+        expected_days = cube_days
+
+    if csv_days != expected_days:
+        raise IngestionArtifactConsistencyError(
+            "indices_timeseries.csv is stale or inconsistent with cube.zarr/scenes_index.jsonl: "
+            f"csv has {len(csv_days)} row(s), expected {len(expected_days)}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -1217,6 +1278,7 @@ def process_cubes(
         raise FileNotFoundError(
             f"run_metadata.json not found at {metadata_path}. Run download_cubes() first."
         )
+    validate_ingestion_artifacts(output_dir, require_csv=False)
 
     meta = json.loads(metadata_path.read_text(encoding="utf-8"))
     geometry: Optional[Dict[str, Any]] = meta.get("geometry")
@@ -1289,6 +1351,7 @@ def process_cubes(
     meta["newly_computed_count"] = computed
     meta["process_completed_at"] = utc_now_iso()
     safe_write_text(metadata_path, json.dumps(meta, indent=2, sort_keys=True))
+    validate_ingestion_artifacts(output_dir, require_csv=True)
     logger.info(f"Process done: {len(rows)} solar-day rows → {csv_path}")
 
 

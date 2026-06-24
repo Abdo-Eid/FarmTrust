@@ -81,8 +81,8 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 
 ### Entry and Navigation
 
-* **Loading:** navigation visible; authenticate and fetch list data; allow sign-out.
-* **Error:** session invalid or list cannot load; show retry + contact guidance; allow sign-out.
+* **Loading:** navigation visible; fetch list data and keep the work area responsive.
+* **Error:** list cannot load; show retry + contact guidance.
 * **Success:** Lands List loads with statuses and primary actions.
 
 ### AOI Submission
@@ -119,16 +119,16 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 2. **Add Land AOI Input** — AOI capture; draw-only polygon input. On desktop, form is left and map is right; on mobile, map appears above the form. Method: click land corners on the map, click near the first corner to close, drag corners before submit, and validate calculated area against 1–200 feddan.
 3. **Land Processing Status** — Job progress display; circular progress (left), pipeline timeline (right). Steps: AOI Validation ✓, Satellite Data ✓, Vegetation Analysis ⏳, Risk Modeling ⏳.
 4. **Geospatial Evidence Workbench** — Analyst deep-dive; map canvas (left 70%) + analytical sidebar (right 30%) with NDVI chart, anomalies, notes.
-5. **System Admin Control** — User management table; left nav (User Management selected), main panel with 5 admin users, roles, status, actions.
+5. **System Operations Control** — Backend/API status panel; left nav for system sections, main panel with pipeline status, API connection, and portal notes.
 6. **Active Monitoring Queue** — High-risk alert dashboard; stat cards (18 alerts, 5 signals, 3 visits, 8,450 feddan), financed assets table with trend sparklines.
-7. **Institutional Login Screen** — Auth entry; centered form with email, password, institutional branding.
+7. **Portal Launch Screen** — Direct entry surface; centered brand panel with a short description of the interface and a primary action into the Lands List.
 8-9. **Lands List Variants** — Responsive/state alternatives of main list (2 additional variants).
 
-### Entry / Login
+### Entry
 
-**Purpose:** validate access and route to work.
-**Decisions:** none beyond auth success/failure.
-**Information required:** credentials/session token.
+**Purpose:** route directly to the work surfaces.
+**Decisions:** which land or dashboard to open next.
+**Information required:** none beyond the selected navigation target.
 
 ### Lands List (Primary Hub)
 
@@ -204,13 +204,13 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 
 ### Admin / Settings (Minimal)
 
-**Purpose:** manage access, roles, permissions.
-**Decisions:** role assignment, access changes.
-**Information required:** users, roles, permissions.
+**Purpose:** surface lightweight system and backend configuration.
+**Decisions:** portal/pipeline configuration checks and operational notes.
+**Information required:** API endpoint, deployment status, interface notes.
 
 ## Transitions Between Screens
 
-* Entry/Login → Lands List: auth success + list loaded.
+* Entry → Lands List: navigation selects the list view.
 * Lands List → Add Land: new analysis initiated.
 * Add Land → Land Status: land created as queued/processing, then summary becomes available when analysis succeeds.
 * Lands List → Land Status: open Processing/Failed item for progress/error details.
@@ -233,7 +233,7 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 
 **Colors:**
 - **Primary:** `#16A085` / `#1ABC9C` (Teal) — primary buttons, active controls, analytical accents
-- **Dark Primary:** `#0D2B27` (Dark Teal) — sidebar and authority zones
+- **Dark Primary:** `#0D2B27` (Dark Teal) — sidebar and deep navigation areas
 - **Secondary:** `#D4A373` (Gold/Sand) — optional highlights and secondary accents
 - **Background Light:** `#F3F1EB` (Warm Sand) — page background
 - **Background Dark:** `#082420` / `#0D2B27` (Very Dark Teal) — dark mode and deep navigation surfaces
@@ -277,7 +277,7 @@ The current portal expresses this through a warm sand workspace, dark teal navig
 
 **Primary Palette:**
 - **Primary accent:** Teal (`#16A085`, `#1ABC9C`) — buttons, links, active controls, analytical highlights.
-- **Dark navigation:** Dark Teal (`#0D2B27`, `#082420`) — sidebar and deep authority zones.
+- **Dark navigation:** Dark Teal (`#0D2B27`, `#082420`) — sidebar and deep navigation areas.
 - **Secondary accent:** Gold/Sand (`#D4A373`) — optional highlights and secondary emphasis.
 - **Light background:** Warm Sand (`#F3F1EB`) — page background, neutral comfort.
 - **Dark background:** Very Dark Teal (`#082420`) — deep navigation/dark surfaces.
