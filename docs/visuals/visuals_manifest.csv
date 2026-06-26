@@ -1,0 +1,13 @@
+file_name,location,name,description
+vis_01_system_architecture.png,docs/visuals/,System Architecture Overview,Full pipeline diagram showing existing rule-based flow alongside new ML advisory pipeline with shared artifact connections.
+vis_02_training_pipeline.png,docs/visuals/,Three-Stage Training Pipeline,Horizontal diagram of SITS-BERT pretraining then EuroCrops transfer then Egypt domain adaptation with metrics.
+vis_03_ndvi_timeline.png,docs/visuals/,NDVI Timeline with Activity Windows,Real-style NDVI chart for Egypt AOI showing 5 crop cycles with detected active windows and cloud gap annotations.
+vis_04_api_response.png,docs/visuals/,API Response Before and After,Side-by-side JSON comparison showing API response before ML integration versus after with ml_advisory field highlighted.
+vis_05_false_active_cost.png,docs/visuals/,False-Active Cost Matrix,2x2 confusion matrix visualizing asymmetric cost of errors with false-active cell prominently marked as unacceptable.
+vis_06_kaggle_workflow.png,docs/visuals/,Kaggle Training Workflow,Diagram showing automated local-to-Kaggle workflow with CLI commands dataset uploads and model download arrows.
+vis_07_evaluation_results.png,docs/visuals/,Evaluation Results Dashboard,Professional metrics dashboard showing precision recall false-active-rate macro-F1 and confusion matrix with honest test set caveat.
+vis_08_frontend_mockup.png,docs/visuals/,Frontend Integration Mockup,Web UI mockup showing ML advisory badge alongside official assessment with disagreement alert example.
+vis_09_data_sources.png,docs/visuals/,Data Sources Infographic,Three-panel infographic covering Planetary Computer EuroCropsML and Egypt AOIs with specs and label mappings.
+vis_10_model_architecture.png,docs/visuals/,SITS-BERT Model Architecture,Neural network diagram showing input projection transformer layers pretraining head classification head and post-processing chain.
+vis_11_project_timeline.png,docs/visuals/,Project Development Timeline,Gantt-style timeline from Nov 2025 to Jun 2026 with phase bars milestones and challenge callouts.
+vis_12_teammate_reference.png,docs/visuals/,Teammate Quick Reference Card,Printable A4 card with API structure frontend rules React snippet and run commands for integrating ML module.
