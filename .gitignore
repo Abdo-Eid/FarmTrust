@@ -27,6 +27,41 @@ worker/notebooks/.cache/
 .DS_Store
 Thumbs.db
 
+# === ML Module additions ===
+
+# Generated pipeline data (reproducible by running the pipeline)
+data/aoi_*/
+data/preprocess/
+data/seasonal/
+data/assessment/
+data/ml/*/sits_prediction.json
+data/ml/export/
+data/eurocrops/
+data/kaggle_ingest_output*/
+
+# Kaggle upload staging folders
+kaggle_upload/
+
+# Temporary zip files
+*.zip
+sits_code_updated.zip
+
+# Secrets and credentials
+.env
+kaggle.json
+.env.local
+.env.*.local
+
+# Python environment and cache
+*.pyo
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.idea/
+
 # Portal (Next.js) — covered by portal/.gitignore but catch from root too
 portal/node_modules/
 portal/.next/
