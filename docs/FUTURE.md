@@ -84,14 +84,14 @@ This file is not product scope, not roadmap, and not architecture truth. It pres
 ### Boundary accuracy
 
 - [option] Manual draw plus light heuristics
-  - Tradeoff: fastest MVP, minimal model training; precision varies by plot.
+  - Tradeoff: fastest path, minimal model training; precision varies by plot.
   - Evidence needed: pilot plots show stable outputs despite boundary noise.
   - Decision trigger: status/trend outputs stay consistent on sampled plots.
   - Kill condition: boundary noise flips decisions or risk flags.
 - [option] Segmentation model for boundary refinement
   - Tradeoff: better plot purity, higher data and training cost.
   - Evidence needed: measurable reduction in false flags vs heuristics.
-  - Decision trigger: precision gains without label burden stalling MVP.
+  - Decision trigger: precision gains without label burden stalling the current build.
   - Kill condition: cannot reach needed accuracy without local labels.
 
 ### Monitoring alerts

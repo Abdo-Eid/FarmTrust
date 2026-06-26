@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.115",
     "numpy>=2.4.3",
+    "odc-stac>=0.5.2",
     "pandas>=3.0.1",
     "sqlmodel>=0.0.21",
     "uvicorn[standard]>=0.30",
@@ -27,6 +28,8 @@ ml = [
   "matplotlib>=3.8.3",
 ]
 data = [
+    "dask[array]>=2024.1.0",
+    "odc-stac>=0.3.9",
     "planetary-computer>=1.0.0",
     "pyarrow>=23.0.1",
     "pyproj>=3.7.2",
@@ -36,8 +39,8 @@ data = [
     "requests>=2.32.5",
     "rioxarray>=0.22.0",
     "shapely>=2.1.2",
-    "stackstac>=0.5.0",
     "xarray>=2026.2.0",
+    "zarr>=2.18.0",
 ]
 
 [dependency-groups]
@@ -47,6 +50,7 @@ dev = [
     "jupyter>=1.1.1",
     "matplotlib>=3.10.8",
     "pip>=26.0.1",
+    "pytest>=9.1.1",
 ]
 
 [build-system]
@@ -59,3 +63,8 @@ include = ["farmtrust_core*", "scripts*", "api*"]
 
 [tool.fastapi]
 entrypoint = "api.main:app"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:Support for class-based `config` is deprecated.*:pydantic.warnings.PydanticDeprecatedSince20:planetary_computer.sas",
+]

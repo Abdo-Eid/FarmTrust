@@ -91,7 +91,7 @@ class GapAwareSmoothingTests(unittest.TestCase):
         self.assertEqual(one_point, [0.30])
         self.assertEqual(two_points, [0.30, 0.90])
 
-    def test_preprocess_preserves_rows_without_interpolation_and_keeps_unusable_blank(self) -> None:
+    def test_preprocess_preserves_rows_and_fills_unusable_analysis_values(self) -> None:
         input_dir = self.tmpdir / "input"
         output_dir = self.tmpdir / "output"
         input_dir.mkdir()
@@ -144,7 +144,8 @@ class GapAwareSmoothingTests(unittest.TestCase):
 
         self.assertEqual(len(output_rows), len(rows))
         self.assertEqual(output_rows[2]["is_usable"], "false")
-        self.assertEqual(output_rows[2]["ndvi_smoothed"], "")
+        self.assertNotEqual(output_rows[2]["ndvi_filled"], "")
+        self.assertNotEqual(output_rows[2]["ndvi_smoothed"], "")
         self.assertEqual(output_rows[2]["ndvi_raw"], "0.95")
         self.assertEqual([row["timestamp"] for row in output_rows], [_timestamps(day)[0].isoformat() for day, _, _ in rows])
 
@@ -178,28 +179,35 @@ class GapAwareSmoothingTests(unittest.TestCase):
         self.assertEqual(metrics["max_smoothing_gap_days"], MAX_SMOOTHING_GAP_DAYS)
         self.assertEqual(metrics["local_window_days"], LOCAL_WINDOW_DAYS)
         self.assertEqual(metrics["minimum_local_neighbors"], MIN_LOCAL_NEIGHBORS)
-        self.assertEqual(metrics["interpolation_policy"], "none")
+        self.assertEqual(metrics["interpolation_policy"], "full_curve_linear_between_usable_observations")
         self.assertFalse(metrics["creates_synthetic_timestamps"])
-        self.assertTrue(metrics["smooths_only_usable_observations"])
+        self.assertFalse(metrics["smooths_only_usable_observations"])
+        self.assertEqual(metrics["fill_policy"], "fill_all_observed_timestamps_from_usable_anchors")
 
     def test_seasonal_confirmation_uses_smoothed_non_ndvi_signals(self) -> None:
         observations = [
             SeasonalObservation(
                 timestamp=timestamp,
-                ndvi_smoothed=0.50,
+                ndvi_smoothed=ndvi,
                 evi_smoothed=evi,
-                ndmi_smoothed=0.10,
-                ndwi_smoothed=-0.10,
+                ndmi_smoothed=ndmi,
+                ndwi_smoothed=ndwi,
                 valid_fraction=0.95,
                 source_row_count=1,
             )
-            for timestamp, evi in zip(_timestamps(0, 5, 10), [0.25, 0.27, 0.26])
+            for timestamp, ndvi, evi, ndmi, ndwi in zip(
+                _timestamps(0, 5, 10),
+                [0.30, 0.50, 0.35],
+                [0.20, 0.35, 0.25],
+                [0.02, 0.12, 0.05],
+                [0.18, -0.10, 0.10],
+            )
         ]
 
         level, evidence = _compute_multi_index_confirmation(observations)
 
         self.assertEqual(level, "strong")
-        self.assertIn("evi_peak=0.270", evidence)
+        self.assertIn("Multi-index confirmation=strong", evidence)
 
 
 if __name__ == "__main__":

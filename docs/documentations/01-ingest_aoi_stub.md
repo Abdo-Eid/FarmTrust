@@ -1,13 +1,15 @@
 # Sentinel-2 ingestion script — how to use
 
+> **Superseded by T-06 (2026-06-20).** Describes the legacy per-scene rasterio path (`pipeline.py` / `write_outputs()`), now removed. `scripts/ingest_aoi.py` delegates to `farmtrust_core.ingest.runner.run_ingestion` (odc.stac.load solar-day cube path). The `--loader`/`--no-dedupe` flags and per-scene chip outputs no longer exist. Historical context only. Current outputs are `cube.zarr`, `indices_timeseries.csv`, `scenes_index.jsonl`, and `run_metadata.json`; see `docs/PIPELINE.md` for authoritative current behavior.
+
 ## Purpose
 
-This script queries Sentinel-2 L2A scenes via STAC (Planetary Computer), **downloads local AOI “chips” (cropped rasters) per scene**, computes vegetation/water indices (NDVI, EVI, NDMI, NDWI, MNDWI), applies SCL-based cloud/shadow masking, and outputs both:
+Legacy behavior: this script queried Sentinel-2 L2A scenes via STAC (Planetary Computer), **downloaded local AOI “chips” (cropped rasters) per scene**, computed vegetation/water indices (NDVI, EVI, NDMI, NDWI, MNDWI), applied SCL-based cloud/shadow masking, and output both:
 
 * a per-scene time-series CSV, and
 * a **global JSON index** mapping scenes → local chip files + stats.
 
-**Chips are the canonical local dataset** used by downstream roles. The script implements local scene/chip reuse by skipping scenes if chips already exist for the same configuration. STAC search results are not cached; the pipeline queries STAC each run, then decides which returned scenes can skip download/reprocessing.
+Legacy chips were the canonical local dataset used by downstream roles. Current ingestion uses `cube.zarr` as the canonical local source dataset and can backfill missing bands independently. STAC search results are not cached; the pipeline queries STAC each run, then decides which returned solar days/bands can skip download.
 
 ## Run (UV)
 
@@ -35,14 +37,14 @@ For team-consistent installs:
 uv sync --frozen --extra data
 ```
 
-### Additional options
+### Current options
 
 * `--force-rerun`: clear existing output and rerun ingestion.
 * `--debug`: enable debug logging for troubleshooting.
 * `--limit-items N`: limit number of scenes (useful for quick testing).
 * `--log-signed-hrefs`: log signed STAC asset URLs (very verbose).
-* `--no-dedupe`: skip pre-download deduplication; emit all STAC scenes as-is (raw/debug mode).
-* `--workers N`: number of parallel download workers (default: 4; set to 1 for sequential debugging). Can also be set as `"workers": N` in the JSON config file.
+* `--workers N`: number of parallel solar-day download workers. Can also be set as `"workers": N` in the JSON config file.
+* `--bands B02,B03,...`: requested source bands to store/backfill. Missing 20m bands are repaired in `cube.zarr/20m` without rewriting existing 10m bands.
 
 ## Inputs
 
@@ -51,11 +53,11 @@ uv sync --frozen --extra data
 * `start_date`, `end_date`, `max_cloud`: optional; defaults are used if missing.
 * `output_dir`: optional override (default: `data/<aoi_id>`).
 
-> Note: `cache_dir` is **no longer used**. The `chips/` directory is the canonical dataset.
+> Note: `cache_dir` is **no longer used**. The canonical local source dataset is now `cube.zarr`, not `chips/`.
 
 Config example lives at `scripts/ingest_demo.json`.
 
-## Deduplication
+## Legacy Deduplication
 
 STAC returns multiple scenes per calendar date when the AOI spans tile boundaries, or when both S2A and S2B satellites acquire on the same day. By default, the script keeps only one scene per (calendar date, spacecraft) before downloading — the one with the lowest `eo:cloud_cover`. If two scenes tie on cloud cover, the lexicographically lower `item_id` wins (deterministic).
 
@@ -64,11 +66,11 @@ The log shows which scenes are dropped:
 Pre-dedup: 2025-08-03 S2C kept=S2C_..._T36RUU dropped=['S2C_..._T36RTU'] (cloud_cover=1.79)
 ```
 
-Use `--no-dedupe` to skip this filter and process all STAC results.
+`--no-dedupe` no longer exists. Current ingestion groups STAC items by solar day and mosaics overlapping tiles.
 
 ## Parallel downloads
 
-By default, up to 4 scenes are downloaded simultaneously (`--workers 4`). Each worker is a thread — safe for I/O-bound COG reads. Planetary Computer handles up to ~8 concurrent connections without throttling.
+Current ingestion parallelizes solar-day loads. Each worker is a thread — safe for I/O-bound COG reads.
 
 Each failed scene is retried up to 3 times with exponential backoff (1s, 2s, 4s). SAS tokens are re-signed before each retry to handle token expiry.
 
@@ -76,44 +78,35 @@ To run sequentially (useful when debugging a single scene): `--workers 1`.
 
 ## Outputs
 
-The script writes outputs to:
+Current ingestion writes outputs to:
 
-* `data/<aoi_id>/chips/<item_id>/...` (**canonical dataset**)
+* `data/<aoi_id>/cube.zarr/` (**canonical source dataset**; root 10m grid plus native `20m` group)
 * `data/<aoi_id>/indices_timeseries.csv`
-* `data/<aoi_id>/scenes_index.json`
+* `data/<aoi_id>/scenes_index.jsonl`
 * `data/<aoi_id>/run_metadata.json`
 
-### Chips layout (per scene)
+### Current cube layout
 
-Each scene writes a folder:
+The cube stores source pixels and provenance:
 
-* `data/<aoi_id>/chips/<item_id>/SCL.tif`
-* `data/<aoi_id>/chips/<item_id>/B02.tif`
-* `data/<aoi_id>/chips/<item_id>/B03.tif`
-* `data/<aoi_id>/chips/<item_id>/B04.tif`
-* `data/<aoi_id>/chips/<item_id>/B08.tif`
-* `data/<aoi_id>/chips/<item_id>/B11.tif`
-* `data/<aoi_id>/chips/<item_id>/manifest.json`
+* root group: `B02`, `B03`, `B04`, `B08`, `time`, `y`, `x`, provenance variables
+* `20m` group: native 20m bands such as `B05`, `B06`, `B07`, `B8A`, `B11`, `B12`, `SCL` when requested
 
-### `scenes_index.json` (global index)
+### `scenes_index.jsonl` (operational ledger)
 
-This file is a single JSON object that stores:
+This append-only JSONL ledger stores:
 
-* scene metadata (timestamp, tile, cloud cover)
-* the **relative paths** to chip files for each band
-* computed stats (mean + p95)
-* a **fingerprint** of the config (bbox/dates/cloud threshold/mask rules) used for caching
-* `platform`: raw STAC platform string (e.g. `"Sentinel-2C"`)
-* `spacecraft`: normalized spacecraft ID (`"S2A"`, `"S2B"`, `"S2C"`)
-* `aoi_geometry`: the AOI bbox as a GeoJSON Polygon — load with `shapely.geometry.shape(scenes_index["aoi_geometry"])` for coverage or containment calculations
+* one record per attempted solar day
+* `cache_key` and day `status`
+* optional per-band `band_status` for repair/backfill
 
-### Local reuse behavior (“skip if chip exists”)
+### Local reuse behavior
 
-On reruns with the **same config fingerprint**, the script will:
+On reruns with the same AOI/grid configuration, ingestion will:
 
-* detect that chip files already exist for a scene, and
-* skip downloading/recomputing it,
-* still ensuring CSV rows can be produced (from the global index).
+* skip already-present source bands
+* download only missing requested bands
+* recompute `indices_timeseries.csv` from local source pixels
 
 Use `--force-rerun` to wipe and rebuild everything.
 
@@ -121,23 +114,25 @@ This is not a STAC query-result cache. The removed STAC TTL/env-var cache helper
 
 ## How roles use the outputs
 
-* **ML/time-series preprocessing**: reads `indices_timeseries.csv` (and optionally `scenes_index.json` for provenance and paths).
+* **ML/time-series preprocessing**: reads `indices_timeseries.csv`.
 * **ML/seasonal analysis**: reads smoothed outputs produced downstream (not created by this script).
 * **ML/scoring**: consumes seasonal windows + quality metrics produced downstream.
-* **Any downstream pixel-level logic**: reads chips directly from `chips/<item_id>/...`.
+* **Any downstream pixel-level logic**: reads source pixels from `cube.zarr`.
 
 ## Implementation
 
-The CLI entry point is `scripts/ingest_aoi.py` (~100 lines, argument parsing only). All pipeline logic lives in `farmtrust_core/ingest/`:
+The CLI entry point is `scripts/ingest_aoi.py` (~100 lines, argument parsing only). Legacy pipeline logic lived in `farmtrust_core/ingest/`:
 
 | Module | Responsibility |
 |---|---|
 | `pipeline.py` | `write_outputs()` orchestrator |
 | `processor.py` | `process_one_scene()` thread-safe worker |
 | `dedup.py` | Pre-download deduplication |
-| `scene_index.py` | `scenes_index.json` CRUD + cache-skip logic |
+| `scene_index.py` | Legacy JSON index CRUD + cache-skip logic |
 | `window_read.py` | COG window reads, reprojection, chip writing |
 | `indices.py` | NDVI, EVI, NDMI, NDWI, MNDWI computation |
 | `stac_client.py` | STAC search with endpoint fallback |
 | `config.py` | Config parsing, bbox normalization |
 | `utils.py` | Fingerprint, atomic file write, UTC timestamp |
+
+Current ingestion modules are `runner.py`, `cube_pipeline.py`, `cube_loader.py`, `cube_stats.py`, `indices.py`, `config.py`, and `utils.py`.

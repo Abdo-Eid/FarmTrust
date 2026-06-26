@@ -1,22 +1,17 @@
 """
 Sentinel-2 AOI ingestion CLI entry point.
 
-Delegates all logic to farmtrust_core.ingest.pipeline. See that module for
-the full pipeline: STAC search → dedup → parallel download → CSV + index output.
+Delegates to the loader-agnostic seam ``farmtrust_core.ingest.runner.run_ingestion``.
+The ODC cube path builds solar-day mosaics via odc.stac.load, emits one CSV row
+per solar day, and caches by solar_day. Date ranges that add absent days append
+only those missing observations. Missing requested bands are repaired/backfilled
+without rewriting already present bands.
 
-Canonical dataset layout:
-  data/<aoi_id>/
-    chips/
-      <item_id>/
-        SCL.tif
-        B02.tif
-        B03.tif
-        B04.tif
-        B08.tif
-        B11.tif
-        manifest.json
+Output layout:
+    data/<aoi_id>/
+    cube.zarr/
     indices_timeseries.csv
-    scenes_index.json
+    scenes_index.jsonl
     run_metadata.json
 """
 
@@ -35,7 +30,7 @@ from farmtrust_core.ingest.config import (
     parse_bbox,
     parse_geometry,
 )
-from farmtrust_core.ingest.pipeline import write_outputs
+from farmtrust_core.ingest.runner import run_ingestion
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -43,7 +38,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Ingest Sentinel-2 scenes: download AOI chips (default), compute indices, write CSV + global index."
+        description="Ingest Sentinel-2 for an AOI and compute vegetation/moisture indices."
     )
     parser.add_argument("--config", default=None, help="Path to JSON config file")
     parser.add_argument("--aoi-id", required=False, help="Stable identifier for the AOI")
@@ -55,18 +50,20 @@ def main() -> int:
     parser.add_argument("--output-dir", default=None, help="Override output directory (default: data/<aoi_id>)")
     parser.add_argument("--force-rerun", action="store_true", help="Clear existing output and rerun ingestion")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
-    parser.add_argument("--limit-items", type=int, default=None, help="Limit number of scenes (for testing)")
+    parser.add_argument("--limit-items", type=int, default=None, help="Limit number of scenes/items (for testing)")
     parser.add_argument("--log-signed-hrefs", action="store_true", help="Log signed asset hrefs (very verbose)")
-    parser.add_argument("--no-dedupe", action="store_true",
-                        help="Skip pre-download deduplication; emit all scenes (raw mode)")
     parser.add_argument("--workers", type=int, default=None,
-                        help="Parallel download workers (default: 4; set 1 to disable parallelism)")
+                        help="Parallel solar-day loading threads (default: 6)")
+    parser.add_argument(
+        "--bands",
+        default=None,
+        help="Comma-separated Sentinel-2 bands to store/backfill, e.g. B02,B03,B04,B08,B11,SCL,B05,B06,B07,B8A",
+    )
 
     args = parser.parse_args()
 
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
-        logging.getLogger(__name__).debug("Debug logging enabled")
 
     config = load_config(args.config)
 
@@ -90,20 +87,21 @@ def main() -> int:
     if not start_date or not end_date:
         start_date, end_date = default_dates()
         logging.getLogger(__name__).info(f"Using default dates: {start_date} to {end_date}")
-    else:
-        logging.getLogger(__name__).info(f"Using provided dates: {start_date} to {end_date}")
 
     max_cloud = args.max_cloud if args.max_cloud is not None else config.get("max_cloud", 30.0)
     output_dir_value = args.output_dir or config.get("output_dir")
     output_dir = Path(output_dir_value) if output_dir_value else Path("data") / aoi_id
+    bands_raw = args.bands if args.bands is not None else config.get("bands")
+    bands = None
+    if bands_raw:
+        if isinstance(bands_raw, str):
+            bands = [b.strip() for b in bands_raw.split(",") if b.strip()]
+        else:
+            bands = list(bands_raw)
 
-    logging.getLogger(__name__).info(f"Output directory: {output_dir}")
-    logging.getLogger(__name__).info(f"Force rerun: {args.force_rerun}")
-    logging.getLogger(__name__).info(f"Max cloud cover: {max_cloud}")
-    if args.limit_items is not None:
-        logging.getLogger(__name__).info(f"Limit items: {args.limit_items}")
+    logging.getLogger(__name__).info(f"Output: {output_dir}")
 
-    write_outputs(
+    run_ingestion(
         output_dir=output_dir,
         aoi_id=aoi_id,
         bbox=bbox,
@@ -113,9 +111,9 @@ def main() -> int:
         force_rerun=args.force_rerun,
         limit_items=args.limit_items,
         log_signed_hrefs=args.log_signed_hrefs,
-        deduplicate=not args.no_dedupe,
-        max_workers=args.workers if args.workers is not None else config.get("workers", 4),
         geometry=geometry,
+        bands=bands,
+        max_workers=args.workers if args.workers is not None else config.get("workers", 6),
     )
 
     logging.getLogger(__name__).info(f"Ingestion complete for {aoi_id}")
