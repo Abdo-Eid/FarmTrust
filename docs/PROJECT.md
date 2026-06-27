@@ -7,25 +7,34 @@ Purpose: single place for product truth (vision, scope, current roadmap, open qu
 - TASK: <T-xx — name>
 
 ## Vision
-- Provide banks and agri-financiers with objective, explainable land visibility from satellite time
-  series so financing decisions are faster and better informed without field visits.
+- Produce lender-facing farm risk reports from satellite time-series evidence so banks and
+  agri-financiers can review agricultural credit-readiness faster and with clearer evidence.
+- FarmTrust is decision support: it provides risk evidence, confidence notes, and reports; it does not approve or reject loans.
+
+## Positioning
+- Product hierarchy: risk assessment first, monitoring second, AI explanation alongside both, data-company expansion later.
+- The first product is a lender-facing farm risk report. Monitoring continues the same evidence trail after the first report.
+- AI is an explanation layer for report evidence, visuals, score reasons, confidence notes, and monitoring changes; it does not create assessment evidence or scores.
+- FarmTrust does not start as a general agriculture platform. Broader data products become credible only after enough validated usage exists.
 
 ## Working principles
 - Protect core scope and technical truth, while encouraging optional improvements that help the team or user outcomes.
 - Use judgment: if an improvement changes shared truth, reflect it in the relevant canonical doc.
 
 ## Problem
-- Financiers lack continuous, objective visibility into land activity and risk; they rely on
-  paperwork or one-off visits and cannot see multi-year trends or operational issues.
+- Financiers lack objective land-risk evidence before and during agricultural financing; they rely on
+  paperwork, collateral, trust, or one-off visits and cannot see multi-year activity, trend, or operational risk clearly.
 
 ## Users
 - Loan officers and agri-finance analysts evaluating financing requests.
 - Portfolio managers monitoring land performance over time.
 
 ## Outputs (what the user sees)
+- Lender-facing farm risk report that supports credit-readiness review.
 - Land status: active / intermittent / inactive.
 - 2-year trend: improving / stable / declining.
 - Last-season performance: good / interrupted / weak, with short reasons.
+- Risk tier: low / medium / high, presented as decision support rather than automated loan approval.
 - Risk flags: waterlogging, salinity likelihood, abandonment, encroachment / land-use change.
 - Satellite evidence coverage: good / fair / limited / insufficient.
 - Assessment confidence: high / medium / low, meaning confidence in FarmTrust's assessment reliability, not confidence in the land itself.
@@ -34,6 +43,7 @@ Purpose: single place for product truth (vision, scope, current roadmap, open qu
 - PDF report export for lender review.
 
 ## Current-build scope (what we ship first)
+- Initial lender-facing farm risk assessment/report is the product anchor; monitoring is a follow-up layer after the first report.
 - Satellite-only assessment for a single land polygon.
 - AOI input via polygon draw: the user clicks land corners on a map to define the analysis area.
 - Geography: Egypt national coverage in current build.
@@ -68,12 +78,19 @@ Problem this solves: frequent back-and-forth and overlapping work cause drift, r
 - Automated financing decisions.
 - Exact crop type labeling or numeric yield prediction.
 - Field surveys or ground sensors as core inputs.
+- AI-generated risk scores, unsupported agronomic claims, pest diagnosis, or legal surveying.
+
+## Claim discipline
+- Built/current-build claim: satellite-to-risk-report foundation with interval evidence, conservative risk outputs, confidence-aware assessment, portal/API foundation, and report export.
+- POC/research claim only when separately demonstrated: crop mapping, yield estimation, segmentation, and advanced modeling.
+- Future claim: monitoring at scale, AI assistant workflows, data products, cooperative/government analytics, and statistics use cases.
+- Not claimed: automated loan approval, exact guaranteed yield, pest diagnosis, or legal land surveying.
 
 ## Big picture (end-to-end)
 Inputs → Processing → Outputs → Workflow.
 - Inputs: land polygon drawn on a map; time window (last 24 months).
 - Processing: satellite time-series indicators → evidence coverage check → interpretation rules → assessment confidence.
-- Outputs: land status, trend, season performance, land risk flags, satellite evidence coverage, assessment confidence, report.
+- Outputs: land status, trend, season performance, risk tier, land risk flags, satellite evidence coverage, assessment confidence, report.
 - Workflow: pre-financing review → monitoring during financing → post-season review.
 
 ```mermaid
@@ -125,7 +142,7 @@ flowchart TD
 
     P --> Q{Assessment outcome}
 
-    Q -- Usable assessment confidence --> R[Portal shows status, trend, latest season, land risk flags, satellite evidence coverage, assessment confidence, and evidence graphs]
+    Q -- Usable assessment confidence --> R[Portal shows status, trend, latest season, risk tier, land risk flags, satellite evidence coverage, assessment confidence, and evidence graphs]
     Q -- Low assessment confidence --> R1[Portal shows result with caution notes and evidence limitations]
     Q -- Failed or incomplete --> R2[Portal shows failed or incomplete state and reason]
 
@@ -145,7 +162,9 @@ flowchart TD
 - Non-committed future ideas are parked in `FUTURE.md`; they are not scope, roadmap, or architecture truth.
 
 ## Roadmap
-- Current Build: land assessment + lands-only portal + PDF export; minimal persistence only; pilot validation with low confusion and very low false alarms.
+- Current Build: lender-facing farm risk assessment/report + lands-only portal + PDF export; minimal persistence only; pilot validation with low confusion and very low false alarms.
+- Next: validate the risk-report flow end to end, sharpen lender-safe scoring language, and plan monitoring/AI as follow-up layers without changing the first-product anchor.
+- Later: promote monitoring at scale, AI assistant workflows, crop/yield POCs, segmentation, and data-company expansion only after validation and explicit decisions.
 - Future ideas are intentionally isolated in `FUTURE.md` and must be re-evaluated before becoming scope or a live task.
 
 ## Exploration Gate

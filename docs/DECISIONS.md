@@ -17,6 +17,13 @@ Refines: <optional previous date/title>
 
 ---
 
+2026-06-27 — Decision: Product anchor is lender-facing farm risk reports for credit-readiness review
+Why: The strongest and most credible current direction is a defensible satellite-to-risk-report product for lenders. Monitoring, AI explanation, crop/yield POCs, segmentation, and data-company expansion should be staged around that anchor instead of presented as the first product.
+Alternatives: Start as a general agriculture platform; lead with monitoring; lead with an AI assistant; position crop/yield models as the core current product.
+Consequences: Current-build wording stays conservative: Land Status, 2-Year Trend, Last Activity Window, Risk Tier, risk flags, evidence coverage, and assessment confidence. Credit-readiness is product/pitch framing, not automated loan approval and not a reason to rename the current UI/contract fields.
+Links: PROJECT §Vision | PROJECT §Positioning | PROJECT §Outputs (what the user sees) | PROJECT §Roadmap | TASK: T-02
+Refines: 2026-05-13 — Current build skips crop category and upgrades to interval-based land assessment; 2026-06-16 — Isolate non-committed future ideas in `FUTURE.md`
+
 2026-01-25 — Decision: Satellite-only assessment (no ground sensors/field visits)
 Why: Core constraint for speed, scale, and cost in early deployment.
 Alternatives: Add field surveys; hybrid satellite + IoT sensing.
