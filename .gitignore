@@ -39,6 +39,7 @@ portal/.next/
 
 # Data artifacts (keep docs)
 data/*
+notebooks/data/*
 !data/README.md
 .claude
 .opencode
