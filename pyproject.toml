@@ -16,7 +16,13 @@ dependencies = [
 ingest-aoi = "scripts.ingest_aoi:main"
 
 [project.optional-dependencies]
-ml = []
+ml = [
+    "scikit-learn",
+    "xgboost",
+    "joblib",
+    "openpyxl",
+    "xlrd",
+]
 data = [
     "dask[array]>=2024.1.0",
     "odc-stac>=0.3.9",

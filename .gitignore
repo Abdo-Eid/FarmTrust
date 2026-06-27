@@ -15,6 +15,15 @@ wheels/
 **/.ipynb_checkpoints/
 worker/notebooks/.cache/
 
+# Research/model artifacts
+data/research/
+data/*.csv
+data/*.xlsx
+data/*.xls
+*.joblib
+*.pkl
+*.pickle
+
 # Virtual environments
 .venv
 .venv/
