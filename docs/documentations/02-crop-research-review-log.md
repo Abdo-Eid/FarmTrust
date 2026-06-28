@@ -136,11 +136,10 @@ Notebooks:
 - `notebooks/Morocco_Only_XGBoost_professional.ipynb`
 - `notebooks/Merged_xgboost_training.ipynb`
 
-Scripts:
+Old script artifacts:
 
-- `scripts/research/infer_morocco_xgboost_demo.py`
-- `scripts/research/infer_merged_crop_archive_test.py`
-- `scripts/research/diagnose_aoi_shared_5label.py`
+- The PR #11 AOI inference scripts were distilled into `docs/documentations/04-pr11-xgboost-aoi-scientific-log.md` and then removed from the active workspace.
+- The durable result is the scientific record, not active script entry points.
 
 Dependencies added through the `ml` extra:
 
@@ -171,19 +170,15 @@ Failed model path:
 ### Initial Review Findings
 
 - PR #11 notebooks are nbformat v4 and readable by trusted `nb` tooling.
-- `docs/PLANS/P-merged-crop-xgboost-baseline.md` still references removed training code: `scripts.research.crop_classification.train_xgboost_crop_model`.
+- The old PR #11 plan docs were distilled into `docs/documentations/04-pr11-xgboost-aoi-scientific-log.md`; the stale merged-model training command was not preserved as an active instruction.
 - `README.md` and `docs/ENGINEERING.md` still describe the `ml` extra as an empty placeholder, but PR #11 makes it real.
-- `scripts/research/diagnose_aoi_shared_5label.py` imports `infer_merged_crop_archive_test` as a sibling top-level module, which is fragile for package execution.
+- The old sibling-import issue is no longer an active code issue because the PR #11 research scripts were removed after their durable findings were preserved.
 - PR #11 docs are careful about research-only scope, low confidence, blocked full model inference, and failed AOI-compatible validation.
 
 ### Planned Review Steps
 
-1. Run lightweight script checks: compile and `--help`.
-2. Verify scripts fail clearly when artifacts are missing.
-3. Fix stale docs that reference removed training code.
-4. Update dependency docs so the `ml` extra is accurately described.
-5. Decide whether script execution should support `python -m scripts.research...`.
-6. Preserve the low-confidence and failed-validation results honestly in graduation-book material.
+1. Update dependency docs so the `ml` extra is accurately described if that stale text still exists.
+2. Preserve the low-confidence and failed-validation results honestly in graduation-book material.
 
 ### Testing Log
 
@@ -197,7 +192,7 @@ Failed model path:
 |---|---|---|---|
 | 2026-06-27 | `ml` docs are stale | Dependency docs conflict with `pyproject.toml` | Pending |
 | 2026-06-27 | Stale training command references removed package | Users cannot run documented commands | Pending |
-| 2026-06-27 | Sibling import may not work under package execution | Research script execution path is fragile | Pending |
+| 2026-06-27 | Sibling import may not work under package execution | Research script execution path was fragile | Resolved by removing old research scripts after distillation |
 
 ## YieldSAT Feature-Store Baseline Exploration
 
@@ -654,7 +649,7 @@ Use this section to collect clean material for later writing.
 |---|---|---|---|---|
 | 2026-06-27 | PR #10 report reviewed and retired | Shows useful crop mapping experiment history, but is superseded by the feature-store workflow | `docs/documentations/02-crop-research-review-log.md` | Historical metrics table |
 | 2026-06-27 | PR #10 notebook format blocker found and fixed | Makes the experiment notebooks inspectable as technical evidence | `nb read` failure, followed by nbformat v4.5 normalization | Notebook validation table |
-| 2026-06-27 | PR #11 AOI validation reviewed initially | Shows known-label validation discipline | `docs/PLANS/P-07-crop-model-inference-results.md` | AOI result table |
+| 2026-06-27 | PR #11 AOI validation reviewed initially | Shows known-label validation discipline | `docs/documentations/04-pr11-xgboost-aoi-scientific-log.md` | AOI result table |
 | 2026-06-27 | YieldSAT two-file baseline produced strong grouped test metrics | Provides current best crop-mapping research evidence, but needs ablation before strong claims | `notebooks/06-yieldsat_crop_mapping_baseline.ipynb` | Model comparison table and feature-source importance table |
 | 2026-06-27 | YieldSAT no-weather ablation completed | Shows weather/GDD adds about 0.08 macro F1, while Sentinel-2/soil still reach about 0.90 macro F1 | `notebooks/06-yieldsat_crop_mapping_baseline.ipynb` | Ablation comparison table |
 | 2026-06-27 | YieldSAT Sentinel-2/SCL-only ablation completed | Shows a production-simple imagery baseline can reach about 0.91 XGBoost macro F1 without weather, soil, or DEM | `notebooks/06-yieldsat_crop_mapping_baseline.ipynb` | Three-run ablation table |
