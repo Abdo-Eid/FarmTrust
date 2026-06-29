@@ -6,7 +6,7 @@ Date started: 2026-06-27
 
 This document tracks the research, technical analysis, data work, model work, experiments, validation evidence, limitations, and possible synthesis of the crop-classification work.
 
-It is written as a normal long-form documentation log so it can later support the graduation book. It is not a repo activity log. Branches, merge details, file status, and task mechanics belong in `docs/TASKS/T-08-crop-research-review-and-synthesis.md` unless they directly affect research evidence or reproducibility.
+It is written as a normal long-form documentation log so it can later support the graduation book. It is not a repo activity log. Branches, merge details, file status, and task mechanics belong in active `docs/TASKS/` files while work is open; durable research evidence and reproducibility details belong here.
 
 ## Review Scope
 
@@ -24,9 +24,11 @@ Current boundary:
 
 ## Current Research State
 
-- Research streams under review: field-level temporal crop mapping and XGBoost AOI validation.
-- Current evidence status: PR #10 notebook contents are readable, and a new YieldSAT two-file feature-store baseline has produced strong internal grouped results.
-- Main next step: run ablation checks to separate visual crop signal from weather/soil/region shortcuts before treating the baseline as defensible evidence.
+- This log is sequential: older blocked, failed, and superseded results are intentionally preserved to show the scientific approach over time.
+- Latest branch outcome: the first AOI-passing candidate is `notebooks/08-morocco_crop_lightgbm_baseline.ipynb` configured as a Morocco-only binary `Alfalfa`/`Corn` LightGBM model using 18 AOI-compatible features: 9 brightness-normalized default Sentinel-2 band ratios plus 9 vegetation indices.
+- Latest AOI result: C1 Corn -> Corn `0.999847`, C3 Corn -> Corn `0.991948`, and C4 Alfalfa -> Alfalfa `0.568402`. C4 passes but remains the weaker moderate-confidence case.
+- Main scientific conclusion: the combined YieldSAT + Morocco models failed the AOI label check because of source/domain/class-boundary conflict, not because the AOI Corn seasons were impossible to classify.
+- Scope remains unchanged: crop classification is research-only and is not part of the current FarmTrust production land-assessment contract.
 
 ## PR #10 - Field-Level Crop Mapping Review
 
@@ -138,7 +140,7 @@ Notebooks:
 
 Old script artifacts:
 
-- The PR #11 AOI inference scripts were distilled into `docs/documentations/04-pr11-xgboost-aoi-scientific-log.md` and then removed from the active workspace.
+- The PR #11 AOI inference scripts were distilled into `docs/documentations/04-morocco-crop-classification-scientific-log.md` and then removed from the active workspace.
 - The durable result is the scientific record, not active script entry points.
 
 Dependencies added through the `ml` extra:
@@ -170,7 +172,7 @@ Failed model path:
 ### Initial Review Findings
 
 - PR #11 notebooks are nbformat v4 and readable by trusted `nb` tooling.
-- The old PR #11 plan docs were distilled into `docs/documentations/04-pr11-xgboost-aoi-scientific-log.md`; the stale merged-model training command was not preserved as an active instruction.
+- The old PR #11 plan docs were distilled into `docs/documentations/04-morocco-crop-classification-scientific-log.md`; the stale merged-model training command was not preserved as an active instruction.
 - `README.md` and `docs/ENGINEERING.md` still describe the `ml` extra as an empty placeholder, but PR #11 makes it real.
 - The old sibling-import issue is no longer an active code issue because the PR #11 research scripts were removed after their durable findings were preserved.
 - PR #11 docs are careful about research-only scope, low confidence, blocked full model inference, and failed AOI-compatible validation.
@@ -193,6 +195,7 @@ Failed model path:
 | 2026-06-27 | `ml` docs are stale | Dependency docs conflict with `pyproject.toml` | Pending |
 | 2026-06-27 | Stale training command references removed package | Users cannot run documented commands | Pending |
 | 2026-06-27 | Sibling import may not work under package execution | Research script execution path was fragile | Resolved by removing old research scripts after distillation |
+| 2026-06-29 | Earlier `ml` doc-staleness note was rechecked during branch closeout | No remaining markdown text describing the `ml` extra as empty was found | Resolved for this branch; `pyproject.toml` carries the active ML dependency list |
 
 ## YieldSAT Feature-Store Baseline Exploration
 
@@ -649,7 +652,7 @@ Use this section to collect clean material for later writing.
 |---|---|---|---|---|
 | 2026-06-27 | PR #10 report reviewed and retired | Shows useful crop mapping experiment history, but is superseded by the feature-store workflow | `docs/documentations/02-crop-research-review-log.md` | Historical metrics table |
 | 2026-06-27 | PR #10 notebook format blocker found and fixed | Makes the experiment notebooks inspectable as technical evidence | `nb read` failure, followed by nbformat v4.5 normalization | Notebook validation table |
-| 2026-06-27 | PR #11 AOI validation reviewed initially | Shows known-label validation discipline | `docs/documentations/04-pr11-xgboost-aoi-scientific-log.md` | AOI result table |
+| 2026-06-27 | PR #11 AOI validation reviewed initially | Shows known-label validation discipline | `docs/documentations/04-morocco-crop-classification-scientific-log.md` | AOI result table |
 | 2026-06-27 | YieldSAT two-file baseline produced strong grouped test metrics | Provides current best crop-mapping research evidence, but needs ablation before strong claims | `notebooks/06-yieldsat_crop_mapping_baseline.ipynb` | Model comparison table and feature-source importance table |
 | 2026-06-27 | YieldSAT no-weather ablation completed | Shows weather/GDD adds about 0.08 macro F1, while Sentinel-2/soil still reach about 0.90 macro F1 | `notebooks/06-yieldsat_crop_mapping_baseline.ipynb` | Ablation comparison table |
 | 2026-06-27 | YieldSAT Sentinel-2/SCL-only ablation completed | Shows a production-simple imagery baseline can reach about 0.91 XGBoost macro F1 without weather, soil, or DEM | `notebooks/06-yieldsat_crop_mapping_baseline.ipynb` | Three-run ablation table |
@@ -674,7 +677,24 @@ Use this section to collect clean material for later writing.
 
 ## Final Summary
 
-Current feature conclusion for the crop-mapping baseline:
+Latest branch outcome:
+
+- Notebook 08 is the current AOI-passing research candidate, not a production contract change.
+- Active labels: `Alfalfa` and `Corn`.
+- Training table: `2109` rows (`Corn` 1252, `Alfalfa` 857).
+- Features: `18` AOI-compatible columns: 9 brightness-normalized default S2 band ratios plus 9 vegetation indices.
+- Model: LightGBM with automatic objective selection; this run used `binary`.
+- Random split result: accuracy `0.9502`, macro F1 `0.9486`.
+- Direct AOI check: C1 Corn -> Corn `0.999847`, C3 Corn -> Corn `0.991948`, C4 Alfalfa -> Alfalfa `0.568402`.
+- Interpretation: Morocco-only binary class boundaries solved the current AOI label check. C4 Alfalfa remains moderate-confidence and should be flagged as weaker evidence.
+
+Sequential evidence preserved above:
+
+- Earlier Morocco-only XGBoost work showed one correct known-Corn AOI prediction with low confidence.
+- Combined AOI-compatible five-label and temporal models repeatedly failed direct AOI checks despite useful internal metrics.
+- The failed combined-model runs are scientifically useful because they isolate source/domain/class-boundary conflict and show that internal validation alone is not AOI validation.
+
+Earlier feature conclusion for the YieldSAT crop-mapping baseline:
 
 - Use a production-first feature set based on data that can be derived from a bbox using free/public sources.
 - Use all primary optical features, but keep the order below as the current importance priority for reporting, debugging, and later reduction.

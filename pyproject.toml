@@ -22,6 +22,11 @@ ml = [
     "joblib",
     "openpyxl",
     "xlrd",
+    "torch==2.7.1",
+    "torchvision==0.22.1",
+    "torchgeo==0.8.0",
+    "torchmetrics==1.8.2",
+    "lightgbm==4.6.0",
 ]
 data = [
     "dask[array]>=2024.1.0",
@@ -63,4 +68,19 @@ entrypoint = "api.main:app"
 [tool.pytest.ini_options]
 filterwarnings = [
     "ignore:Support for class-based `config` is deprecated.*:pydantic.warnings.PydanticDeprecatedSince20:planetary_computer.sas",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[tool.uv.sources]
+agrovision-core = { workspace = true }
+
+torch = [
+  { index = "pytorch-cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+  { index = "pytorch-cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
