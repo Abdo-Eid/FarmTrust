@@ -9,7 +9,7 @@ This file is not product scope, not roadmap, and not architecture truth. It pres
 - Treat every item as a hypothesis, not a commitment.
 - Do not use this file to decide current-build scope.
 - Promote an item only after user approval, evidence review, and an explicit update to the authoritative doc.
-- If a future item becomes near-term work, create a live plan in `PLANS/`.
+- If a future item becomes near-term work, create a live task in `TASKS/`.
 - If an item becomes a durable decision, record it in `DECISIONS.md`.
 
 ## Parked Product Ideas
