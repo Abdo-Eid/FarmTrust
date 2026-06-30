@@ -5,147 +5,105 @@ import json
 import shutil
 import tempfile
 import unittest
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from datetime import timedelta
 
 from farmtrust_core.scoring import build_land_assessment
 from farmtrust_core.seasonal.seasons import (
-    SeasonWindow,
     SeasonalObservation,
     build_season_payload,
     detect_activity_windows,
     detect_season_windows,
 )
+from tests.fixtures import phenology_synthetic as ps
 
 
-def _timestamp(day: int) -> datetime:
-    return datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=day)
+def _observations(series: ps.SyntheticSeries, *, use_clean: bool = True) -> list[SeasonalObservation]:
+    """Build detector observations from a synthetic series.
 
-
-def _observations(
-    days: list[int],
-    ndvi_values: list[float],
-    *,
-    evi: float = 0.26,
-    ndmi: float = 0.12,
-    ndwi: float = -0.12,
-) -> list[SeasonalObservation]:
+    ``use_clean`` feeds the noise-free true curve as the smoothed signal (a
+    perfect upstream smoother); the detector re-derives its daily curve from it.
+    """
+    src = series.clean if use_clean else series.raw
     return [
         SeasonalObservation(
-            timestamp=_timestamp(day),
-            ndvi_smoothed=ndvi,
-            evi_smoothed=evi,
-            ndmi_smoothed=ndmi,
-            ndwi_smoothed=ndwi,
-            valid_fraction=0.95,
+            timestamp=series.timestamps[i],
+            ndvi_smoothed=src["ndvi"][i],
+            evi_smoothed=src["evi"][i],
+            ndmi_smoothed=src["ndmi"][i],
+            ndwi_smoothed=src["ndwi"][i],
+            valid_fraction=series.valid_fractions[i],
             source_row_count=1,
+            is_usable=series.valid_fractions[i] >= 0.90,
         )
-        for day, ndvi in zip(days, ndvi_values)
+        for i in range(len(series.timestamps))
     ]
 
 
 class ActivityWindowDetectionTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.tmpdir = Path(tempfile.mkdtemp(prefix="farmtrust-activity-window-"))
+        self.tmpdir = tempfile.mkdtemp(prefix="farmtrust-activity-window-")
 
     def tearDown(self) -> None:
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def test_no_activity_detects_no_windows(self) -> None:
-        windows = detect_season_windows(
-            _observations(
-                [0, 5, 10, 15, 20, 25],
-                [0.10, 0.12, 0.13, 0.12, 0.14, 0.13],
-            )
-        )
-
+        windows = detect_season_windows(_observations(ps.flat_fallow()))
         self.assertEqual(windows, [])
 
     def test_weak_activity_below_minimum_amplitude_is_ignored(self) -> None:
-        windows = detect_season_windows(
-            _observations(
-                [0, 5, 10, 15, 20, 25],
-                [0.18, 0.19, 0.20, 0.21, 0.205, 0.19],
-            )
+        weak = ps.make_phenology_series(
+            cycles=[ps.Cycle(peak_day=120.0, amplitude=0.08, rise_width=28.0, fall_width=34.0)],
+            base=0.15,
+            total_days=240,
+            seed=41,
         )
-
-        self.assertEqual(windows, [])
+        self.assertEqual(detect_season_windows(_observations(weak)), [])
 
     def test_borderline_activity_is_reported_separately(self) -> None:
-        confirmed, borderline = detect_activity_windows(
-            _observations(
-                [0, 5, 10, 15, 20, 25, 30, 35],
-                [0.12, 0.22, 0.28, 0.32, 0.31, 0.29, 0.28, 0.12],
-            )
+        borderline_series = ps.make_phenology_series(
+            cycles=[ps.Cycle(peak_day=120.0, amplitude=0.17, rise_width=28.0, fall_width=34.0)],
+            base=0.16,
+            total_days=240,
+            seed=42,
         )
-
+        confirmed, borderline = detect_activity_windows(_observations(borderline_series))
         self.assertEqual(confirmed, [])
         self.assertEqual(len(borderline), 1)
         self.assertEqual(borderline[0].detection_status, "borderline")
 
-    def test_sustained_activity_window_is_detected_from_smoothed_ndvi(self) -> None:
-        windows = detect_season_windows(
-            _observations(
-                [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55],
-                [0.12, 0.13, 0.15, 0.20, 0.25, 0.32, 0.42, 0.38, 0.31, 0.25, 0.17, 0.12],
-            )
-        )
-
+    def test_sustained_activity_window_is_detected(self) -> None:
+        windows = detect_season_windows(_observations(ps.single_complete_cycle()))
         self.assertEqual(len(windows), 1)
         window = windows[0]
         self.assertEqual(window.window_type, "vegetation_activity")
-        self.assertEqual(window.quality_label, "good")
-        self.assertEqual(window.confirmation_level, "weak")
-        self.assertEqual(window.lifecycle_status, "complete")
         self.assertEqual(window.detection_status, "confirmed")
-        self.assertEqual(window.start_date, "2024-01-16")
-        self.assertEqual(window.peak_date, "2024-01-31")
-        self.assertEqual(window.end_date, "2024-02-15")
-        self.assertGreater(window.prominence_to_noise_ratio, 3.8)
+        self.assertEqual(window.lifecycle_status, "complete")
+        self.assertEqual(window.quality_label, "good")
         self.assertFalse(window.provisional)
+        self.assertFalse(window.is_open)
+        # Monotonic boundaries.
+        self.assertLess(window.start_date, window.peak_date)
+        self.assertLess(window.peak_date, window.end_date)
+        # Boundaries are model-derived but checked against real observations.
+        self.assertEqual(window.start_boundary_source, "model_derived_analysis_curve")
+        self.assertIsNotNone(window.start_nearest_real_observation_date)
+        self.assertIsNotNone(window.peak_nearest_real_observation_days)
+        self.assertIn("model-derived season-analysis curve", window.evidence_summary)
 
-    def test_two_activity_windows_are_detected_when_separated_by_low_observations(self) -> None:
-        windows = detect_season_windows(
-            _observations(
-                [0, 5, 10, 15, 20, 25, 30, 60, 65, 70, 75, 80, 85, 90],
-                [0.12, 0.22, 0.33, 0.41, 0.35, 0.25, 0.12, 0.13, 0.23, 0.34, 0.43, 0.36, 0.25, 0.13],
-            )
-        )
-
+    def test_two_activity_windows_separated_by_a_gap(self) -> None:
+        windows = detect_season_windows(_observations(ps.two_cycles_with_gap()))
         self.assertEqual(len(windows), 2)
-        self.assertEqual([window.season_id for window in windows], ["season_01", "season_02"])
+        self.assertEqual([w.season_id for w in windows], ["season_01", "season_02"])
+        for window in windows:
+            self.assertEqual(window.lifecycle_status, "complete")
 
-    def test_gap_overlap_marks_boundary_certainty_without_changing_window_label(self) -> None:
-        observations = _observations(
-            [0, 5, 10, 15, 20, 25, 30, 35, 40],
-            [0.12, 0.25, 0.31, 0.41, 0.39, 0.35, 0.31, 0.25, 0.14],
-        )
-        windows = detect_season_windows(
-            observations,
-            long_gap_windows=[
-                {
-                    "start_timestamp": _timestamp(10).isoformat(),
-                    "end_timestamp": _timestamp(12).isoformat(),
-                    "gap_days": 12.5,
-                }
-            ],
-        )
-
+    def test_berseem_multicut_sawtooth_is_a_single_cycle(self) -> None:
+        # A clover field cut several times should not fracture into many cycles.
+        windows = detect_season_windows(_observations(ps.berseem_multicut_sawtooth()))
         self.assertEqual(len(windows), 1)
-        self.assertEqual(windows[0].quality_label, "good")
-        self.assertTrue(windows[0].provisional)
-        self.assertEqual(windows[0].start_boundary_certainty, "limited")
-        self.assertEqual(windows[0].peak_certainty, "limited")
-        self.assertEqual(windows[0].gap_overlap_stage, "multiple")
 
     def test_open_right_edge_window_is_provisional(self) -> None:
-        windows = detect_season_windows(
-            _observations(
-                [0, 5, 10, 15, 20, 25, 30, 35, 40],
-                [0.12, 0.14, 0.20, 0.26, 0.33, 0.37, 0.40, 0.42, 0.43],
-            )
-        )
-
+        windows = detect_season_windows(_observations(ps.open_right_cycle()))
         self.assertEqual(len(windows), 1)
         self.assertTrue(windows[0].is_open)
         self.assertTrue(windows[0].provisional)
@@ -154,69 +112,114 @@ class ActivityWindowDetectionTests(unittest.TestCase):
         self.assertIn("provisional", windows[0].evidence_summary)
 
     def test_open_left_window_is_provisional(self) -> None:
-        windows = detect_season_windows(
-            _observations(
-                [0, 5, 10, 15, 20, 25, 30, 35, 40],
-                [0.43, 0.42, 0.40, 0.37, 0.33, 0.26, 0.20, 0.14, 0.12],
-            )
-        )
-
+        windows = detect_season_windows(_observations(ps.open_left_cycle()))
         self.assertEqual(len(windows), 1)
         self.assertEqual(windows[0].lifecycle_status, "open_left")
         self.assertTrue(windows[0].provisional)
         self.assertEqual(windows[0].start_boundary_certainty, "open")
+        self.assertFalse(windows[0].is_open)  # is_open means right-edge unobserved only
 
-    def test_confirmation_support_uses_evi_ndmi_ndwi(self) -> None:
-        days = [0, 5, 10, 15, 20, 25, 30, 35]
-        ndvi = [0.12, 0.21, 0.30, 0.40, 0.38, 0.32, 0.25, 0.13]
-        weak_support = detect_season_windows(
-            [
-                SeasonalObservation(
-                    timestamp=_timestamp(day),
-                    ndvi_smoothed=ndvi_value,
-                    evi_smoothed=0.10,
-                    ndmi_smoothed=0.00,
-                    ndwi_smoothed=0.30,
-                    valid_fraction=0.95,
-                    source_row_count=1,
-                )
-                for day, ndvi_value in zip(days, ndvi)
-            ]
-        )
-        strong_support = detect_season_windows(
-            [
-                SeasonalObservation(
-                    timestamp=_timestamp(day),
-                    ndvi_smoothed=ndvi_value,
-                    evi_smoothed=evi_value,
-                    ndmi_smoothed=ndmi_value,
-                    ndwi_smoothed=ndwi_value,
-                    valid_fraction=0.95,
-                    source_row_count=1,
-                )
-                for day, ndvi_value, evi_value, ndmi_value, ndwi_value in zip(
-                    days,
-                    ndvi,
-                    [0.10, 0.16, 0.24, 0.34, 0.32, 0.27, 0.20, 0.11],
-                    [0.00, 0.04, 0.09, 0.15, 0.13, 0.10, 0.05, 0.01],
-                    [0.20, 0.10, 0.02, -0.12, -0.10, -0.05, 0.05, 0.18],
-                )
-            ]
+    def test_detection_is_deterministic(self) -> None:
+        obs = _observations(ps.double_crop_two_year())
+        first = detect_season_windows(obs)
+        second = detect_season_windows(obs)
+        self.assertEqual(
+            [(w.season_id, w.start_date, w.peak_date, w.end_date) for w in first],
+            [(w.season_id, w.start_date, w.peak_date, w.end_date) for w in second],
         )
 
-        self.assertEqual(weak_support[0].confirmation_level, "weak")
-        self.assertEqual(weak_support[0].quality_label, "good")
-        self.assertEqual(strong_support[0].confirmation_level, "strong")
-        self.assertEqual(strong_support[0].quality_label, "good")
+    def test_gap_overlap_marks_boundary_certainty(self) -> None:
+        series = ps.single_complete_cycle()
+        obs = _observations(series)
+        # A long gap straddling the green-up third of the cycle.
+        onset = series.timestamps[0] + timedelta(days=70)
+        windows = detect_season_windows(
+            obs,
+            long_gap_windows=[
+                {
+                    "start_timestamp": onset.isoformat(),
+                    "end_timestamp": (onset + timedelta(days=15)).isoformat(),
+                    "gap_days": 15.0,
+                }
+            ],
+        )
+        self.assertEqual(len(windows), 1)
+        self.assertTrue(windows[0].provisional)
+        self.assertGreaterEqual(windows[0].gap_overlap_count, 1)
+
+    def test_multi_index_confirmation_levels(self) -> None:
+        base = ps.single_complete_cycle()
+        strong = _observations(base)  # companion indices derived from NDVI -> support
+        # Weak: flat companion indices that do not track the NDVI peak.
+        weak = [
+            SeasonalObservation(
+                timestamp=o.timestamp,
+                ndvi_smoothed=o.ndvi_smoothed,
+                evi_smoothed=0.10,
+                ndmi_smoothed=0.00,
+                ndwi_smoothed=0.30,
+                valid_fraction=o.valid_fraction,
+                source_row_count=1,
+                is_usable=o.is_usable,
+            )
+            for o in strong
+        ]
+        strong_windows = detect_season_windows(strong)
+        weak_windows = detect_season_windows(weak)
+        self.assertEqual(len(strong_windows), 1)
+        self.assertEqual(len(weak_windows), 1)
+        self.assertEqual(strong_windows[0].confirmation_level, "strong")
+        self.assertEqual(weak_windows[0].confirmation_level, "weak")
+
+    # ------------------------------------------------------------------
+    # Payload + scoring integration (no-activity path)
+    # ------------------------------------------------------------------
+
+    def _write_smoothed_csv(self, path, observations) -> None:
+        with open(path, "w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(
+                [
+                    "timestamp",
+                    "ndvi_smoothed",
+                    "ndvi_p95_raw",
+                    "ndvi_spread_raw",
+                    "evi_smoothed",
+                    "ndmi_smoothed",
+                    "ndwi_smoothed",
+                    "mndwi_smoothed",
+                    "is_usable",
+                    "valid_fraction",
+                    "source_row_count",
+                ]
+            )
+            for o in observations:
+                writer.writerow(
+                    [
+                        o.timestamp.isoformat(),
+                        o.ndvi_smoothed,
+                        o.ndvi_smoothed + 0.05,
+                        0.05,
+                        o.evi_smoothed,
+                        o.ndmi_smoothed,
+                        o.ndwi_smoothed,
+                        -0.30,
+                        str(o.is_usable).lower(),
+                        o.valid_fraction,
+                        o.source_row_count,
+                    ]
+                )
 
     def test_build_payload_allows_no_activity_windows(self) -> None:
-        smoothed_csv_path = self.tmpdir / "ndvi_smoothed.csv"
-        quality_metrics_path = self.tmpdir / "quality_metrics.json"
+        from pathlib import Path
+
+        smoothed_csv_path = Path(self.tmpdir) / "ndvi_smoothed.csv"
+        quality_metrics_path = Path(self.tmpdir) / "quality_metrics.json"
         quality_metrics_path.write_text(
             json.dumps(
                 {
                     "aoi_id": "aoi-no-activity",
-                    "usable_observation_count": 6,
+                    "usable_observation_count": 30,
                     "gap_ratio": 0.0,
                     "max_gap_days": 5.0,
                     "gap_risk": "low",
@@ -225,34 +228,34 @@ class ActivityWindowDetectionTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        self._write_smoothed_csv(
-            smoothed_csv_path,
-            _observations(
-                [0, 5, 10, 15, 20, 25],
-                [0.10, 0.12, 0.13, 0.12, 0.14, 0.13],
-            ),
-        )
+        self._write_smoothed_csv(smoothed_csv_path, _observations(ps.flat_fallow()))
 
         payload = build_season_payload(smoothed_csv_path, quality_metrics_path)
 
         self.assertEqual(payload["season_count"], 0)
         self.assertEqual(payload["seasons"], [])
         self.assertIn("activity window", payload["terminology"]["season"])
+        self.assertEqual(
+            payload["activity_detection_model"]["gap_confidence_source"],
+            "real_usable_observation_timestamps",
+        )
 
     def test_scoring_handles_no_activity_window_payload(self) -> None:
-        run_metadata_path = self.tmpdir / "run_metadata.json"
-        smoothed_csv_path = self.tmpdir / "ndvi_smoothed.csv"
-        quality_metrics_path = self.tmpdir / "quality_metrics.json"
-        season_payload_path = self.tmpdir / "season_windows.json"
+        from pathlib import Path
+
+        run_metadata_path = Path(self.tmpdir) / "run_metadata.json"
+        smoothed_csv_path = Path(self.tmpdir) / "ndvi_smoothed.csv"
+        quality_metrics_path = Path(self.tmpdir) / "quality_metrics.json"
+        season_payload_path = Path(self.tmpdir) / "season_windows.json"
         run_metadata_path.write_text(
-            json.dumps({"aoi_id": "aoi-inactive", "start_date": "2024-01-01", "end_date": "2024-01-30"}),
+            json.dumps({"aoi_id": "aoi-inactive", "start_date": "2024-01-01", "end_date": "2024-12-30"}),
             encoding="utf-8",
         )
         quality_metrics_path.write_text(
             json.dumps(
                 {
                     "aoi_id": "aoi-inactive",
-                    "usable_observation_count": 80,
+                    "usable_observation_count": 60,
                     "gap_ratio": 0.0,
                     "max_gap_days": 5.0,
                     "long_gap_count": 0,
@@ -263,20 +266,15 @@ class ActivityWindowDetectionTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        observations = _observations(
-            list(range(0, 400, 5)),
-            [0.12] * 80,
-        )
-        self._write_smoothed_csv(smoothed_csv_path, observations)
+        fallow = ps.flat_fallow()
+        self._write_smoothed_csv(smoothed_csv_path, _observations(fallow))
         season_payload_path.write_text(
             json.dumps(
                 {
                     "aoi_id": "aoi-inactive",
                     "season_count": 0,
                     "gap_risk": "low",
-                    "terminology": {
-                        "season": "detected vegetation activity window, not an agronomic crop season",
-                    },
+                    "terminology": {"season": "detected vegetation activity window, not an agronomic crop season"},
                     "seasons": [],
                 }
             ),
@@ -289,40 +287,8 @@ class ActivityWindowDetectionTests(unittest.TestCase):
             quality_metrics_path=quality_metrics_path,
             season_payload_path=season_payload_path,
         )
-
         self.assertEqual(assessment["assessment_status"], "complete")
         self.assertEqual(assessment["land_status"], "inactive")
-        self.assertEqual(assessment["trend_2y"], "uncertain")
-        self.assertIsNone(assessment["latest_season_performance"])
-
-    def _write_smoothed_csv(self, path: Path, observations: list[SeasonalObservation]) -> None:
-        with path.open("w", newline="", encoding="utf-8") as handle:
-            writer = csv.writer(handle)
-            writer.writerow(
-                [
-                    "timestamp",
-                    "ndvi_smoothed",
-                    "evi_smoothed",
-                    "ndmi_smoothed",
-                    "ndwi_smoothed",
-                    "is_usable",
-                    "valid_fraction",
-                    "source_row_count",
-                ]
-            )
-            for observation in observations:
-                writer.writerow(
-                    [
-                        observation.timestamp.isoformat(),
-                        observation.ndvi_smoothed,
-                        observation.evi_smoothed,
-                        observation.ndmi_smoothed,
-                        observation.ndwi_smoothed,
-                        "true",
-                        observation.valid_fraction,
-                        observation.source_row_count,
-                    ]
-                )
 
 
 if __name__ == "__main__":

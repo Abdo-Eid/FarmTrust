@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Land-Use Due-Diligence — Menofia Parcel</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1f2a37;background:#eef1f5;line-height:1.55}
+.wrap{max-width:980px;margin:0 auto;padding:0 22px 56px}
+header{background:linear-gradient(135deg,#16233a,#27374f);color:#fff;padding:30px 22px 26px}
+header .inner{max-width:980px;margin:0 auto}
+.kicker{font-size:11.5px;letter-spacing:1.5px;text-transform:uppercase;opacity:.7}
+header h1{margin:4px 0 6px;font-size:23px;font-weight:650}
+header .meta{font-size:13px;opacity:.85}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.verdict{display:flex;align-items:center;justify-content:space-between;gap:16px;background:#fff;border:1px solid #dfe4ea;border-left:6px solid #1b7837;border-radius:12px;padding:18px 22px;margin:-28px auto 22px;max-width:980px;box-shadow:0 2px 6px rgba(20,30,50,.07)}
+.verdict .state{font-size:21px;font-weight:700;color:#0f5132}
+.verdict .sub{font-size:12.5px;color:#5b6b7b;margin-top:2px}
+.pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.p-high{background:#e3f3e8;color:#1b7837}.p-med{background:#fdf2dc;color:#9a6b12}.p-none{background:#eceff3;color:#6b7787}.p-risk{background:#fde7e7;color:#b23b3b}
+section{background:#fff;border:1px solid #dfe4ea;border-radius:12px;padding:20px 22px;margin-bottom:16px;box-shadow:0 1px 3px rgba(20,30,50,.05)}
+h2{margin:0 0 12px;font-size:15px;color:#16233a;letter-spacing:.2px}
+.layers{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.layer{border:1px solid #e7ebf0;border-radius:10px;padding:14px 16px;background:#fafbfc}
+.layer .lab{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#8794a6;font-weight:700;margin-bottom:6px}
+.layer p{margin:0;font-size:13.5px}
+.layer.obs{border-top:3px solid #3a7bd5}.layer.interp{border-top:3px solid #1b7837}.layer.conf{border-top:3px solid #9a6b12}.layer.watch{border-top:3px solid #b23b3b}
+.strip{width:100%;height:auto;margin:4px 0 2px}
+.legend{font-size:11.5px;color:#5b6b7b;margin-top:4px}
+.legend span{display:inline-block;margin-right:14px}
+.sw{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:middle;margin-right:4px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 9px;border-bottom:1px solid #eef1f4;text-align:left;vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#7a8699}
+.gauge{height:12px;background:#eceff3;border-radius:7px;overflow:hidden;margin:8px 0 4px}
+.gauge > i{display:block;height:100%;width:40%;background:linear-gradient(90deg,#1b7837,#3a9d5d)}
+.risk li{margin-bottom:9px;font-size:13.5px}
+.boundary{background:#16233a;color:#eaf0f7;border-radius:12px;padding:18px 22px}
+.boundary h2{color:#fff}
+.boundary ul{margin:8px 0 0;padding-left:18px}.boundary li{margin-bottom:6px;font-size:13.5px;color:#cdd7e3}
+.note{background:#f3f6fa;border-left:3px solid #3a7bd5;padding:10px 14px;border-radius:6px;font-size:13px;color:#33425a;margin-top:12px}
+.mono-id{font-size:12px;background:rgba(255,255,255,.12);padding:3px 9px;border-radius:6px}
+footer{text-align:center;color:#8794a6;font-size:11.5px;margin-top:18px;line-height:1.7}
+.small{font-size:12px;color:#6b7787}
+@media(max-width:680px){.layers{grid-template-columns:1fr}.verdict{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<header><div class="inner">
+<div class="kicker">Land-Use Due-Diligence &middot; Origination Snapshot</div>
+<h1>Agricultural Parcel — Menofia, Nile Delta, Egypt</h1>
+<div class="meta"><span class="mono-id">AOI&nbsp;demo&nbsp;01</span> &nbsp; Sentinel-2 satellite record &middot; 02 May 2024 → 19 Jun 2026 (2.1 yr) &middot; ~0.9 ha</div>
+</div></header>
+
+<div class="verdict">
+  <div>
+    <div class="state">Actively double-cropped</div>
+    <div class="sub">Land is genuinely and consistently farmed — two crop cycles per year, returning to bare soil between. Managed, not idle.</div>
+  </div>
+  <div style="text-align:right;white-space:nowrap">
+    <span class="pill p-high">CONFIDENCE: HIGH</span>
+    <div class="sub" style="margin-top:6px">on active cultivation</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<section>
+<h2>The read, in four layers</h2>
+<div class="layers">
+  <div class="layer obs"><div class="lab">Observed (near-fact)</div><p>Satellite greenness rose and fell <b>4 times in 2.1 years</b> — two full cycles per year — each returning to bare soil. Backed by <b>248 clean cloud-free looks (89% of passes)</b>, 38–67 per season, typical gap 2–3 days.</p></div>
+  <div class="layer interp"><div class="lab">Interpreted (likely)</div><p>The classic Nile-Delta <b>winter → summer double-crop</b> — a winter cereal/forage then summer corn. A worked, intensively-managed field; not fallow or abandoned.</p></div>
+  <div class="layer conf"><div class="lab">Confidence (and why)</div><p><b>High</b> it is actively double-cropped — every season is so densely observed a crop could not have hidden. <b>Medium</b> on crop identity (calendar timing + grower notes). <b>None</b> on yield or income.</p></div>
+  <div class="layer watch"><div class="lab">Watch (caution)</div><p>Yield is <b>unobserved</b>; one corn season was pest-damaged but read healthy. Short 2-year record. A winter crop-character change. See the risk register below.</p></div>
+</div>
+</section>
+
+<section>
+<h2>Two-year activity record</h2>
+<svg class="strip" viewBox="0 0 1000 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="crop activity timeline">
+  <rect x="0" y="14" width="1000" height="26" rx="4" fill="#ece4d2"/>
+  <rect x="0" y="14" width="21" height="26" fill="#c9cdd4"/>
+  <rect x="21" y="14" width="133" height="26" fill="#e8a33d"/>
+  <rect x="204" y="14" width="265" height="26" fill="#3a7bd5"/>
+  <rect x="526" y="14" width="113" height="26" fill="#e8a33d"/>
+  <rect x="670" y="14" width="306" height="26" fill="#5e8f78"/>
+  <text x="87" y="31" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">corn</text>
+  <text x="336" y="31" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">wheat + berseem</text>
+  <text x="582" y="31" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">corn</text>
+  <text x="823" y="31" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">berseem</text>
+  <text x="0" y="58" font-size="10" fill="#7a8699">May 24</text>
+  <text x="300" y="58" font-size="10" fill="#7a8699" text-anchor="middle">Jan 25</text>
+  <text x="560" y="58" font-size="10" fill="#7a8699" text-anchor="middle">Jul 25</text>
+  <text x="820" y="58" font-size="10" fill="#7a8699" text-anchor="middle">Mar 26</text>
+  <text x="1000" y="58" font-size="10" fill="#7a8699" text-anchor="end">Jun 26</text>
+</svg>
+<div class="legend">
+  <span><i class="sw" style="background:#e8a33d"></i>summer corn</span>
+  <span><i class="sw" style="background:#3a7bd5"></i>winter wheat+berseem</span>
+  <span><i class="sw" style="background:#5e8f78"></i>winter berseem</span>
+  <span><i class="sw" style="background:#ece4d2"></i>bare soil (turnover)</span>
+</div>
+<div class="note">Four consecutive crop cycles, no missed season — the field is worked every season with a brief bare-soil turnover between, the signature of active management. The winter crop changed from a wheat+berseem mix (2024/25) to berseem-only (2025/26).</div>
+</section>
+
+<section>
+<h2>Track record</h2>
+<p class="small">Reliability over time is what underwriting cares about. The satellite gives a <b>2-year baseline</b> — long enough to establish the field's rhythm, <b>not</b> long enough to certify a multi-year trend.</p>
+<div class="gauge"><i></i></div>
+<p class="small"><b>2 of ~5 seasons</b> toward a certifiable use-stability claim. Status so far: <b>stable</b> (consistent double-crop both years), with one change of character (winter mix → berseem-only). Treat stability as <i>provisional</i> until a longer record accrues.</p>
+</section>
+
+<section>
+<h2>Confidence breakdown</h2>
+<table>
+<tr><th>Claim</th><th>Level</th><th>What it rests on</th></tr>
+<tr><td>Land is actively cultivated</td><td><span class="pill p-high">HIGH</span></td><td>248 clean looks; 38–67 per cycle; 2–3 day gaps — a crop could not have hidden.</td></tr>
+<tr><td>Double-cropped (~2 cycles/yr)</td><td><span class="pill p-high">HIGH</span></td><td>Two full green-up→harvest cycles per year, both years, returning to bare soil.</td></tr>
+<tr><td>Crop identities</td><td><span class="pill p-med">MEDIUM</span></td><td>Delta cropping-calendar timing + curve shape, corroborated by the grower's notes — not direct proof.</td></tr>
+<tr><td>Yield / quality</td><td><span class="pill p-none">NONE</span></td><td>Greenness is not yield. See the risk register.</td></tr>
+<tr><td>Multi-year stability (trend)</td><td><span class="pill p-med">PROVISIONAL</span></td><td>Only 2 years on record; consistent so far, but not yet a certifiable trend.</td></tr>
+</table>
+</section>
+
+<section style="border-left:5px solid #b23b3b">
+<h2>Risk register &mdash; what to weigh</h2>
+<ul class="risk">
+<li><b>Yield is invisible to the satellite.</b> The 2025 corn was hit by Fall Armyworm and the crop suffered, yet the canopy read healthy from orbit — <b>canopy health ≠ harvested yield</b>. The read confirms the land is worked, not that it produced well.</li>
+<li><b>Short record.</b> Two years establishes a rhythm but not a trend; a single bad year ahead could not yet be distinguished from normal variability.</li>
+<li><b>Crop-character change.</b> The winter crop shifted from a wheat+berseem mix to berseem-only — a move toward forage. Revenue implication is unknown from satellite alone.</li>
+<li><b>Small parcel (~0.9 ha).</b> Adequate here, but near the lower bound where 10 m pixels reliably resolve a single field.</li>
+<li><b>No peer baseline yet.</b> Without neighbouring fields we cannot say how this parcel performs <i>relative to its area</i> — the strongest control for distinguishing a field-specific problem from a bad year region-wide.</li>
+</ul>
+</section>
+
+<section class="boundary">
+<h2>What this does NOT tell you</h2>
+<p style="font-size:13.5px;color:#cdd7e3;margin:0">This is an objective, hard-to-fake confirmation that the collateral land is <b>genuinely and consistently farmed</b> — a complement to, not a substitute for, financial due-diligence. It is silent on:</p>
+<ul>
+<li>Harvested <b>yield</b> or volume</li>
+<li><b>Price, revenue, input costs, net income</b></li>
+<li><b>Water rights</b> or allocation</li>
+<li><b>Ownership, title, or legal status</b></li>
+</ul>
+</section>
+
+<section>
+<h2>Ongoing monitoring &mdash; what would trigger an alert</h2>
+<p class="small">The same engine, re-run each new season, watches for the Watch box lighting up. An alert fires when:</p>
+<table>
+<tr><th>Signal</th><th>Alert</th></tr>
+<tr><td>A season-length window with <b>no green-up</b>, and enough clean looks that a crop could not have hidden</td><td>Possible fallow / idle — investigate</td></tr>
+<tr><td>Peak vigour or cumulative greenness falls materially below the field's <b>own history</b> AND its <b>neighbours</b></td><td>Declining productivity (field-specific)</td></tr>
+<tr><td>Green-up then a <b>mid-season collapse</b></td><td>In-season failure</td></tr>
+<tr><td>Cycle <b>shape/timing changes character</b></td><td>Use changed (crop switch)</td></tr>
+<tr><td>Clean observations thin out (cloud / gaps widen)</td><td>Confidence dropped — read not reliable this season</td></tr>
+</table>
+<div class="note"><b>To run live</b> this needs the seasonal satellite feed (the same pipeline that produced this snapshot), re-run on each new acquisition cycle. A region-wide move is reported as <i>context</i>, not a field alarm — only a field that diverges from its neighbours raises a flag.</div>
+</section>
+
+<footer>
+Origination snapshot &middot; generated from the Sentinel-2 record for AOI&nbsp;demo&nbsp;01.<br>
+Method: field-mean phenology, weighted Whittaker gap-fill/smoothing, multi-peak cycle detection; confidence from clean-observation density. Crop labels from cropping-calendar timing + grower ground truth.<br>
+Full analyst audit trail: <span class="mono">menofia_ndvi_report.html</span>. This document informs, and does not replace, financial and legal due-diligence.
+</footer>
+</div>
+</body>
+</html>

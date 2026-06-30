@@ -43,6 +43,7 @@ def main() -> int:
     input_dir = _resolve_input_dir(args.aoi_id, args.input_dir)
     smoothed_csv_path = input_dir / "ndvi_smoothed.csv"
     quality_metrics_path = input_dir / "quality_metrics.json"
+    daily_curve_path = input_dir / "season_analysis_curve.csv"
 
     if not smoothed_csv_path.exists():
         raise FileNotFoundError(f"Missing smoothed NDVI CSV: {smoothed_csv_path}")
@@ -61,6 +62,7 @@ def main() -> int:
     payload = build_season_payload(
         smoothed_csv_path=smoothed_csv_path,
         quality_metrics_path=quality_metrics_path,
+        daily_curve_path=daily_curve_path if daily_curve_path.exists() else None,
     )
     output_path = write_season_payload(output_dir=output_dir, payload=payload)
 

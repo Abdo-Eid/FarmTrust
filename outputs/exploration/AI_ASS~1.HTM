@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Report Assistant — Feature Design</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1f2937;background:#eef2f7;line-height:1.55}
+.wrap{max-width:1000px;margin:0 auto;padding:0 22px 56px}
+header{background:linear-gradient(135deg,#1e293b,#334155 60%,#3f5168);color:#fff;padding:34px 22px 30px}
+header .inner{max-width:1000px;margin:0 auto}
+.kicker{font-size:11.5px;letter-spacing:1.6px;text-transform:uppercase;opacity:.65}
+header h1{margin:5px 0 6px;font-size:24px;font-weight:650}
+header p{margin:0;font-size:14px;opacity:.9}
+.hero{background:#fff;border:1px solid #dde3ec;border-radius:14px;margin:-26px auto 16px;max-width:1000px;padding:22px 24px;box-shadow:0 3px 10px rgba(20,30,50,.08)}
+.hero .rule{font-size:18px;font-weight:700;color:#1e293b;text-align:center;margin:0 0 16px}
+.hero .rule span{color:#0d9488}
+.flow{width:100%;height:auto}
+.flow .cap{font-size:11px;fill:#64748b}
+.stripe{max-width:1000px;margin:0 auto 20px;background:#0f766e;color:#fff;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;text-align:center}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px}
+.card{background:#fff;border:1px solid #dde3ec;border-radius:12px;padding:16px 16px;box-shadow:0 1px 3px rgba(20,30,50,.05)}
+.card .n{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:#0d9488;color:#fff;font-size:12px;font-weight:700;margin-bottom:9px}
+.card.hl .n{background:#b45309}
+.card h3{margin:0 0 5px;font-size:14px;color:#1e293b}
+.card p{margin:0;font-size:12.8px;color:#475569}
+.tag{display:inline-block;background:#f1f5f9;border:1px solid #d8e0ea;border-radius:6px;padding:1px 7px;font-size:11px;color:#334155;margin:3px 4px 0 0}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.panel{border-radius:12px;padding:16px 18px}
+.allow{background:#ecfdf5;border:1px solid #b7e4d3}
+.deny{background:#fef2f2;border:1px solid #f3c9c9}
+.panel h3{margin:0 0 10px;font-size:13.5px;display:flex;align-items:center;gap:8px}
+.allow h3{color:#0f766e}.deny h3{color:#b23b3b}
+.panel ul{margin:0;padding-left:18px}
+.panel li{font-size:13px;margin-bottom:6px}
+.allow li{color:#13503f}.deny li{color:#7f2d2d}
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.b-allow{background:#0d9488;color:#fff}.b-deny{background:#b23b3b;color:#fff}
+section.block{background:#fff;border:1px solid #dde3ec;border-radius:12px;padding:18px 20px;margin-bottom:18px;box-shadow:0 1px 3px rgba(20,30,50,.05)}
+section.block h2{margin:0 0 4px;font-size:16px;color:#1e293b}
+section.block .sub{font-size:12.5px;color:#64748b;margin:0 0 14px}
+.ux{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.mock{flex:1;min-width:280px;border:1px dashed #c3ccd9;border-radius:10px;padding:12px;background:#f8fafc}
+.mock .bar{height:8px;background:#e2e8f0;border-radius:4px;margin:6px 0}
+.mock .bar.s{width:60%}.mock .bar.m{width:85%}
+.aibox{border:1px solid #99f6e4;background:#f0fdfa;border-radius:8px;padding:10px;margin-top:8px}
+.aibox .t{font-size:11px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.5px}
+.line{font-size:11.5px;color:#134e4a;margin:6px 0}
+.ct{font-size:9.5px;font-weight:700;border-radius:5px;padding:1px 5px;margin-left:4px}
+.ct-m{background:#0d9488;color:#fff}.ct-h{background:#b45309;color:#fff}
+.ask{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #cbd5e1;border-radius:18px;padding:5px 10px;font-size:11px;color:#94a3b8;margin-top:8px}
+.chip{display:inline-block;background:#fff;border:1px solid #cbd5e1;border-radius:16px;padding:3px 10px;font-size:11px;color:#475569;margin:4px 4px 0 0}
+.uxnote{flex:1;min-width:240px;font-size:13px;color:#475569}
+.roll{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.now{border-left:4px solid #0d9488}.later{border-left:4px solid #94a3b8}
+.roll .box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px}
+.roll h4{margin:0 0 8px;font-size:13px;color:#1e293b}
+.roll li{font-size:12.5px;color:#475569;margin-bottom:5px}
+footer{text-align:center;color:#64748b;font-size:12.5px;margin-top:8px;font-style:italic}
+@media(max-width:720px){.grid{grid-template-columns:1fr}.split,.roll{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="inner">
+<div class="kicker">Feature Design</div>
+<h1>AI Report Assistant</h1>
+<p>An AI that <b>narrates and reasons over</b> the land assessment — and can never change it.</p>
+</div></header>
+
+<div class="hero">
+<p class="rule">Free to <span>ask</span>. Bounded in what it may <span>assert</span>.</p>
+<svg class="flow" viewBox="0 0 1000 180" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#94a3b8"/></marker>
+  <marker id="arrt" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5eead4"/></marker></defs>
+  <rect x="10" y="30" width="180" height="54" rx="9" fill="#eef2f7" stroke="#cbd5e1"/>
+  <text x="100" y="53" text-anchor="middle" font-size="13" font-weight="700" fill="#1e293b">Deterministic</text>
+  <text x="100" y="70" text-anchor="middle" font-size="13" font-weight="700" fill="#1e293b">pipeline</text>
+  <line x1="190" y1="57" x2="250" y2="57" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="253" y="30" width="196" height="54" rx="9" fill="#eef2f7" stroke="#cbd5e1"/>
+  <text x="351" y="52" text-anchor="middle" font-size="13" font-weight="700" fill="#1e293b">Evidence packet</text>
+  <text x="351" y="70" text-anchor="middle" font-size="10" fill="#64748b">status · cycles · confidence · flags</text>
+  <text x="512" y="46" text-anchor="middle" font-size="19">&#128274;</text>
+  <line x1="449" y1="57" x2="566" y2="57" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="512" y="80" text-anchor="middle" font-size="10" class="cap">read-only</text>
+  <rect x="569" y="30" width="196" height="54" rx="9" fill="#f0fdfa" stroke="#5eead4"/>
+  <text x="667" y="52" text-anchor="middle" font-size="13" font-weight="700" fill="#0f766e">AI narrator + analyst</text>
+  <text x="667" y="70" text-anchor="middle" font-size="10" fill="#0f766e">narrate · answer · reason</text>
+  <line x1="765" y1="57" x2="822" y2="57" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="825" y="30" width="165" height="54" rx="9" fill="#1e293b"/>
+  <text x="907" y="52" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">Report + chat</text>
+  <text x="907" y="70" text-anchor="middle" font-size="10" fill="#cbd5e1">narrated · ask freely</text>
+  <rect x="569" y="118" width="196" height="42" rx="9" fill="#fffbeb" stroke="#fcd996"/>
+  <text x="667" y="135" text-anchor="middle" font-size="11.5" font-weight="700" fill="#b45309">Local context</text>
+  <text x="667" y="151" text-anchor="middle" font-size="9.5" fill="#b45309">agronomy notes — context, not evidence</text>
+  <line x1="667" y1="118" x2="667" y2="86" stroke="#5eead4" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#arrt)"/>
+  <text x="500" y="176" text-anchor="middle" font-size="12" fill="#475569">The AI reads the finished assessment and a local-context layer, then narrates and answers. It has no path to compute, score, or decide.</text>
+</svg>
+</div>
+
+<div class="stripe">Decision support — never a loan approval, rejection, or recommendation.</div>
+
+<div class="wrap">
+
+<div class="grid">
+  <div class="card"><div class="n">1</div><h3>Downstream only</h3><p>The AI reads the finished assessment; it never computes a status, score, or flag. Every number comes from the pipeline.</p></div>
+  <div class="card"><div class="n">2</div><h3>Works without AI</h3><p>The report is complete and trustworthy with the assistant switched off. The AI is an optional layer with an automatic plain-text fallback — never load-bearing.</p></div>
+  <div class="card"><div class="n">3</div><h3>Every sentence sourced &amp; typed</h3><p>Each statement links to its evidence and carries a claim type:
+  <span class="tag">measured</span><span class="tag">deterministic</span><span class="tag">user / local</span><span class="tag">hypothesis</span><span class="tag">unknown</span></p></div>
+  <div class="card hl"><div class="n">4</div><h3>Narrate on demand · ask freely (bounded)</h3><p>The AI narrates a report on request and answers open questions as a <b>bounded analyst</b> — it can offer alternative explanations and suggest what to inspect next. Users ask anything; the AI is constrained only in what it may <b>assert</b>.</p></div>
+  <div class="card hl"><div class="n">5</div><h3>Grounded in local context</h3><p>It draws on a local-agronomy context layer (e.g. fodder-cutting patterns, rotation timing, pest invisibility) to avoid naive reads — treated as <b>context, not automatic truth</b>, with cautious wording.</p></div>
+  <div class="card"><div class="n">6</div><h3>Guardrails enforced, not requested</h3><p>Forbidden claims are blocked in code and tested; generated text is validated against the evidence, and anything unsupported is rejected and replaced by the plain summary. The model must be <i>unable</i> to overstep, not merely told not to.</p></div>
+</div>
+
+<div class="split">
+  <div class="panel allow">
+    <h3><span class="badge b-allow">MAY</span> What the AI is allowed to do</h3>
+    <ul>
+      <li>Narrate the assessment on request</li>
+      <li>Answer open questions as a bounded analyst</li>
+      <li>Explain why confidence is high or low</li>
+      <li>Offer alternative explanations — labelled as hypotheses</li>
+      <li>Use local context to inform its wording</li>
+      <li>Suggest what to inspect next</li>
+      <li>Tag every statement by claim type</li>
+    </ul>
+  </div>
+  <div class="panel deny">
+    <h3><span class="badge b-deny">NEVER</span> What the AI must never do</h3>
+    <ul>
+      <li>Approve, reject, or recommend a loan</li>
+      <li>State yield, income, or price</li>
+      <li>Diagnose pests or disease</li>
+      <li>Assert crop type as fact</li>
+      <li>Claim anything not in the evidence, or leave it untyped</li>
+      <li>Override or change a pipeline result</li>
+    </ul>
+  </div>
+</div>
+
+<section class="block">
+<h2>In the interface</h2>
+<p class="sub">An assistant panel beside the report — narration plus a bounded ask box, every line typed.</p>
+<div class="ux">
+  <div class="mock">
+    <div style="font-size:11px;color:#64748b;font-weight:700">LAND ASSESSMENT REPORT</div>
+    <div class="bar m"></div><div class="bar s"></div><div class="bar"></div>
+    <div class="aibox">
+      <div class="t">AI assistant — explains &amp; reasons over the evidence</div>
+      <div class="line">Actively double-cropped, two cycles a year.<span class="ct ct-m">measured</span></div>
+      <div class="line">Winter activity is consistent with a forage rotation.<span class="ct ct-h">hypothesis</span></div>
+      <div class="ask">&#128269; Ask about this assessment…</div>
+      <div>
+        <span class="chip">Why this confidence?</span>
+        <span class="chip">What would change this?</span>
+        <span class="chip">What can't this tell me?</span>
+      </div>
+      <div style="font-size:10.5px;color:#0f766e;margin-top:8px">Decision-support, not a loan decision.</div>
+    </div>
+  </div>
+  <div class="uxnote">
+    <p>The assistant lives <b>beside</b> the deterministic report, never in place of it. It <b>narrates on request</b> and takes <b>open questions</b>, but every line shows its <b>claim type</b> and its source, and unsupported answers fall back to the plain summary. A standing <b>"decision-support, not a loan decision"</b> note sits on every generated surface. Lender-first, English-first.</p>
+  </div>
+</div>
+</section>
+
+<section class="block">
+<h2>Rollout</h2>
+<p class="sub">Ship the bounded analyst now — made safe by typing, grounding, and enforced guardrails.</p>
+<div class="roll">
+  <div class="box now">
+    <h4>Now — v1</h4>
+    <ul>
+      <li>On-demand narration <b>+ bounded analyst chat</b></li>
+      <li>Typed claims: measured / deterministic / local / hypothesis / unknown</li>
+      <li>Local-context grounding</li>
+      <li>Code-enforced, tested guardrails + deterministic fallback</li>
+      <li>English · lender audience</li>
+    </ul>
+  </div>
+  <div class="box later">
+    <h4>Later</h4>
+    <ul>
+      <li>Arabic language</li>
+      <li>Farmer / investor / cooperative tones</li>
+      <li>Monitoring &amp; neighbour context as it becomes available</li>
+      <li>Richer grounded context as the pipeline grows</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<footer>The model narrates and reasons over a report it cannot change.</footer>
+</div>
+</body>
+</html>

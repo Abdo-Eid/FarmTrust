@@ -39,6 +39,10 @@ def smoothed_timeseries_path(aoi_id: str, *, root: Path | None = None) -> Path:
     return preprocess_dir(aoi_id, root=root) / "ndvi_smoothed.csv"
 
 
+def season_analysis_curve_path(aoi_id: str, *, root: Path | None = None) -> Path:
+    return preprocess_dir(aoi_id, root=root) / "season_analysis_curve.csv"
+
+
 def quality_metrics_path(aoi_id: str, *, root: Path | None = None) -> Path:
     return preprocess_dir(aoi_id, root=root) / "quality_metrics.json"
 
@@ -49,3 +53,7 @@ def season_windows_path(aoi_id: str, *, root: Path | None = None) -> Path:
 
 def land_assessment_path(aoi_id: str, *, root: Path | None = None) -> Path:
     return assessment_dir(aoi_id, root=root) / "land_assessment.json"
+
+
+def report_evidence_packet_path(aoi_id: str, *, root: Path | None = None) -> Path:
+    return assessment_dir(aoi_id, root=root) / "report_evidence_packet.json"

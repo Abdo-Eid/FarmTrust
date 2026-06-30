@@ -14,12 +14,15 @@ The current-build output focuses on:
 - smoothed vegetation and moisture signals
 - vegetation activity-window count over the interval
 - interval-based land status
-- 2-year trend
+- trend when enough activity-window history exists
+- history/evidence coverage and absence-gate status
 - latest activity-window performance
 - conservative risk flags
 - satellite evidence coverage
 - assessment confidence and supporting evidence
 - explicit gap diagnostics
+- cautious numeric indicators: p95/spread, EVI, NDMI, and MNDWI evidence signals
+- boundary provenance for model-derived activity-window dates
 
 The current build does **not** currently output crop category.
 
@@ -70,7 +73,7 @@ Main outputs:
 
 AOI and window notes:
 
-- intended assessment lookback is the last `24` months UTC
+- intended assessment window is selected/configured per run; legacy/default examples may still use a 24-month lookback
 - demo and smoke-test runs may use shorter configured windows to validate code paths quickly
 - metadata includes `window` and `lookback_months`
 - one row is emitted per solar-day mosaic
@@ -93,7 +96,7 @@ Satellite access notes:
 - Planetary Computer signing is handled softly where needed
 - broader satellite source strategy is unresolved and tracked in `OPEN_ITEMS.md`, including when and why to use Sentinel-2, Landsat, or other possible sources
 
-Current index output includes per-solar-day values for:
+Current index output includes per-solar-day mean and p95 values for:
 
 - NDVI
 - EVI
@@ -104,12 +107,13 @@ Current index output includes per-solar-day values for:
 Required downstream columns include:
 
 - `timestamp`
-- `source`
-- `ndvi`
-- `evi`
-- `ndmi`
-- `ndwi`
-- `mndwi` where available
+- `item_id`
+- `valid_fraction`
+- `ndvi_mean`, `ndvi_p95`
+- `evi_mean`, `evi_p95`
+- `ndmi_mean`, `ndmi_p95`
+- `ndwi_mean`, `ndwi_p95`
+- `mndwi_mean`, `mndwi_p95`
 
 Observation cadence is irregular and keyed by solar-day mosaics. Fixed-interval views belong downstream in preprocessing or analysis. Missing values remain null/NaN so downstream stages can reason explicitly about observation count and gaps.
 
@@ -150,7 +154,7 @@ Input contract:
 
 - input directory: `data/<aoi_id>/`
 - required files: `indices_timeseries.csv`, `run_metadata.json`
-- required CSV columns: `item_id`, `timestamp`, `valid_fraction`, `ndvi_mean`
+- required CSV columns: `item_id`, `timestamp`, `valid_fraction`, `ndvi_mean`, `ndvi_p95`, `evi_mean`, `evi_p95`, `ndmi_mean`, `ndmi_p95`, `ndwi_mean`, `ndwi_p95`, `mndwi_mean`, `mndwi_p95`
 
 Processing behavior:
 
@@ -161,12 +165,14 @@ Processing behavior:
 - negative weights are clamped to `0`; when total weight is `0`, a simple arithmetic mean is used
 - usable observations require `valid_fraction >= 0.90`
 - non-usable rows remain in the output for review and now also receive filled+smoothed analysis values
-- smoothing consists of two phases applied to all indices (NDVI, EVI, NDMI, NDWI):
-  - **Phase 1 — fill:** `fill_analysis_values()` performs linear interpolation across usable-anchor observations, producing `*_filled` values for every observed timestamp. Non-usable rows are filled from the nearest usable anchors; usable rows keep their raw values.
-  - **Phase 2 — smooth:** `smooth_filled_values()` applies a Savitzky-Golay filter (window=`11`, polyorder=`3`) to the filled values, producing `*_smoothed` values. The filter operates over the real observation grid (no synthetic timestamps are created).
-- no synthetic timestamps are created (only observed timestamps are filled and smoothed)
-- the smoothing method name is `linear_interpolation_then_savitzky_golay`
-- `interpolation_policy` is `linear_across_usable_anchors`
+- smoothing builds a model-derived analysis curve for NDVI, EVI, NDMI, NDWI, and MNDWI in two phases (`farmtrust_core/preprocess/analysis_curve.py`):
+  - **Phase 1 — fill:** `fill_at_observations()` performs linear interpolation across inclusion-gated anchors (observations with `valid_fraction >= 0.30`), producing `*_filled` values for every observed timestamp.
+  - **Phase 2 — smooth:** `build_analysis_curves()` solves a quality-weighted **Whittaker–Eilers** smoother on a regular **daily grid** (`(W + lambda * DᵀD) z = W y`, 2nd-order difference penalty, banded SPD solve), then samples that daily curve back to the observation timestamps to produce `*_smoothed`. `lambda` is derived from a ~45-day phenology smoothing timescale (`lambda = (T / 2*pi)^4 ≈ 2631`) — an agronomic constant, not a per-AOI fit.
+- a synthetic **daily** grid is created for the analysis curve only; `ndvi_smoothed.csv` still carries exactly one row per observed timestamp
+- the strict `valid_fraction >= 0.90` usable gate is unchanged and still drives gap/evidence metrics; the analysis curve uses a looser `>= 0.30` inclusion gate with `valid_fraction` weights
+- the smoothing method name is `weighted_whittaker_eilers_daily_grid`
+- `interpolation_policy` is `linear_fill_between_inclusion_gated_anchors_then_whittaker`
+- the daily curve is also persisted as `season_analysis_curve.csv`; filled/smoothed values form a model-derived analysis curve, not direct observation evidence
 
 Current smoothed signals:
 
@@ -174,27 +180,39 @@ Current smoothed signals:
 - `evi_smoothed`
 - `ndmi_smoothed`
 - `ndwi_smoothed`
+- `mndwi_smoothed`
 
 Main outputs:
 
 - `data/preprocess/<aoi_id>/ndvi_smoothed.csv`
 - `data/preprocess/<aoi_id>/quality_metrics.json`
+- `data/preprocess/<aoi_id>/season_analysis_curve.csv` — daily-grid Whittaker analysis curve (`date`, `day_offset`, `is_observed_day`, `analysis_weight`, `*_curve`); consumed by the detector and the diagnostics
 
 `ndvi_smoothed.csv` fields:
 
 - `timestamp`
 - `ndvi_raw`
-- `ndvi_filled` — linear interpolation from usable anchors (all rows have this)
-- `ndvi_smoothed` — Savitzky-Golay of filled values (all rows have this)
+- `ndvi_p95_raw`
+- `ndvi_spread_raw`
+- `ndvi_filled` — linear interpolation from inclusion-gated anchors (all rows have this)
+- `ndvi_smoothed` — daily Whittaker–Eilers analysis curve sampled at this timestamp (all rows have this)
 - `evi_raw`
+- `evi_p95_raw`
 - `evi_filled`
 - `evi_smoothed`
 - `ndmi_raw`
+- `ndmi_p95_raw`
 - `ndmi_filled`
 - `ndmi_smoothed`
 - `ndwi_raw`
+- `ndwi_p95_raw`
 - `ndwi_filled`
 - `ndwi_smoothed`
+- `mndwi_raw`
+- `mndwi_p95_raw`
+- `mndwi_spread_raw`
+- `mndwi_filled`
+- `mndwi_smoothed`
 - `valid_fraction`
 - `is_usable` — evidence flag; all rows now have filled+smoothed values regardless
 - `source_row_count`
@@ -214,9 +232,15 @@ Important quality fields:
 - `fill_policy`
 - `creates_synthetic_timestamps`
 - `smooths_only_usable_observations`
+- `analysis_curve_source`
+- `analysis_curve_direct_evidence`
 - `usable_valid_fraction_threshold`
-- `savgol_window_observations`
-- `savgol_polyorder`
+- `whittaker_difference_order`
+- `lambda_selection_method`
+- `target_smoothing_days`
+- `selected_lambda`
+- `lambda_selection_reason`
+- `analysis_inclusion_valid_fraction`
 - `weighting_policy`
 - `gap_risk`
 - `confidence_penalty`
@@ -259,7 +283,7 @@ Threshold note:
 
 Operational notes:
 
-- downstream activity-window analysis depends on `is_usable = true`, populated `ndvi_smoothed`, and required quality metric keys
+- downstream activity-window analysis uses populated smoothed analysis-curve values across observed timestamps; `is_usable` remains an evidence/support flag for confidence and gap interpretation
 - changes to `valid_fraction_threshold`, smoothing method, or expected cadence can shift activity-window boundaries and should be re-reviewed visually
 - daily duplicate handling matters because overlapping tiles and scene variants can produce repeated observation days
 
@@ -273,8 +297,8 @@ python scripts/seasonal_analysis.py --aoi-id <aoi_id>
 
 Primary responsibilities:
 
-- detect vegetation activity windows from smoothed NDVI
-- identify observed crossing/start/peak/end dates for the detected activity window
+- detect vegetation activity windows from model-derived smoothed NDVI analysis values at observed timestamps
+- estimate crossing/start/peak/end dates for the detected activity window and expose boundary provenance/support
 - label activity windows as `good`, `interrupted`, or `weak`
 - confirm activity windows using EVI/NDMI/NDWI support signals
 - record whether each activity window overlaps long observation gaps
@@ -293,20 +317,19 @@ Input contract:
 
 Detector behavior:
 
-- detection uses gap-aware smoothed NDVI as the primary activity signal
+- detection uses the smoothed/model-derived NDVI analysis curve as the activity-shape signal
 - output field names remain season-oriented for compatibility, but `season` means detected vegetation activity window, not an agronomic crop season
-- detector model is `hybrid_threshold`; it does not use a fixed NDVI activity floor or fixed NDVI amplitude gate alone
-- detection uses the smoothed NDVI curve across all rows (not only usable-flagged rows), since the fill+smooth pipeline produces analysis values for every observed timestamp
-- a global baseline is computed as the 20th percentile of all smoothed NDVI values across the full series
-- confirmed activity windows require NDVI `>= max(0.35, global_baseline + 0.10)`
-- borderline activity windows require NDVI `>= max(0.20, global_baseline + 0.05)` and are reported separately from confirmed windows
-- consecutive observations above the confirmed threshold form a contiguous activity-window segment
-- segments separated by up to `15` days of inactivity (below threshold) are merged into one window
-- a window needs at least `3` observations and at least `15` days of observed duration
-- peak date is the timestamp with maximum `ndvi` inside the retained window
-- lifecycle status is explicit: `complete`, `open_right`, `open_left`, or `open_both`
-- right-edge active windows are emitted with `is_open = true`, `provisional = true`, `lifecycle_status = "open_right"`, and `end_boundary_certainty = "open"`
-- left-edge windows that were already active at the first observation are retained with `lifecycle_status = "open_left"`, `provisional = true`, and `start_boundary_certainty = "open"`
+- detector model is `deterministic_peak_trough_relative_amplitude_phenology`
+- detection runs on the dense **daily** Whittaker analysis curve (rebuilt from the smoothed observations, or read from `season_analysis_curve.csv`); strict usable observations remain the evidence/support layer for gap analysis and confidence — model-derived values are not direct evidence
+- peaks and troughs are found with `scipy.signal.find_peaks` on the daily curve, with minimum peak separation enforced in **real days** (not observation count)
+- each cycle uses **per-limb** baselines and **asymmetric** amplitude thresholds: start-of-season at `baseline_left + ALPHA_START * (peak - baseline_left)` (`ALPHA_START = 0.20`, rising limb) and end-of-season at `baseline_right + ALPHA_END * (peak - baseline_right)` (`ALPHA_END = 0.35`, falling limb — senescence/harvest reads at a higher fraction)
+- a **slope-confirmation** gate requires the daily slope to be sustained for `SLOPE_CONFIRM_STEPS = 3` steps before accepting a crossing (rejects rain-flush false starts)
+- **sub-peak merging:** a trough splits two peaks into separate cycles only if it descends past `CYCLE_SPLIT_AMPLITUDE_FRACTION = 0.50` of the lower neighbouring amplitude; otherwise the sub-peaks merge into one cycle (a berseem multi-cut sawtooth stays a single cycle)
+- `detection_status` (confirmed/borderline) compares cycle amplitude to a single robust noise estimate plus an absolute floor; a window needs at least `4` observations and at least `20` days of observed duration
+- peak date is the daily-curve maximum inside the retained window; `season_id` is sequenced across the combined confirmed+borderline list
+- lifecycle status is by **crossing-reachability**: `complete`, `open_right` (falling crossing not reached before the series end), `open_left` (rising crossing not reached before the series start), or `open_both`
+- `is_open` is right-edge-only (`open_right`/`open_both`); `open_left` is surfaced via `lifecycle_status` + `provisional = true` + `start_boundary_certainty = "open"`
+- `activity_detection_model` records `input_signal=model_derived_analysis_curve_at_observed_timestamps`, `boundary_method=peak_trough_per_cycle_amplitude_fraction`, `alpha_start`, `alpha_end`, `slope_confirm_steps`, `cycle_split_amplitude_fraction`, and `gap_confidence_source=real_usable_observation_timestamps`
 
 Quality labels:
 
@@ -335,7 +358,6 @@ Top-level fields:
 Important season fields:
 
 - `season_id`
-- `crossing_date`
 - `start_date`
 - `peak_date`
 - `end_date`
@@ -350,6 +372,12 @@ Important season fields:
 - `evidence_summary`
 - `lifecycle_status`
 - `detection_status`
+- `season_calendar_label` — broad `summer`/`winter`/`unknown` calendar descriptor from the peak month (not a crop label)
+- `greenup_rate` — mean rising-limb slope of the daily curve
+- `senescence_rate` — mean falling-limb slope of the daily curve
+- `integrated_ndvi` — area under the daily curve above baseline over the cycle (model-derived; distinct from scoring's observation-based `auc_ndvi`)
+- `cycle_split_merged` — true when sub-peaks were merged into this cycle
+- `daily_curve_lambda` — the Whittaker lambda used for the analysis curve
 - `prominence_ndvi`
 - `noise_floor_ndvi`
 - `prominence_to_noise_ratio`
@@ -364,6 +392,15 @@ Important season fields:
 - `peak_certainty`
 - `end_boundary_certainty`
 - `internal_gap_count`
+- `start_boundary_source`
+- `peak_source`
+- `end_boundary_source`
+- `start_nearest_real_observation_date`
+- `peak_nearest_real_observation_date`
+- `end_nearest_real_observation_date`
+- `start_nearest_real_observation_days`
+- `peak_nearest_real_observation_days`
+- `end_nearest_real_observation_days`
 
 Top-level terminology field:
 
@@ -429,17 +466,23 @@ Top-level fields:
 - `interval`
 - `land_status`
 - `trend_2y`
+- `history_coverage`
+- `absence_assessment`
 - `season_count`
 - `latest_season_performance`
 - `risk_flags`
+- `satellite_evidence_coverage`
 - `confidence`
 - `evidence`
 - `metrics_summary`
 
 Assessment policy notes:
 
-- `land_status` is inferred from observed interval-level vegetation activity and low-activity spans, not from one latest point
-- `trend_2y` is derived from activity-window strength summaries such as peak NDVI and window AUC
+- `land_status` is inferred from observed interval-level vegetation activity and evidence/absence gates, not from one latest point
+- one good observed activity cycle can support current `active` status, but history remains `limited_history` until enough cycles exist
+- `absence_assessment` distinguishes `activity_present`, `absence_supported`, `absence_uncertain`, `not_assessed`, and `insufficient_evidence`
+- no activity/inactivity/idle/abandonment wording is issued unless the absence gate passes
+- `trend_2y` is derived from activity-window strength summaries such as peak NDVI and window AUC, but remains `uncertain` when there are fewer than two usable activity windows
 - `latest_season_performance` uses the latest closed activity window when available; otherwise it uses the latest open activity window and marks it provisional
 - risk flags stay conservative and should prefer `uncertain` or lower assessment confidence when continuity or activity-window clarity is weak
 - assessment confidence surfaces component levels for satellite evidence coverage, activity-window clarity, and signal strength in addition to the final level
@@ -452,6 +495,54 @@ Important assessment diagnostics:
 - `metrics_summary.long_gap_windows`
 - `metrics_summary.season_strength[].gap_overlap_count`
 - `metrics_summary.season_strength[].gap_overlap_risk`
+- `metrics_summary.interval_max_ndvi_p95`
+- `metrics_summary.interval_median_ndvi_spread`
+- `metrics_summary.interval_median_mndwi`
+- `metrics_summary.season_strength[].peak_ndvi_p95`
+- `metrics_summary.season_strength[].median_ndvi_spread`
+- `metrics_summary.season_strength[].median_mndwi`
+
+### 5. Report evidence packet
+
+A grounded aggregation layer that the polished report surface and the bounded assistant consume. It does not compute new evidence: it is a deterministic projection over the already-written assessment, season, and quality artifacts.
+
+Main code:
+
+- `farmtrust_core/report/evidence_packet.py` (`build_report_evidence_packet`, `write_report_evidence_packet`)
+
+Input files:
+
+- `data/assessment/<aoi_id>/land_assessment.json`
+- `data/seasonal/<aoi_id>/season_windows.json`
+- `data/preprocess/<aoi_id>/quality_metrics.json`
+- `data/<aoi_id>/run_metadata.json`
+
+Main output:
+
+- `data/assessment/<aoi_id>/report_evidence_packet.json`
+
+Built during the worker's `report_generation` phase, after the land assessment is written. A packet failure is non-fatal: the assessment is already saved.
+
+Top-level fields:
+
+- `packet_version`, `schema`, `aoi_id`, `assessment_status`, `source_artifacts`, `interval`
+- `headline` — cautious `state_label`, `cropping_intensity` (provisional), `overall_confidence`, plain-language `summary`
+- `claims` — typed list organised as `Observed -> Interpreted -> Confidence -> Watch`; each claim carries `layer`, `confidence`, and `rests_on`
+- `layers` — projection mapping each layer to its claim ids
+- `activity_record` — per-cycle dates, calendar label, lifecycle status, peak NDVI
+- `track_record` — seasons observed toward a certifiable trend (provisional framing)
+- `risk_register` — split into `land_risk` and `evidence_limitation` items
+- `limitations`, `boundaries` (fixed "what this does NOT tell you" exclusions)
+- `indicators` (cautious pass-through), `local_context`
+
+Packet policy notes:
+
+- per-claim provenance is intentionally lightweight (`layer` + `confidence` + `rests_on`); the full provenance schema is added by the assistant work (T-04)
+- cautious vocabulary only: one good cycle is `Active — limited history`, never single/double-cropped, stable, or trending
+- no crop identity; `season_calendar_label` is a summer/winter calendar descriptor only
+- yield, income, price, pest, and legal terms appear only inside the fixed `boundaries` exclusions
+- no monitoring or neighbour-baseline sections
+- no wall-clock timestamp, so the artifact is byte-deterministic for the same inputs
 
 ## Current decision rules
 
@@ -479,14 +570,21 @@ Important note:
 
 Current behavior:
 
-- uses interval-level vegetation activity-window behavior plus active-observation fraction
+- uses interval-level vegetation activity-window behavior, active-observation fraction, history coverage, and absence-gate status
 - does **not** decide status from the latest point alone
+- one good recent observed activity cycle can be `active` with `limited_history`
+- no detected activity becomes `inactive` only when the absence gate supports a cautious absence/inactivity claim
 
 Current labels:
 
 - `active`
 - `intermittent`
 - `inactive`
+
+Related coverage fields:
+
+- `history_coverage.status`: `sufficient_history`, `limited_history`, or `insufficient_history`
+- `absence_assessment.status`: `activity_present`, `absence_supported`, `absence_uncertain`, `not_assessed`, or `insufficient_evidence`
 
 ### Trend
 
@@ -544,10 +642,11 @@ The current-build surface should stay focused on:
 ## Current limitations
 
 - gap-risk thresholds are still static
-- no interpolation is performed
+- preprocessing fills and smooths model-derived analysis values at observed timestamps; no synthetic timestamps are created
 - land status is rule-based, not region-calibrated
 - crop category is deferred
 - activity-window detection remains NDVI-primary
+- NDRE/MSAVI, neighbour baselines, monitoring alerts, weather integration, and full pixel maps are deferred
 - CLI fixture input and portal/API polygon input both need validation when contracts change
 
 These are acceptable for the current build as long as confidence and evidence remain explicit.

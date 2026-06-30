@@ -33,6 +33,7 @@ export default function LandProcessingPage({
 
     const handleCancel = async () => {
         if (!land?.job_id || cancelling) return;
+        if (!confirm("Stop this pipeline? For multi-AOI uploads, this stops the shared job for all AOIs in the submission.")) return;
         setCancelling(true);
         try {
             await api.jobs.cancel(land.job_id);
@@ -110,7 +111,7 @@ export default function LandProcessingPage({
 
             <PageHeader
                 title={land.name}
-                subtitle="Satellite analysis in progress"
+                subtitle="Satellite analysis in progress. Multi-AOI uploads share one pipeline job."
                 meta={[
                     { icon: "location_on", value: land.governorate },
                     {
@@ -154,8 +155,9 @@ export default function LandProcessingPage({
                                 Analysis Cancelled
                             </p>
                             <p className="text-xs text-gray-500 mt-0.5">
-                                The pipeline was stopped before completion. You
-                                can resubmit this land for a new analysis.
+                                The shared pipeline was stopped before completion.
+                                For multi-AOI uploads, all AOIs in this submission
+                                stop together.
                             </p>
                         </div>
                     </div>
@@ -205,7 +207,7 @@ export default function LandProcessingPage({
                                 onClick={handleCancel}
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             >
-                                Stop Pipeline
+                                Stop Shared Pipeline
                             </Button>
                         )}
                     </div>

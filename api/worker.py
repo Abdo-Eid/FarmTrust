@@ -12,19 +12,28 @@ from sqlmodel import Session, select
 from api.database import engine
 from api.models import Job, Land, utc_now
 from api.assessment_mapper import map_land_response
-from farmtrust_core.ingest.runner import IngestCancelled, run_ingestion
+from farmtrust_core.ingest.config import geometries_to_bbox
+from farmtrust_core.ingest.runner import (
+    IngestCancelled,
+    download_ingestion,
+    process_ingestion,
+    run_ingestion,
+)
 from farmtrust_core.io.paths import (
     aoi_dir,
     assessment_dir,
+    land_assessment_path,
     preprocess_dir,
     quality_metrics_path,
     run_metadata_path,
+    season_analysis_curve_path,
     season_windows_path,
     seasonal_dir,
     smoothed_timeseries_path,
     timeseries_path,
 )
 from farmtrust_core.preprocess import build_preprocess_artifacts, write_preprocess_outputs
+from farmtrust_core.report import build_report_evidence_packet, write_report_evidence_packet
 from farmtrust_core.scoring import build_land_assessment, write_land_assessment
 from farmtrust_core.seasonal import build_season_payload, write_season_payload
 
@@ -56,7 +65,16 @@ def request_cancel(job_id: str) -> bool:
 def _is_cancelled(job_id: str) -> bool:
     with _cancel_lock:
         event = _cancel_flags.get(job_id)
-    return event is not None and event.is_set()
+    if event is not None and event.is_set():
+        return True
+    with Session(engine) as session:
+        job = session.get(Job, job_id)
+        return bool(job and job.cancel_requested)
+
+
+def _raise_if_cancelled(job_id: str) -> None:
+    if _is_cancelled(job_id):
+        raise IngestCancelled("Cancelled")
 
 
 def progress_for_job(job: Job) -> int:
@@ -113,6 +131,71 @@ def _on_scene_progress(job_id: str, done: int, total: int) -> None:
             s.commit()
 
 
+def _run_land_analysis(session: Session, job: Job, land: Land) -> None:
+    _raise_if_cancelled(job.id)
+    _set_job(session, job, phase="vegetation_analysis")
+    _append_log(session, job, f"[INFO] Building smoothed vegetation time series for {land.name}")
+    preprocess = build_preprocess_artifacts(
+        csv_path=timeseries_path(land.aoi_id),
+        metadata_path=run_metadata_path(land.aoi_id),
+    )
+    write_preprocess_outputs(
+        output_dir=preprocess_dir(land.aoi_id),
+        processed_observations=preprocess["processed_observations"],
+        quality_metrics=preprocess["quality_metrics"],
+        analysis_curve=preprocess["analysis_curve"],
+    )
+
+    _raise_if_cancelled(job.id)
+    _append_log(session, job, f"[INFO] Detecting vegetation activity windows for {land.name}")
+    season_payload = build_season_payload(
+        smoothed_csv_path=smoothed_timeseries_path(land.aoi_id),
+        quality_metrics_path=quality_metrics_path(land.aoi_id),
+        daily_curve_path=season_analysis_curve_path(land.aoi_id),
+    )
+    write_season_payload(output_dir=seasonal_dir(land.aoi_id), payload=season_payload)
+
+    _raise_if_cancelled(job.id)
+    _set_job(session, job, phase="risk_modeling")
+    _append_log(session, job, f"[INFO] Running rule-based land assessment for {land.name}")
+    assessment = build_land_assessment(
+        run_metadata_path=run_metadata_path(land.aoi_id),
+        smoothed_csv_path=smoothed_timeseries_path(land.aoi_id),
+        quality_metrics_path=quality_metrics_path(land.aoi_id),
+        season_payload_path=season_windows_path(land.aoi_id),
+    )
+    write_land_assessment(output_dir=assessment_dir(land.aoi_id), payload=assessment)
+
+    mapped = map_land_response(land, job)
+    land.land_status = mapped.land_status
+    land.trend_2y = mapped.trend_2y
+    land.season_performance = mapped.season_performance
+    land.risk_tier = mapped.risk_tier
+    session.add(land)
+    session.commit()
+
+
+def _build_evidence_packet(session: Session, job: Job, land: Land) -> None:
+    """Build and write the grounded report evidence packet for one land.
+
+    The land assessment is already saved by the time this runs, so a packet
+    failure is non-fatal: log a warning and continue rather than failing the
+    whole job. Cancellation is checked by the caller before this is invoked.
+    """
+    try:
+        packet = build_report_evidence_packet(
+            assessment_path=land_assessment_path(land.aoi_id),
+            season_payload_path=season_windows_path(land.aoi_id),
+            quality_metrics_path=quality_metrics_path(land.aoi_id),
+            run_metadata_path=run_metadata_path(land.aoi_id),
+            area_feddan=land.area_feddan,
+        )
+        write_report_evidence_packet(output_dir=assessment_dir(land.aoi_id), packet=packet)
+        _append_log(session, job, f"[INFO] Evidence packet written for {land.name}")
+    except Exception as exc:  # noqa: BLE001 - packet is non-fatal; assessment already saved
+        _append_log(session, job, f"[WARN] Evidence packet skipped for {land.name}: {exc}")
+
+
 def _run_job(job_id: str, land_id: str) -> None:
     # Register cancel flag
     cancel_event = threading.Event()
@@ -125,16 +208,25 @@ def _run_job(job_id: str, land_id: str) -> None:
             land = session.get(Land, land_id)
             if job is None or land is None:
                 return
+            if job.cancel_requested:
+                cancel_event.set()
+
+            lands = session.exec(
+                select(Land).where(Land.job_id == job_id).order_by(Land.created_at)
+            ).all()
+            if not lands:
+                lands = [land]
 
             lookback_days: int = land.lookback_days or 730
 
             try:
-                geometry = json.loads(land.geometry)
+                _raise_if_cancelled(job_id)
+                geometries = [json.loads(current_land.geometry) for current_land in lands]
                 end = date.today()
                 start = end - timedelta(days=lookback_days)
 
                 _set_job(session, job, status="running", phase="aoi_validation")
-                _append_log(session, job, "[INFO] AOI geometry received and validated")
+                _append_log(session, job, f"[INFO] {len(lands)} AOI geometry received and validated")
 
                 _set_job(session, job, phase="satellite_fetch")
                 _append_log(
@@ -142,58 +234,67 @@ def _run_job(job_id: str, land_id: str) -> None:
                     f"[INFO] Fetching Sentinel-2 scenes from {start.isoformat()} "
                     f"to {end.isoformat()} ({lookback_days} days lookback)"
                 )
-                run_ingestion(
-                    output_dir=aoi_dir(land.aoi_id),
-                    aoi_id=land.aoi_id,
-                    bbox=[0, 0, 0, 0],
-                    geometry=geometry,
-                    start_date=start.isoformat(),
-                    end_date=end.isoformat(),
-                    max_cloud=30.0,
-                    force_rerun=False,
-                    limit_items=None,
-                    log_signed_hrefs=False,
-                    on_progress=lambda done, total: _on_scene_progress(job_id, done, total),
-                    cancel_check=lambda: _is_cancelled(job_id),
-                )
 
-                _set_job(session, job, phase="vegetation_analysis")
-                _append_log(session, job, "[INFO] Building smoothed vegetation time series")
-                preprocess = build_preprocess_artifacts(
-                    csv_path=timeseries_path(land.aoi_id),
-                    metadata_path=run_metadata_path(land.aoi_id),
-                )
-                write_preprocess_outputs(
-                    output_dir=preprocess_dir(land.aoi_id),
-                    processed_observations=preprocess["processed_observations"],
-                    quality_metrics=preprocess["quality_metrics"],
-                )
+                if len(lands) == 1:
+                    _raise_if_cancelled(job_id)
+                    run_ingestion(
+                        output_dir=aoi_dir(land.aoi_id),
+                        aoi_id=land.aoi_id,
+                        bbox=[0, 0, 0, 0],
+                        geometry=geometries[0],
+                        start_date=start.isoformat(),
+                        end_date=end.isoformat(),
+                        max_cloud=30.0,
+                        force_rerun=False,
+                        limit_items=None,
+                        log_signed_hrefs=False,
+                        on_progress=lambda done, total: _on_scene_progress(job_id, done, total),
+                        cancel_check=lambda: _is_cancelled(job_id),
+                    )
+                else:
+                    batch_aoi_id = f"batch-{job_id}"
+                    batch_dir = aoi_dir(batch_aoi_id)
+                    combined_bbox = geometries_to_bbox(geometries)
+                    _append_log(
+                        session,
+                        job,
+                        f"[INFO] Downloading one shared cube for {len(lands)} AOIs",
+                    )
+                    _raise_if_cancelled(job_id)
+                    download_ingestion(
+                        output_dir=batch_dir,
+                        aoi_id=batch_aoi_id,
+                        bbox=combined_bbox,
+                        geometry=None,
+                        start_date=start.isoformat(),
+                        end_date=end.isoformat(),
+                        max_cloud=30.0,
+                        force_rerun=False,
+                        limit_items=None,
+                        log_signed_hrefs=False,
+                        on_progress=lambda done, total: _on_scene_progress(job_id, done, total),
+                        cancel_check=lambda: _is_cancelled(job_id),
+                    )
 
-                _append_log(session, job, "[INFO] Detecting vegetation activity windows")
-                season_payload = build_season_payload(
-                    smoothed_csv_path=smoothed_timeseries_path(land.aoi_id),
-                    quality_metrics_path=quality_metrics_path(land.aoi_id),
-                )
-                write_season_payload(output_dir=seasonal_dir(land.aoi_id), payload=season_payload)
-
-                _set_job(session, job, phase="risk_modeling")
-                _append_log(session, job, "[INFO] Running rule-based land assessment")
-                assessment = build_land_assessment(
-                    run_metadata_path=run_metadata_path(land.aoi_id),
-                    smoothed_csv_path=smoothed_timeseries_path(land.aoi_id),
-                    quality_metrics_path=quality_metrics_path(land.aoi_id),
-                    season_payload_path=season_windows_path(land.aoi_id),
-                )
-                write_land_assessment(output_dir=assessment_dir(land.aoi_id), payload=assessment)
+                    for current_land, geometry in zip(lands, geometries):
+                        _raise_if_cancelled(job_id)
+                        _append_log(session, job, f"[INFO] Processing AOI mask for {current_land.name}")
+                        process_ingestion(
+                            output_dir=aoi_dir(current_land.aoi_id),
+                            source_dir=batch_dir,
+                            aoi_id=current_land.aoi_id,
+                            geometry=geometry,
+                            on_progress=None,
+                            cancel_check=lambda: _is_cancelled(job_id),
+                        )
+                for current_land in lands:
+                    _raise_if_cancelled(job_id)
+                    _run_land_analysis(session, job, current_land)
 
                 _set_job(session, job, phase="report_generation")
-                mapped = map_land_response(land, job)
-                land.land_status = mapped.land_status
-                land.trend_2y = mapped.trend_2y
-                land.season_performance = mapped.season_performance
-                land.risk_tier = mapped.risk_tier
-                session.add(land)
-                session.commit()
+                for current_land in lands:
+                    _raise_if_cancelled(job_id)
+                    _build_evidence_packet(session, job, current_land)
 
                 _append_log(session, job, "[INFO] Analysis succeeded")
                 _set_job(session, job, status="succeeded", phase="report_generation")

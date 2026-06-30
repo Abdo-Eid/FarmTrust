@@ -1255,6 +1255,9 @@ def process_cubes(
     output_dir: Path,
     cancel_check: Optional[Callable[[], bool]] = None,
     on_progress: Optional[Callable[[int, int], None]] = None,
+    source_dir: Optional[Path] = None,
+    aoi_id: Optional[str] = None,
+    geometry: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Phase 2: open cube.zarr → compute stats → CSV export.
 
@@ -1263,10 +1266,14 @@ def process_cubes(
     are never processed. Config is read from run_metadata.json.
     """
     logger = logging.getLogger(__name__)
+    source_dir = source_dir or output_dir
+    writes_source_artifacts = source_dir == output_dir
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    zarr_path = output_dir / "cube.zarr"
-    index_path = output_dir / "scenes_index.jsonl"
+    zarr_path = source_dir / "cube.zarr"
+    index_path = source_dir / "scenes_index.jsonl"
     csv_path = output_dir / "indices_timeseries.csv"
+    source_metadata_path = source_dir / "run_metadata.json"
     metadata_path = output_dir / "run_metadata.json"
 
     if not zarr_path.exists():
@@ -1274,15 +1281,16 @@ def process_cubes(
         with csv_path.open("w", newline="", encoding="utf-8") as handle:
             csv.writer(handle).writerow(CSV_HEADERS)
         return
-    if not metadata_path.exists():
+    if not source_metadata_path.exists():
         raise FileNotFoundError(
-            f"run_metadata.json not found at {metadata_path}. Run download_cubes() first."
+            f"run_metadata.json not found at {source_metadata_path}. Run download_cubes() first."
         )
-    validate_ingestion_artifacts(output_dir, require_csv=False)
+    validate_ingestion_artifacts(source_dir, require_csv=False)
 
-    meta = json.loads(metadata_path.read_text(encoding="utf-8"))
-    geometry: Optional[Dict[str, Any]] = meta.get("geometry")
-    bbox: List[float] = list(meta["bbox"])
+    meta = json.loads(source_metadata_path.read_text(encoding="utf-8"))
+    source_bbox: List[float] = list(meta["bbox"])
+    geometry = normalize_geometry(geometry) if geometry is not None else meta.get("geometry")
+    bbox: List[float] = geometry_to_bbox(geometry) if geometry else source_bbox
     crs: str = meta["crs"]
     resolution: int = meta["resolution"]
     max_cloud: float = meta["max_cloud"]
@@ -1322,12 +1330,13 @@ def process_cubes(
             ds_day, aoi_geometry=geometry, invalid_scl_classes=invalid_scl, crs_wkt=crs_wkt,
         )
         if stats is None:
-            new_rec = {
-                "solar_day": solar_day, "cache_key": cache_key,
-                "status": "empty_aoi", "updated_at": utc_now_iso(),
-            }
-            day_index["days"][solar_day] = new_rec
-            _append_day_entry(index_path, new_rec)
+            if writes_source_artifacts:
+                new_rec = {
+                    "solar_day": solar_day, "cache_key": cache_key,
+                    "status": "empty_aoi", "updated_at": utc_now_iso(),
+                }
+                day_index["days"][solar_day] = new_rec
+                _append_day_entry(index_path, new_rec)
             logger.warning(f"{solar_day}: AOI has zero pixels on grid, skipping")
             done += 1
             if on_progress:
@@ -1347,11 +1356,25 @@ def process_cubes(
         writer.writerow(CSV_HEADERS)
         writer.writerows(rows)
 
+    meta["aoi_id"] = aoi_id or meta.get("aoi_id")
+    meta["bbox"] = bbox
+    meta["geometry"] = geometry
     meta["processed_solar_day_count"] = len(rows)
     meta["newly_computed_count"] = computed
     meta["process_completed_at"] = utc_now_iso()
+    meta["outputs"] = {
+        **dict(meta.get("outputs", {})),
+        "csv": csv_path.as_posix(),
+    }
+    if not writes_source_artifacts:
+        meta["shared_download"] = {
+            "source_dir": source_dir.as_posix(),
+            "source_aoi_id": json.loads(source_metadata_path.read_text(encoding="utf-8")).get("aoi_id"),
+            "source_bbox": source_bbox,
+        }
     safe_write_text(metadata_path, json.dumps(meta, indent=2, sort_keys=True))
-    validate_ingestion_artifacts(output_dir, require_csv=True)
+    if writes_source_artifacts:
+        validate_ingestion_artifacts(output_dir, require_csv=True)
     logger.info(f"Process done: {len(rows)} solar-day rows → {csv_path}")
 
 

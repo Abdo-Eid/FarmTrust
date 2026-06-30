@@ -44,12 +44,6 @@ const SATELLITE_EVIDENCE_LABELS: Record<string, string> = {
     insufficient: "Insufficient Evidence",
 };
 
-const NEIGHBOR_LABELS: Record<string, string> = {
-    above_avg: "Above Average",
-    avg: "Average",
-    below_avg: "Below Average",
-};
-
 // Stylesheet
 const styles = StyleSheet.create({
     page: {
@@ -263,12 +257,6 @@ export function ReportDocument({
             ? TREND_LABELS[land.trend_2y]
             : land.trend_2y || "Unknown";
 
-    const neighborLabel =
-        land.indicators?.neighbor_comparison &&
-        NEIGHBOR_LABELS[land.indicators.neighbor_comparison]
-            ? NEIGHBOR_LABELS[land.indicators.neighbor_comparison]
-            : land.indicators?.neighbor_comparison || "N/A";
-
     const formattedDate = new Date(land.submitted_at).toLocaleDateString(
         "en-US",
         {
@@ -435,10 +423,46 @@ export function ReportDocument({
                         </View>
                         <View style={styles.indicatorCol}>
                             <Text style={styles.indicatorLabel}>
-                                Neighbor Comparison
+                                Observation Coverage
                             </Text>
                             <Text style={styles.indicatorValue}>
-                                {neighborLabel}
+                                {land.indicators?.observation_coverage !== undefined
+                                    ? `${(land.indicators.observation_coverage * 100).toFixed(1)}%`
+                                    : "N/A"}
+                            </Text>
+                        </View>
+                    </View>
+                    <View style={styles.indicatorRow}>
+                        <View style={styles.indicatorCol}>
+                            <Text style={styles.indicatorLabel}>NDVI p95 Peak</Text>
+                            <Text style={styles.indicatorValue}>
+                                {land.indicators?.ndvi_p95_peak
+                                    ? land.indicators.ndvi_p95_peak.toFixed(3)
+                                    : "N/A"}
+                            </Text>
+                        </View>
+                        <View style={styles.indicatorCol}>
+                            <Text style={styles.indicatorLabel}>Field Spread</Text>
+                            <Text style={styles.indicatorValue}>
+                                {land.indicators?.ndvi_spread_median !== undefined
+                                    ? land.indicators.ndvi_spread_median.toFixed(3)
+                                    : "N/A"}
+                            </Text>
+                        </View>
+                        <View style={styles.indicatorCol}>
+                            <Text style={styles.indicatorLabel}>Moisture Signal</Text>
+                            <Text style={styles.indicatorValue}>
+                                {land.indicators?.ndmi_median !== undefined
+                                    ? land.indicators.ndmi_median.toFixed(3)
+                                    : "N/A"}
+                            </Text>
+                        </View>
+                        <View style={styles.indicatorCol}>
+                            <Text style={styles.indicatorLabel}>Surface-Water Signal</Text>
+                            <Text style={styles.indicatorValue}>
+                                {land.indicators?.mndwi_median !== undefined
+                                    ? land.indicators.mndwi_median.toFixed(3)
+                                    : "N/A"}
                             </Text>
                         </View>
                     </View>

@@ -98,10 +98,10 @@ export function DecisionBrief({ land }: DecisionBriefProps) {
         <p className="text-xs text-gray-500">
           {requiresManualReview
             ? 'Satellite evidence is insufficient for a final automated assessment. Manual review is required.'
-            : 'Decision outputs derived from 24-month satellite observation window.'}
-          {!requiresManualReview && risk_tier === 'low' && ' Suitable for standard financing consideration.'}
-          {!requiresManualReview && risk_tier === 'medium' && ' Conditional financing - review risk flags before proceeding.'}
-          {!requiresManualReview && risk_tier === 'high' && ' High risk - additional assessment recommended before financing.'}
+            : 'Decision-support outputs derived from the satellite observation window.'}
+          {!requiresManualReview && risk_tier === 'low' && ' No current risk flags were issued by the assessment.'}
+          {!requiresManualReview && risk_tier === 'medium' && ' Review risk flags and evidence limitations before making external decisions.'}
+          {!requiresManualReview && risk_tier === 'high' && ' Additional review is recommended before relying on this assessment.'}
         </p>
       </div>
     </div>

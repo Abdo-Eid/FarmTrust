@@ -8,6 +8,7 @@ dependencies = [
     "fastapi[standard]>=0.115",
     "numpy>=2.4.3",
     "pandas>=3.0.1",
+    "scipy>=1.13",
     "sqlmodel>=0.0.21",
     "uvicorn[standard]>=0.30",
 ]

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { MapContainer, TileLayer, GeoJSON, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import type { Geometry } from "geojson";
+import type { Feature, GeoJSON as GeoJSONData, Geometry } from "geojson";
 
 // Fix broken default marker icons in webpack/Next.js builds
 delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)
@@ -34,7 +34,8 @@ export interface MapProps {
     center?: [number, number];
     zoom?: number;
     geometry?: Geometry | null;
-    geojson?: GeoJSON.FeatureCollection | null;
+    geojson?: GeoJSONData | null;
+    fitBoundsOnData?: boolean;
     showLayerControls?: boolean;
     defaultLayerMode?: LayerMode;
     onMapReady?: (map: L.Map) => void;
@@ -101,7 +102,6 @@ function DrawLayer({ drawKey, onPolygonChange }: DrawLayerProps) {
     // Reset whenever drawKey changes
     useEffect(() => {
         clearAll();
-        cbRef.current(null);
     }, [drawKey, clearAll]);
 
     // Cleanup on unmount
@@ -219,6 +219,20 @@ function MapReadyHandler({
     return null;
 }
 
+function FitGeoJSONBounds({ data }: { data: GeoJSONData }) {
+    const map = useMap();
+
+    useEffect(() => {
+        const layer = L.geoJSON(data);
+        const bounds = layer.getBounds();
+        if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [24, 24], maxZoom: 17 });
+        }
+    }, [data, map]);
+
+    return null;
+}
+
 // ─── Map ─────────────────────────────────────────────────────────────────────
 
 export function Map({
@@ -226,6 +240,7 @@ export function Map({
     zoom = 6,
     geometry,
     geojson,
+    fitBoundsOnData = false,
     showLayerControls = false,
     defaultLayerMode = "satellite",
     onMapReady,
@@ -252,9 +267,11 @@ export function Map({
     );
 
     // Display-mode data
-    const geoData = geometry
-        ? { type: "Feature" as const, geometry, properties: {} }
-        : geojson?.features[0];
+    const geoData: GeoJSONData | null = geojson
+        ? geojson
+        : geometry
+          ? ({ type: "Feature", geometry, properties: {} } satisfies Feature<Geometry>)
+          : null;
 
     const useSatellite = layerMode !== "rgb";
 
@@ -291,8 +308,8 @@ export function Map({
                     />
                 )}
 
-                {/* Display mode: render existing geometry */}
-                {mode === "display" && geoData && (
+                {/* Render existing or uploaded geometry */}
+                {geoData && (
                     <GeoJSON
                         key={JSON.stringify(geoData)}
                         data={geoData}
@@ -305,6 +322,8 @@ export function Map({
                         }}
                     />
                 )}
+
+                {fitBoundsOnData && geoData && <FitGeoJSONBounds data={geoData} />}
 
                 {/* Draw mode */}
                 {mode === "draw" && (

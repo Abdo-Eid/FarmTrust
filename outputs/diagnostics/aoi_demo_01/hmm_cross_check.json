@@ -1,0 +1,118 @@
+{
+  "aoi_id": "aoi_demo_01",
+  "claim_type": "isolated_research_cross_check",
+  "comparison": {
+    "agreement_within_tolerance": true,
+    "cycle_count_delta": 0,
+    "hmm_cycle_count": 4,
+    "lifecycle_agreement_fraction": 1.0,
+    "matched_count": 4,
+    "matches": [
+      {
+        "eos_delta_days": 8,
+        "lifecycle_match": true,
+        "pos_delta_days": 0,
+        "season_id": "season_01",
+        "sos_delta_days": -6
+      },
+      {
+        "eos_delta_days": 10,
+        "lifecycle_match": true,
+        "pos_delta_days": 0,
+        "season_id": "season_02",
+        "sos_delta_days": 0
+      },
+      {
+        "eos_delta_days": 9,
+        "lifecycle_match": true,
+        "pos_delta_days": 0,
+        "season_id": "season_03",
+        "sos_delta_days": 3
+      },
+      {
+        "eos_delta_days": 11,
+        "lifecycle_match": true,
+        "pos_delta_days": 0,
+        "season_id": "season_04",
+        "sos_delta_days": -2
+      }
+    ],
+    "max_abs_pos_delta_days": 0,
+    "mean_abs_eos_delta_days": 9.5,
+    "mean_abs_pos_delta_days": 0.0,
+    "mean_abs_sos_delta_days": 2.75,
+    "prod_cycle_count": 4,
+    "tolerance_days": 30,
+    "unmatched_hmm_indices": [],
+    "unmatched_prod_ids": []
+  },
+  "daily_curve_source": "season_analysis_curve.csv",
+  "detector_seasons": [
+    {
+      "end_date": "2024-08-21",
+      "lifecycle_status": "complete",
+      "peak_date": "2024-07-10",
+      "season_id": "season_01",
+      "start_date": "2024-06-01"
+    },
+    {
+      "end_date": "2025-04-23",
+      "lifecycle_status": "complete",
+      "peak_date": "2025-01-31",
+      "season_id": "season_02",
+      "start_date": "2024-10-09"
+    },
+    {
+      "end_date": "2025-09-03",
+      "lifecycle_status": "complete",
+      "peak_date": "2025-07-27",
+      "season_id": "season_03",
+      "start_date": "2025-06-15"
+    },
+    {
+      "end_date": "2026-05-22",
+      "lifecycle_status": "complete",
+      "peak_date": "2026-03-17",
+      "season_id": "season_04",
+      "start_date": "2025-10-05"
+    }
+  ],
+  "hmm_cycles": [
+    {
+      "duration_days": 95,
+      "eos_date": "2024-08-29",
+      "lifecycle_status": "complete",
+      "peak_ndvi": 0.762562,
+      "pos_date": "2024-07-10",
+      "sos_date": "2024-05-26"
+    },
+    {
+      "duration_days": 206,
+      "eos_date": "2025-05-03",
+      "lifecycle_status": "complete",
+      "peak_ndvi": 0.877391,
+      "pos_date": "2025-01-31",
+      "sos_date": "2024-10-09"
+    },
+    {
+      "duration_days": 86,
+      "eos_date": "2025-09-12",
+      "lifecycle_status": "complete",
+      "peak_ndvi": 0.808485,
+      "pos_date": "2025-07-27",
+      "sos_date": "2025-06-18"
+    },
+    {
+      "duration_days": 242,
+      "eos_date": "2026-06-02",
+      "lifecycle_status": "complete",
+      "peak_ndvi": 0.87146,
+      "pos_date": "2026-03-17",
+      "sos_date": "2025-10-03"
+    }
+  ],
+  "hmm_has_high_state": true,
+  "method": "gaussian_hmm_4state_value_slope",
+  "provenance_level": 2,
+  "restriction": "diagnostic_only; not_consumed_by_scoring; no_crop_identity_claims"
+}

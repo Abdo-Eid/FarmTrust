@@ -10,7 +10,7 @@ import xarray as xr
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 AOI_DIR = PROJECT_ROOT / "data" / "aoi_demo_01"
-MODEL_DIR = PROJECT_ROOT / "notebooks" / "data" / "models" / "combined_crop_classifier"
+MODEL_DIR = PROJECT_ROOT / "notebooks" / "data" / "models" / "morocco_crop_lightgbm_baseline"
 WEATHER_PATH = AOI_DIR / "weather_daily.parquet"
 INDICES_PATH = AOI_DIR / "indices_timeseries.csv"
 CUBE_PATH = AOI_DIR / "cube.zarr"

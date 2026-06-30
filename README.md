@@ -73,7 +73,7 @@ Install and sync dependencies with `uv`.
 
 Dependency split model:
 
-- Main dependencies: minimal runtime dependencies required by `farmtrust_core` code.
+- Main dependencies: minimal runtime dependencies required by `farmtrust_core` code (FastAPI/uvicorn plus `numpy`, `pandas`, and `scipy`; `scipy` powers the Whittaker analysis-curve banded solve and `find_peaks` in seasonal analysis).
 - Optional extra `data`: ingestion and geospatial stack.
 - Optional extra `ml`: placeholder for a later ML framework decision (intentionally empty).
 - Dev group: local developer tooling.

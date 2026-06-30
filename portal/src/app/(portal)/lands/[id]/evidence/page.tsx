@@ -14,22 +14,6 @@ import * as Tabs from '@radix-ui/react-tabs'
 import { format, parseISO } from 'date-fns'
 import type { Column, NDVIPoint } from '@/lib/types'
 
-interface ComparableRecord {
-  id: string
-  area_feddan: number
-  status: string
-  ndvi_peak: number
-  risk_tier: string
-}
-
-const MOCK_COMPARABLES: ComparableRecord[] = [
-  { id: 'FT-2024-0051', area_feddan: 3.5, status: 'Active', ndvi_peak: 0.72, risk_tier: 'Low' },
-  { id: 'FT-2024-0052', area_feddan: 4.2, status: 'Active', ndvi_peak: 0.68, risk_tier: 'Low' },
-  { id: 'FT-2024-0053', area_feddan: 2.8, status: 'Intermittent', ndvi_peak: 0.54, risk_tier: 'Medium' },
-  { id: 'FT-2024-0054', area_feddan: 3.9, status: 'Active', ndvi_peak: 0.75, risk_tier: 'Low' },
-  { id: 'FT-2024-0055', area_feddan: 3.2, status: 'Inactive', ndvi_peak: 0.42, risk_tier: 'High' },
-]
-
 function downloadCSV(data: Record<string, unknown>[], filename: string) {
   if (!data.length) return
   const keys = Object.keys(data[0])
@@ -112,28 +96,12 @@ export default function EvidencePage() {
     },
   ]
 
-  const comparableColumns: Column<ComparableRecord>[] = [
-    { key: 'id', label: 'Land ID' },
-    {
-      key: 'area_feddan',
-      label: 'Area (feddan)',
-      render: (value) => (value as number).toFixed(1),
-    },
-    { key: 'status', label: 'Status' },
-    {
-      key: 'ndvi_peak',
-      label: 'NDVI Peak',
-      render: (value) => (value as number).toFixed(3),
-    },
-    { key: 'risk_tier', label: 'Risk Tier' },
-  ]
-
   const getRiskDescription = (flag: string): string => {
     const descriptions: Record<string, string> = {
-      waterlogging: 'Excess water retention detected in soil profile',
-      salinity: 'Elevated salt concentration affecting crop yield',
-      abandonment: 'Insufficient sustained vegetation activity',
-      encroachment: 'Boundary violation or unauthorized land use detected',
+      waterlogging: 'Surface-water or moisture signal requiring review',
+      salinity: 'Vegetation/moisture pattern consistent with a possible stress signal',
+      abandonment: 'Possible abandonment only when supported by sufficient history and absence evidence',
+      encroachment: 'Boundary-related signal requiring external verification',
     }
     return descriptions[flag] || 'Unknown risk flag'
   }
@@ -208,12 +176,6 @@ export default function EvidencePage() {
               className="px-4 py-2 text-sm font-medium text-gray-600 border-b-2 border-transparent data-[state=active]:border-teal-600 data-[state=active]:text-teal-700 hover:text-gray-900"
             >
               Risk Signals
-            </Tabs.Trigger>
-            <Tabs.Trigger
-              value="comparables"
-              className="px-4 py-2 text-sm font-medium text-gray-600 border-b-2 border-transparent data-[state=active]:border-teal-600 data-[state=active]:text-teal-700 hover:text-gray-900"
-            >
-              Comparables
             </Tabs.Trigger>
           </Tabs.List>
 
@@ -360,6 +322,26 @@ export default function EvidencePage() {
                         </p>
                       </div>
                     )}
+                    {land.indicators.ndvi_p95_peak !== undefined && (
+                      <div className="p-3 bg-gray-50 rounded-md border border-gray-100">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">
+                          NDVI p95 Peak
+                        </p>
+                        <p className="text-lg font-semibold text-gray-900">
+                          {land.indicators.ndvi_p95_peak.toFixed(3)}
+                        </p>
+                      </div>
+                    )}
+                    {land.indicators.ndvi_spread_median !== undefined && (
+                      <div className="p-3 bg-gray-50 rounded-md border border-gray-100">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">
+                          Field Spread Signal
+                        </p>
+                        <p className="text-lg font-semibold text-gray-900">
+                          {land.indicators.ndvi_spread_median.toFixed(3)}
+                        </p>
+                      </div>
+                    )}
                     {land.indicators.ndvi_auc !== undefined && (
                       <div className="p-3 bg-gray-50 rounded-md border border-gray-100">
                         <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">
@@ -370,6 +352,36 @@ export default function EvidencePage() {
                         </p>
                       </div>
                     )}
+                    {land.indicators.evi_peak !== undefined && (
+                      <div className="p-3 bg-gray-50 rounded-md border border-gray-100">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">
+                          EVI Confirmation
+                        </p>
+                        <p className="text-lg font-semibold text-gray-900">
+                          {land.indicators.evi_peak.toFixed(3)}
+                        </p>
+                      </div>
+                    )}
+                    {land.indicators.ndmi_median !== undefined && (
+                      <div className="p-3 bg-gray-50 rounded-md border border-gray-100">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">
+                          Moisture Signal
+                        </p>
+                        <p className="text-lg font-semibold text-gray-900">
+                          {land.indicators.ndmi_median.toFixed(3)}
+                        </p>
+                      </div>
+                    )}
+                    {land.indicators.mndwi_median !== undefined && (
+                      <div className="p-3 bg-gray-50 rounded-md border border-gray-100">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">
+                          Surface-Water Signal
+                        </p>
+                        <p className="text-lg font-semibold text-gray-900">
+                          {land.indicators.mndwi_median.toFixed(3)}
+                        </p>
+                      </div>
+                    )}
                     {land.indicators.cloud_free_scenes !== undefined && (
                       <div className="p-3 bg-gray-50 rounded-md border border-gray-100">
                         <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">
@@ -377,16 +389,6 @@ export default function EvidencePage() {
                         </p>
                         <p className="text-lg font-semibold text-gray-900">
                           {land.indicators.cloud_free_scenes}
-                        </p>
-                      </div>
-                    )}
-                    {land.indicators.neighbor_comparison && (
-                      <div className="p-3 bg-gray-50 rounded-md border border-gray-100">
-                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">
-                          Neighbor Comparison
-                        </p>
-                        <p className="text-lg font-semibold text-gray-900 capitalize">
-                          {land.indicators.neighbor_comparison.replace(/_/g, ' ')}
                         </p>
                       </div>
                     )}
@@ -406,33 +408,6 @@ export default function EvidencePage() {
             </div>
           </Tabs.Content>
 
-          {/* Comparables Tab */}
-          <Tabs.Content value="comparables" className="pt-6">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <CardTitle>Comparable Parcels (Sample)</CardTitle>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Sample data for illustration — will be replaced with real comparable parcels when backend is connected.
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <DataTable
-                  columns={comparableColumns}
-                  data={MOCK_COMPARABLES}
-                  emptyMessage="No comparable data available"
-                />
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <p className="text-xs text-gray-500">
-                    Comparables sourced from same governorate, ±20% area range
-                  </p>
-                </div>
-              </Card>
-            </div>
-          </Tabs.Content>
         </Tabs.Root>
       </div>
     </div>

@@ -12,7 +12,7 @@ import { LandStatusBadge } from '@/components/lands/LandStatusBadge'
 import { SatelliteEvidenceBadge } from '@/components/lands/SatelliteEvidenceBadge'
 import { TrendIndicator } from '@/components/lands/TrendIndicator'
 import { RISK_TIER_COLORS, RISK_TIER_LABELS } from '@/lib/constants'
-import type { LandResult, Column } from '@/lib/types'
+import type { Column, LandGroupResult } from '@/lib/types'
 import { formatFeddan } from '@/lib/geo'
 import { api } from '@/lib/api'
 
@@ -31,12 +31,12 @@ export default function LandsPage() {
 
   async function handleDelete(e: React.MouseEvent, id: string) {
     e.stopPropagation()
-    if (!confirm('Delete this land and all its pipeline data? This cannot be undone.')) return
+    if (!confirm('Delete this submission, all child AOIs, and all pipeline data? This cannot be undone.')) return
     setDeletingId(id)
     setDeleteError(null)
     try {
-      await api.lands.delete(id)
-      await queryClient.invalidateQueries({ queryKey: ['lands'] })
+      await api.lands.deleteGroup(id)
+      await queryClient.invalidateQueries({ queryKey: ['land-groups'] })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Delete failed'
       // Extract the FastAPI detail message if present
@@ -49,7 +49,7 @@ export default function LandsPage() {
 
   const stats = useMemo(() => {
     const total     = lands.length
-    const active    = lands.filter(l => l.land_status === 'active').length
+    const active    = lands.reduce((count, group) => count + group.children.filter(l => l.land_status === 'active').length, 0)
     const pending   = lands.filter(l => l.job_status === 'running' || l.job_status === 'queued').length
     const highRisk  = lands.filter(l => l.risk_tier === 'high').length
     return { total, active, pending, highRisk }
@@ -71,15 +71,17 @@ export default function LandsPage() {
     })
   }, [lands, statusFilter, confidenceFilter, search])
 
-  const columns: Column<LandResult>[] = [
+  const columns: Column<LandGroupResult>[] = [
     {
       key: 'name',
-      label: 'Land / Location',
+      label: 'Submission / Location',
       sortable: true,
       render: (_, row) => (
         <div>
           <p className="font-medium text-gray-900 text-sm">{row.name}</p>
-          <p className="text-xs text-gray-400">{row.governorate}{row.district ? ` · ${row.district}` : ''}</p>
+          <p className="text-xs text-gray-400">
+            {row.governorate}{row.district ? ` · ${row.district}` : ''} · {row.aoi_count} AOI{row.aoi_count === 1 ? '' : 's'}
+          </p>
         </div>
       ),
     },
@@ -92,8 +94,18 @@ export default function LandsPage() {
       ),
     },
     {
+      key: 'aoi_count',
+      label: 'AOIs',
+      sortable: true,
+      render: (v, row) => (
+        <span className="inline-flex px-2 py-0.5 rounded-full border border-teal-100 bg-teal-50 text-xs font-medium text-teal-700">
+          {v as number} land{row.aoi_count === 1 ? '' : 's'}
+        </span>
+      ),
+    },
+    {
       key: 'area_feddan',
-      label: 'Area',
+      label: 'Total Area',
       sortable: true,
       render: (v) => <span className="font-mono text-xs">{formatFeddan(v as number)}</span>,
     },
@@ -151,22 +163,22 @@ export default function LandsPage() {
       label: 'Actions',
       render: (_, row) => {
         const isActive = row.job_status === 'running' || row.job_status === 'queued'
-        const isMock = row.id.startsWith('mock-')
+        const isMock = row.id.startsWith('mock-group-')
         return (
           <div className="flex items-center gap-1">
             {row.job_status === 'succeeded' ? (
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={e => { e.stopPropagation(); router.push(`/lands/${row.id}/summary`) }}
+                onClick={e => { e.stopPropagation(); router.push(`/lands/groups/${row.id}`) }}
               >
-                Summary
+                Open
               </Button>
             ) : isActive ? (
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={e => { e.stopPropagation(); router.push(`/lands/${row.id}`) }}
+                onClick={e => { e.stopPropagation(); router.push(`/lands/groups/${row.id}`) }}
               >
                 Status
               </Button>
@@ -181,7 +193,7 @@ export default function LandsPage() {
                 loading={deletingId === row.id}
                 onClick={e => handleDelete(e, row.id)}
                 className={`text-red-500 hover:text-red-700 hover:bg-red-50 ${isActive ? 'opacity-40 pointer-events-none' : ''}`}
-                title={isActive ? 'Stop the pipeline before deleting' : 'Delete land'}
+                title={isActive ? 'Stop the shared pipeline before deleting' : 'Delete submission'}
               />
             )}
           </div>
@@ -213,8 +225,8 @@ export default function LandsPage() {
         )}
         {/* Stat row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Total Lands"     value={stats.total}    icon="grid_view"   color="default" />
-          <StatCard label="Active"          value={stats.active}   icon="eco"         color="green"   sublabel="Confirmed cultivation" />
+          <StatCard label="Submissions"     value={stats.total}    icon="grid_view"   color="default" />
+          <StatCard label="Active AOIs"     value={stats.active}   icon="eco"         color="green"   sublabel="Confirmed cultivation" />
           <StatCard label="In Progress"     value={stats.pending}  icon="hourglass_empty" color="indigo" sublabel="Processing or queued" />
           <StatCard label="High Risk"       value={stats.highRisk} icon="warning"     color="red"     sublabel="Require review" />
         </div>
@@ -225,7 +237,7 @@ export default function LandsPage() {
             <span className="material-symbols-outlined text-gray-400 text-lg">search</span>
             <input
               type="text"
-              placeholder="Search by name or governorate..."
+              placeholder="Search by submission name or governorate..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="flex-1 text-sm bg-transparent focus:outline-none placeholder:text-gray-400"
@@ -262,15 +274,14 @@ export default function LandsPage() {
           data={filtered}
           loading={isLoading}
           onRowClick={row => {
-            if (row.job_status === 'succeeded') router.push(`/lands/${row.id}/summary`)
-            else if (row.job_status === 'running' || row.job_status === 'queued') router.push(`/lands/${row.id}`)
+            router.push(`/lands/groups/${row.id}`)
           }}
-          emptyMessage="No lands match your filters. Try adjusting the search or status."
+          emptyMessage="No submissions match your filters. Try adjusting the search or status."
         />
         </div>
 
         <p className="text-xs text-gray-400 text-right">
-          {filtered.length} of {lands.length} lands shown
+          {filtered.length} of {lands.length} submissions shown
         </p>
       </div>
     </div>

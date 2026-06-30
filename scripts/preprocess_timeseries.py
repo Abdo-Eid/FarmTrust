@@ -74,10 +74,13 @@ def main() -> int:
         output_dir=output_dir,
         processed_observations=artifacts["processed_observations"],
         quality_metrics=artifacts["quality_metrics"],
+        analysis_curve=artifacts["analysis_curve"],
     )
 
     logging.info("Wrote smoothed metric series to: %s", output_paths["csv_path"])
     logging.info("Wrote quality metrics to: %s", output_paths["metrics_path"])
+    if "analysis_curve_path" in output_paths:
+        logging.info("Wrote daily analysis curve to: %s", output_paths["analysis_curve_path"])
     return 0
 
 

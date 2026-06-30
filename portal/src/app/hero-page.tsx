@@ -1,6 +1,35 @@
-"use client";
-
 import Link from "next/link";
+import {
+    ArrowRight,
+    BarChart3,
+    FileText,
+    Globe2,
+    Play,
+    Satellite,
+} from "lucide-react";
+
+const FEATURE_CARDS = [
+    {
+        icon: Satellite,
+        title: "Multi-Year Time-Series",
+        desc: "24-month Sentinel-2 vegetation and moisture evidence for each land parcel.",
+    },
+    {
+        icon: BarChart3,
+        title: "Risk Evidence",
+        desc: "Land status, trend, latest-season performance, evidence coverage, and assessment confidence.",
+    },
+    {
+        icon: FileText,
+        title: "Shareable Reports",
+        desc: "One-click PDF reports built for lender workflows and review.",
+    },
+    {
+        icon: Globe2,
+        title: "Egypt Coverage",
+        desc: "Current-build assessment coverage is focused on Egypt, with conservative satellite-only signals.",
+    },
+] as const;
 
 export function HeroPage() {
     return (
@@ -9,9 +38,7 @@ export function HeroPage() {
             <header className="flex items-center justify-between px-8 py-4">
                 <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-md bg-teal-gradient flex-shrink-0">
-                        <span className="material-symbols-outlined text-white text-xl">
-                            satellite_alt
-                        </span>
+                        <Satellite className="h-5 w-5 text-white" aria-hidden="true" />
                     </div>
                     <div>
                         <p className="text-gray-900 text-lg font-semibold leading-none">
@@ -28,9 +55,7 @@ export function HeroPage() {
                         className="inline-flex items-center rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-800"
                     >
                         Open Interface
-                        <span className="material-symbols-outlined ml-1.5 text-base">
-                            arrow_forward
-                        </span>
+                        <ArrowRight className="ml-1.5 h-4 w-4" aria-hidden="true" />
                     </Link>
                 </div>
             </header>
@@ -64,10 +89,10 @@ export function HeroPage() {
 
                     {/* Subtitle */}
                     <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-gray-500 sm:text-lg">
-                        FarmTrust is the interface for the assessment work we
-                        already have: it presents multi-year satellite time-
-                        series as objective, continuous land activity signals
-                        for agricultural financing review.
+                        FarmTrust turns satellite time-series evidence into
+                        lender-facing farm risk reports, helping financiers
+                        review agricultural credit-readiness with clear
+                        confidence notes and decision-support signals.
                     </p>
 
                     {/* CTA buttons */}
@@ -77,17 +102,13 @@ export function HeroPage() {
                             className="inline-flex items-center rounded-md bg-teal-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-800"
                         >
                             Open Lands
-                            <span className="material-symbols-outlined ml-2 text-base">
-                                arrow_forward
-                            </span>
+                            <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                         </Link>
                         <a
                             href="#how-it-works"
                             className="inline-flex items-center rounded-md border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
                         >
-                            <span className="material-symbols-outlined mr-2 text-base">
-                                play_arrow
-                            </span>
+                            <Play className="mr-2 h-4 w-4" aria-hidden="true" />
                             How It Works
                         </a>
                     </div>
@@ -95,45 +116,25 @@ export function HeroPage() {
 
                 {/* Feature cards */}
                 <div className="relative mx-auto mt-24 grid w-full max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                    {[
-                        {
-                            icon: "satellite_alt",
-                            title: "Multi-Year Time-Series",
-                            desc: "24-month NDVI, NDWI, and vegetation indices from Sentinel-2 & Landsat 8.",
-                        },
-                        {
-                            icon: "analytics",
-                            title: "Activity Scoring",
-                            desc: "Objective cultivation, fallow, evidence coverage, and assessment confidence per land parcel.",
-                        },
-                        {
-                            icon: "description",
-                            title: "Shareable Reports",
-                            desc: "One-click PDF reports built for lender workflows and review.",
-                        },
-                        {
-                            icon: "public",
-                            title: "Egypt Coverage",
-                            desc: "Starting with the Nile Delta and expanding to new regions incrementally.",
-                        },
-                    ].map((card) => (
-                        <div
-                            key={card.title}
-                            className="group rounded-md border border-gray-200 bg-white p-6 shadow-panel transition-shadow hover:shadow-panel-md"
-                        >
-                            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-md bg-teal-50 transition-colors group-hover:bg-teal-100">
-                                <span className="material-symbols-outlined text-teal-700 text-xl">
-                                    {card.icon}
-                                </span>
+                    {FEATURE_CARDS.map((card) => {
+                        const Icon = card.icon;
+                        return (
+                            <div
+                                key={card.title}
+                                className="group rounded-md border border-gray-200 bg-white p-6 shadow-panel transition-shadow hover:shadow-panel-md"
+                            >
+                                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-md bg-teal-50 transition-colors group-hover:bg-teal-100">
+                                    <Icon className="h-5 w-5 text-teal-700" aria-hidden="true" />
+                                </div>
+                                <h3 className="text-sm font-semibold text-gray-900">
+                                    {card.title}
+                                </h3>
+                                <p className="mt-1.5 text-xs leading-relaxed text-gray-500">
+                                    {card.desc}
+                                </p>
                             </div>
-                            <h3 className="text-sm font-semibold text-gray-900">
-                                {card.title}
-                            </h3>
-                            <p className="mt-1.5 text-xs leading-relaxed text-gray-500">
-                                {card.desc}
-                            </p>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </section>
 
@@ -154,17 +155,17 @@ export function HeroPage() {
                             {
                                 step: "01",
                                 title: "Ingest & Align",
-                                desc: "Multi-source satellite data is ingested, cloud-masked, and aligned to parcel boundaries.",
+                                desc: "Sentinel-2 observations are ingested, cloud-masked, and aligned to land boundaries.",
                             },
                             {
                                 step: "02",
-                                title: "Analyze & Score",
-                                desc: "Vegetation indices are computed, smoothed, and classified into activity evidence signals.",
+                                title: "Analyze Evidence",
+                                desc: "Vegetation and moisture signals are smoothed into status, trend, season, and risk evidence.",
                             },
                             {
                                 step: "03",
-                                title: "Report & Decide",
-                                desc: "Consolidated scores, trends, evidence coverage, and assessment-confidence bands are delivered through the interface or PDF.",
+                                title: "Report & Review",
+                                desc: "Risk tier, flags, evidence coverage, and confidence notes are delivered through the portal and PDF report.",
                             },
                         ].map((item) => (
                             <div key={item.step} className="text-center">
@@ -189,9 +190,7 @@ export function HeroPage() {
             <footer className="border-t border-gray-200 bg-white px-6 py-8">
                 <div className="mx-auto flex max-w-5xl items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-teal-700 text-base">
-                            satellite_alt
-                        </span>
+                        <Satellite className="h-4 w-4 text-teal-700" aria-hidden="true" />
                         <span className="text-xs text-gray-500">
                             FarmTrust · NeuralAlloy
                         </span>

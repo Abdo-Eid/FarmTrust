@@ -3,14 +3,21 @@
 from __future__ import annotations
 
 import csv
+import io
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
 from farmtrust_core.ingest.utils import safe_write_text
 
+from .analysis_curve import (
+    AnalysisCurveResult,
+    build_analysis_curves,
+    fill_at_observations,
+    sample_curve_at_observations,
+)
 from .gaps import (
     EXPECTED_CADENCE_DAYS,
     build_confidence_inputs,
@@ -18,8 +25,7 @@ from .gaps import (
     compute_gap_metrics,
     compute_gap_windows,
 )
-from .smoothing import smoothing_metadata, smooth_usable_values
-from .smoothing import build_analysis_values
+from .smoothing import smoothing_metadata
 
 
 REQUIRED_COLUMNS = (
@@ -27,9 +33,15 @@ REQUIRED_COLUMNS = (
     "timestamp",
     "valid_fraction",
     "ndvi_mean",
+    "ndvi_p95",
     "evi_mean",
+    "evi_p95",
     "ndmi_mean",
+    "ndmi_p95",
     "ndwi_mean",
+    "ndwi_p95",
+    "mndwi_mean",
+    "mndwi_p95",
 )
 DEFAULT_VALID_FRACTION_THRESHOLD = 0.90
 
@@ -40,9 +52,15 @@ class RawObservation:
     timestamp: datetime
     valid_fraction: float
     ndvi_raw: float
+    ndvi_p95_raw: float
     evi_raw: float
+    evi_p95_raw: float
     ndmi_raw: float
+    ndmi_p95_raw: float
     ndwi_raw: float
+    ndwi_p95_raw: float
+    mndwi_raw: float
+    mndwi_p95_raw: float
 
 
 @dataclass(frozen=True)
@@ -50,9 +68,15 @@ class MergedObservation:
     timestamp: datetime
     valid_fraction: float
     ndvi_raw: float
+    ndvi_p95_raw: float
     evi_raw: float
+    evi_p95_raw: float
     ndmi_raw: float
+    ndmi_p95_raw: float
     ndwi_raw: float
+    ndwi_p95_raw: float
+    mndwi_raw: float
+    mndwi_p95_raw: float
     source_row_count: int
 
 
@@ -61,17 +85,27 @@ class ProcessedObservation:
     timestamp: datetime
     valid_fraction: float
     ndvi_raw: float
+    ndvi_p95_raw: float
+    ndvi_spread_raw: float
     ndvi_filled: float
     ndvi_smoothed: Optional[float]
     evi_raw: float
+    evi_p95_raw: float
     evi_filled: float
     evi_smoothed: Optional[float]
     ndmi_raw: float
+    ndmi_p95_raw: float
     ndmi_filled: float
     ndmi_smoothed: Optional[float]
     ndwi_raw: float
+    ndwi_p95_raw: float
     ndwi_filled: float
     ndwi_smoothed: Optional[float]
+    mndwi_raw: float
+    mndwi_p95_raw: float
+    mndwi_spread_raw: float
+    mndwi_filled: float
+    mndwi_smoothed: Optional[float]
     is_usable: bool
     source_row_count: int
 
@@ -122,9 +156,15 @@ def load_ingestion_observations(csv_path: Path) -> list[RawObservation]:
                     timestamp=_parse_timestamp(row["timestamp"]),
                     valid_fraction=float(row["valid_fraction"]),
                     ndvi_raw=float(row["ndvi_mean"]),
+                    ndvi_p95_raw=float(row["ndvi_p95"]),
                     evi_raw=float(row["evi_mean"]),
+                    evi_p95_raw=float(row["evi_p95"]),
                     ndmi_raw=float(row["ndmi_mean"]),
+                    ndmi_p95_raw=float(row["ndmi_p95"]),
                     ndwi_raw=float(row["ndwi_mean"]),
+                    ndwi_p95_raw=float(row["ndwi_p95"]),
+                    mndwi_raw=float(row["mndwi_mean"]),
+                    mndwi_p95_raw=float(row["mndwi_p95"]),
                 )
             )
 
@@ -157,16 +197,40 @@ def collapse_same_day_observations(observations: list[RawObservation]) -> list[M
                     [row.ndvi_raw for row in group],
                     weights,
                 ),
+                ndvi_p95_raw=_weighted_average(
+                    [row.ndvi_p95_raw for row in group],
+                    weights,
+                ),
                 evi_raw=_weighted_average(
                     [row.evi_raw for row in group],
+                    weights,
+                ),
+                evi_p95_raw=_weighted_average(
+                    [row.evi_p95_raw for row in group],
                     weights,
                 ),
                 ndmi_raw=_weighted_average(
                     [row.ndmi_raw for row in group],
                     weights,
                 ),
+                ndmi_p95_raw=_weighted_average(
+                    [row.ndmi_p95_raw for row in group],
+                    weights,
+                ),
                 ndwi_raw=_weighted_average(
                     [row.ndwi_raw for row in group],
+                    weights,
+                ),
+                ndwi_p95_raw=_weighted_average(
+                    [row.ndwi_p95_raw for row in group],
+                    weights,
+                ),
+                mndwi_raw=_weighted_average(
+                    [row.mndwi_raw for row in group],
+                    weights,
+                ),
+                mndwi_p95_raw=_weighted_average(
+                    [row.mndwi_p95_raw for row in group],
                     weights,
                 ),
                 source_row_count=len(group),
@@ -180,32 +244,34 @@ def build_processed_observations(
     merged_observations: list[MergedObservation],
     *,
     valid_fraction_threshold: float = DEFAULT_VALID_FRACTION_THRESHOLD,
-) -> list[ProcessedObservation]:
+) -> tuple[list[ProcessedObservation], AnalysisCurveResult]:
     timestamps = [observation.timestamp for observation in merged_observations]
+    valid_fractions = [observation.valid_fraction for observation in merged_observations]
     usable_flags = [
         observation.valid_fraction >= valid_fraction_threshold
         for observation in merged_observations
     ]
-    ndvi_filled_values, ndvi_smoothed_values = build_analysis_values(
+
+    index_values = {
+        "ndvi": [observation.ndvi_raw for observation in merged_observations],
+        "evi": [observation.evi_raw for observation in merged_observations],
+        "ndmi": [observation.ndmi_raw for observation in merged_observations],
+        "ndwi": [observation.ndwi_raw for observation in merged_observations],
+        "mndwi": [observation.mndwi_raw for observation in merged_observations],
+    }
+    analysis_curve = build_analysis_curves(
         timestamps=timestamps,
-        values=[observation.ndvi_raw for observation in merged_observations],
-        is_usable=usable_flags,
+        index_values=index_values,
+        valid_fractions=valid_fractions,
     )
-    evi_filled_values, evi_smoothed_values = build_analysis_values(
-        timestamps=timestamps,
-        values=[observation.evi_raw for observation in merged_observations],
-        is_usable=usable_flags,
-    )
-    ndmi_filled_values, ndmi_smoothed_values = build_analysis_values(
-        timestamps=timestamps,
-        values=[observation.ndmi_raw for observation in merged_observations],
-        is_usable=usable_flags,
-    )
-    ndwi_filled_values, ndwi_smoothed_values = build_analysis_values(
-        timestamps=timestamps,
-        values=[observation.ndwi_raw for observation in merged_observations],
-        is_usable=usable_flags,
-    )
+    smoothed = {
+        name: sample_curve_at_observations(analysis_curve, timestamps, name)
+        for name in index_values
+    }
+    filled = {
+        name: fill_at_observations(timestamps, values, valid_fractions)
+        for name, values in index_values.items()
+    }
 
     processed: list[ProcessedObservation] = []
     for index, observation in enumerate(merged_observations):
@@ -214,23 +280,33 @@ def build_processed_observations(
                 timestamp=observation.timestamp,
                 valid_fraction=observation.valid_fraction,
                 ndvi_raw=observation.ndvi_raw,
-                ndvi_filled=ndvi_filled_values[index],
-                ndvi_smoothed=ndvi_smoothed_values[index],
+                ndvi_p95_raw=observation.ndvi_p95_raw,
+                ndvi_spread_raw=observation.ndvi_p95_raw - observation.ndvi_raw,
+                ndvi_filled=filled["ndvi"][index],
+                ndvi_smoothed=smoothed["ndvi"][index],
                 evi_raw=observation.evi_raw,
-                evi_filled=evi_filled_values[index],
-                evi_smoothed=evi_smoothed_values[index],
+                evi_p95_raw=observation.evi_p95_raw,
+                evi_filled=filled["evi"][index],
+                evi_smoothed=smoothed["evi"][index],
                 ndmi_raw=observation.ndmi_raw,
-                ndmi_filled=ndmi_filled_values[index],
-                ndmi_smoothed=ndmi_smoothed_values[index],
+                ndmi_p95_raw=observation.ndmi_p95_raw,
+                ndmi_filled=filled["ndmi"][index],
+                ndmi_smoothed=smoothed["ndmi"][index],
                 ndwi_raw=observation.ndwi_raw,
-                ndwi_filled=ndwi_filled_values[index],
-                ndwi_smoothed=ndwi_smoothed_values[index],
+                ndwi_p95_raw=observation.ndwi_p95_raw,
+                ndwi_filled=filled["ndwi"][index],
+                ndwi_smoothed=smoothed["ndwi"][index],
+                mndwi_raw=observation.mndwi_raw,
+                mndwi_p95_raw=observation.mndwi_p95_raw,
+                mndwi_spread_raw=observation.mndwi_p95_raw - observation.mndwi_raw,
+                mndwi_filled=filled["mndwi"][index],
+                mndwi_smoothed=smoothed["mndwi"][index],
                 is_usable=usable_flags[index],
                 source_row_count=observation.source_row_count,
             )
         )
 
-    return processed
+    return processed, analysis_curve
 
 
 def _read_run_metadata(metadata_path: Path) -> dict[str, Any]:
@@ -252,7 +328,7 @@ def build_preprocess_artifacts(
     aoi_id = _derive_aoi_id(metadata, csv_path)
     raw_observations = load_ingestion_observations(csv_path)
     merged_observations = collapse_same_day_observations(raw_observations)
-    processed_observations = build_processed_observations(
+    processed_observations, analysis_curve = build_processed_observations(
         merged_observations,
         valid_fraction_threshold=valid_fraction_threshold,
     )
@@ -293,7 +369,7 @@ def build_preprocess_artifacts(
         "median_gap_days": gap_metrics["median_gap_days"],
         "long_gap_count": gap_windows["long_gap_count"],
         "long_gap_windows": gap_windows["long_gap_windows"],
-        **smoothing_metadata(),
+        **smoothing_metadata(analysis_curve),
         "usable_valid_fraction_threshold": float(valid_fraction_threshold),
         "gap_risk": gap_risk["gap_risk"],
         "confidence_penalty": gap_risk["confidence_penalty"],
@@ -311,13 +387,52 @@ def build_preprocess_artifacts(
         "merged_observations": merged_observations,
         "processed_observations": processed_observations,
         "quality_metrics": quality_metrics,
+        "analysis_curve": analysis_curve,
     }
+
+
+def _render_analysis_curve_csv(analysis_curve: AnalysisCurveResult) -> str:
+    """Render the dense daily analysis curve as CSV text (provenance artifact)."""
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(
+        [
+            "date",
+            "day_offset",
+            "is_observed_day",
+            "analysis_weight",
+            "ndvi_curve",
+            "evi_curve",
+            "ndmi_curve",
+            "ndwi_curve",
+            "mndwi_curve",
+        ]
+    )
+    curves = analysis_curve.curves
+    for day in range(analysis_curve.n_days):
+        day_date = analysis_curve.start_date + timedelta(days=day)
+        writer.writerow(
+            [
+                day_date.isoformat(),
+                day,
+                str(analysis_curve.is_observed_day[day]).lower(),
+                analysis_curve.analysis_weight[day],
+                curves["ndvi"][day],
+                curves["evi"][day],
+                curves["ndmi"][day],
+                curves["ndwi"][day],
+                curves["mndwi"][day],
+            ]
+        )
+    return buffer.getvalue()
 
 
 def write_preprocess_outputs(
     output_dir: Path,
     processed_observations: list[ProcessedObservation],
     quality_metrics: dict[str, Any],
+    *,
+    analysis_curve: Optional[AnalysisCurveResult] = None,
 ) -> dict[str, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -330,17 +445,27 @@ def write_preprocess_outputs(
             [
                 "timestamp",
                 "ndvi_raw",
+                "ndvi_p95_raw",
+                "ndvi_spread_raw",
                 "ndvi_filled",
                 "ndvi_smoothed",
                 "evi_raw",
+                "evi_p95_raw",
                 "evi_filled",
                 "evi_smoothed",
                 "ndmi_raw",
+                "ndmi_p95_raw",
                 "ndmi_filled",
                 "ndmi_smoothed",
                 "ndwi_raw",
+                "ndwi_p95_raw",
                 "ndwi_filled",
                 "ndwi_smoothed",
+                "mndwi_raw",
+                "mndwi_p95_raw",
+                "mndwi_spread_raw",
+                "mndwi_filled",
+                "mndwi_smoothed",
                 "valid_fraction",
                 "is_usable",
                 "source_row_count",
@@ -351,17 +476,27 @@ def write_preprocess_outputs(
                 [
                     _isoformat_utc(observation.timestamp),
                     observation.ndvi_raw,
+                    observation.ndvi_p95_raw,
+                    observation.ndvi_spread_raw,
                     observation.ndvi_filled,
                     observation.ndvi_smoothed,
                     observation.evi_raw,
+                    observation.evi_p95_raw,
                     observation.evi_filled,
                     observation.evi_smoothed,
                     observation.ndmi_raw,
+                    observation.ndmi_p95_raw,
                     observation.ndmi_filled,
                     observation.ndmi_smoothed,
                     observation.ndwi_raw,
+                    observation.ndwi_p95_raw,
                     observation.ndwi_filled,
                     observation.ndwi_smoothed,
+                    observation.mndwi_raw,
+                    observation.mndwi_p95_raw,
+                    observation.mndwi_spread_raw,
+                    observation.mndwi_filled,
+                    observation.mndwi_smoothed,
                     observation.valid_fraction,
                     str(observation.is_usable).lower(),
                     observation.source_row_count,
@@ -370,7 +505,14 @@ def write_preprocess_outputs(
 
     safe_write_text(metrics_path, json.dumps(quality_metrics, indent=2, sort_keys=True))
 
-    return {
+    outputs = {
         "csv_path": csv_path,
         "metrics_path": metrics_path,
     }
+
+    if analysis_curve is not None:
+        analysis_curve_path = output_dir / "season_analysis_curve.csv"
+        safe_write_text(analysis_curve_path, _render_analysis_curve_csv(analysis_curve))
+        outputs["analysis_curve_path"] = analysis_curve_path
+
+    return outputs

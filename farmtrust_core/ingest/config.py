@@ -51,10 +51,14 @@ def parse_geometry(value: str) -> dict[str, Any]:
 
 def normalize_geometry(value: object) -> dict[str, Any]:
     """Validate and normalize a GeoJSON Polygon geometry."""
-    if not isinstance(value, dict):
-        raise ValueError("geometry must be a GeoJSON object")
+    geometries = normalize_geometries(value)
+    if len(geometries) != 1:
+        raise ValueError("geometry must contain exactly one GeoJSON Polygon")
+    return geometries[0]
 
-    geometry = value.get("geometry") if value.get("type") == "Feature" else value
+
+def _normalize_polygon_geometry(geometry: object) -> dict[str, Any]:
+    """Validate and normalize one GeoJSON Polygon geometry."""
     if not isinstance(geometry, dict):
         raise ValueError("geometry must be a GeoJSON Polygon or Feature")
     if geometry.get("type") != "Polygon":
@@ -78,6 +82,46 @@ def normalize_geometry(value: object) -> dict[str, Any]:
     }
 
 
+def normalize_geometries(value: object) -> list[dict[str, Any]]:
+    """Validate GeoJSON and return one normalized Polygon per AOI.
+
+    Accepted inputs:
+    - Polygon
+    - Feature wrapping Polygon or MultiPolygon
+    - MultiPolygon
+    - FeatureCollection containing Polygon/MultiPolygon features
+    """
+    if not isinstance(value, dict):
+        raise ValueError("geometry must be a GeoJSON object")
+
+    geojson_type = value.get("type")
+    if geojson_type == "Feature":
+        return normalize_geometries(value.get("geometry"))
+
+    if geojson_type == "FeatureCollection":
+        features = value.get("features")
+        if not isinstance(features, list) or not features:
+            raise ValueError("FeatureCollection must include at least one feature")
+        polygons: list[dict[str, Any]] = []
+        for feature in features:
+            polygons.extend(normalize_geometries(feature))
+        return polygons
+
+    if geojson_type == "MultiPolygon":
+        coordinates = value.get("coordinates")
+        if not isinstance(coordinates, list) or not coordinates:
+            raise ValueError("MultiPolygon geometry must include coordinates")
+        return [
+            _normalize_polygon_geometry({"type": "Polygon", "coordinates": polygon})
+            for polygon in coordinates
+        ]
+
+    if geojson_type == "Polygon":
+        return [_normalize_polygon_geometry(value)]
+
+    raise ValueError("geometry must be a GeoJSON Polygon, MultiPolygon, Feature, or FeatureCollection")
+
+
 def geometry_to_bbox(geometry: dict[str, Any]) -> List[float]:
     """Compute EPSG:4326 bbox from a normalized GeoJSON Polygon."""
     normalized = normalize_geometry(geometry)
@@ -85,6 +129,19 @@ def geometry_to_bbox(geometry: dict[str, Any]) -> List[float]:
     lons = [float(point[0]) for point in points]
     lats = [float(point[1]) for point in points]
     return [min(lons), min(lats), max(lons), max(lats)]
+
+
+def geometries_to_bbox(geometries: list[dict[str, Any]]) -> List[float]:
+    """Compute one EPSG:4326 bbox covering all normalized GeoJSON Polygons."""
+    if not geometries:
+        raise ValueError("at least one geometry is required")
+    boxes = [geometry_to_bbox(geometry) for geometry in geometries]
+    return [
+        min(box[0] for box in boxes),
+        min(box[1] for box in boxes),
+        max(box[2] for box in boxes),
+        max(box[3] for box in boxes),
+    ]
 
 
 def default_dates() -> tuple[str, str]:

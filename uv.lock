@@ -722,6 +722,7 @@ dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "numpy" },
     { name = "pandas" },
+    { name = "scipy" },
     { name = "sqlmodel" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -786,6 +787,7 @@ requires-dist = [
     { name = "requests", marker = "extra == 'data'", specifier = ">=2.32.5" },
     { name = "rioxarray", marker = "extra == 'data'", specifier = ">=0.22.0" },
     { name = "scikit-learn", marker = "extra == 'ml'" },
+    { name = "scipy", specifier = ">=1.13" },
     { name = "shapely", marker = "extra == 'data'", specifier = ">=2.1.2" },
     { name = "sqlmodel", specifier = ">=0.0.21" },
     { name = "torch", marker = "(sys_platform == 'linux' and extra == 'ml') or (sys_platform == 'win32' and extra == 'ml')", specifier = "==2.7.1", index = "https://download.pytorch.org/whl/cu126" },

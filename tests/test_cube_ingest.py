@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
+from farmtrust_core.ingest.config import geometries_to_bbox, normalize_geometries
 from farmtrust_core.ingest.cube_stats import (
     OFFSET_POLICY,
     apply_boa_offset,
@@ -51,6 +52,35 @@ _GEOMETRY = {
     "type": "Polygon",
     "coordinates": [[[30.0, 31.0], [30.1, 31.0], [30.1, 31.1], [30.0, 31.1], [30.0, 31.0]]],
 }
+
+_GEOMETRY_2 = {
+    "type": "Polygon",
+    "coordinates": [[[30.2, 31.2], [30.3, 31.2], [30.3, 31.3], [30.2, 31.3], [30.2, 31.2]]],
+}
+
+
+def test_normalize_geometries_extracts_feature_collection_polygons():
+    payload = {
+        "type": "FeatureCollection",
+        "features": [
+            {"type": "Feature", "properties": {}, "geometry": _GEOMETRY},
+            {"type": "Feature", "properties": {}, "geometry": _GEOMETRY_2},
+        ],
+    }
+
+    geometries = normalize_geometries(payload)
+
+    assert geometries == [_GEOMETRY, _GEOMETRY_2]
+    assert geometries_to_bbox(geometries) == [30.0, 31.0, 30.3, 31.3]
+
+
+def test_normalize_geometries_splits_multipolygon():
+    payload = {
+        "type": "MultiPolygon",
+        "coordinates": [_GEOMETRY["coordinates"], _GEOMETRY_2["coordinates"]],
+    }
+
+    assert normalize_geometries(payload) == [_GEOMETRY, _GEOMETRY_2]
 
 
 def test_cache_key_excludes_date_range():

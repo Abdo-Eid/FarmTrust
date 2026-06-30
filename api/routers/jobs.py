@@ -73,6 +73,9 @@ def cancel_job(job_id: str, session: SessionDep) -> JobResponse:
         raise HTTPException(status_code=409, detail=f"Job is already {job.status}")
 
     job.cancel_requested = True
+    if job.status == "queued":
+        job.status = "cancelled"
+        job.completed_at = utc_now()
     job.updated_at = utc_now()
     session.add(job)
     session.commit()

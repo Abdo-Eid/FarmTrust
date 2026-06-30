@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/Button";
 import { FormField, Input, Select, Textarea } from "@/components/ui/FormField";
 import { GOVERNORATES } from "@/lib/constants";
 import { api } from "@/lib/api";
-import { calcPolygonAreaFeddan, formatFeddan } from "@/lib/geo";
+import {
+    calcGeoJSONAreaFeddan,
+    countGeoJSONAOIs,
+    formatFeddan,
+    normalizeLandGeoJSON,
+} from "@/lib/geo";
+import type { LandGeoJSON } from "@/lib/geo";
 
 const GeoMap = dynamic(
     () => import("@/components/map/Map").then((m) => m.Map),
@@ -48,20 +54,28 @@ export default function AddLandPage() {
     const router = useRouter();
     const [submitting, setSubmitting] = useState(false);
     const [drawKey, setDrawKey] = useState(0);
-    const [drawnPolygon, setDrawnPolygon] = useState<GeoJSON.Polygon | null>(
-        null,
-    );
+    const [uploadInputKey, setUploadInputKey] = useState(0);
+    const [landGeometry, setLandGeometry] = useState<LandGeoJSON | null>(null);
+    const [boundarySource, setBoundarySource] = useState<"draw" | "upload" | null>(null);
+    const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
     const [formData, setFormData] = useState<Partial<FormData>>({ lookback_days: 730 });
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [uploadError, setUploadError] = useState<string | null>(null);
 
     const calculatedArea = useMemo(() => {
-        if (!drawnPolygon) return null;
-        return calcPolygonAreaFeddan(
-            drawnPolygon.coordinates[0] as [number, number][],
-        );
-    }, [drawnPolygon]);
+        if (!landGeometry) return null;
+        return calcGeoJSONAreaFeddan(landGeometry);
+    }, [landGeometry]);
+
+    const aoiCount = useMemo(() => {
+        if (!landGeometry) return 0;
+        return countGeoJSONAOIs(landGeometry);
+    }, [landGeometry]);
+
+    const isSingleAoi = aoiCount === 1;
 
     const areaError =
+        isSingleAoi &&
         calculatedArea !== null &&
         (calculatedArea < MIN_AREA_FEDDAN || calculatedArea > MAX_AREA_FEDDAN)
             ? calculatedArea < MIN_AREA_FEDDAN
@@ -69,20 +83,63 @@ export default function AddLandPage() {
                 : "Maximum 200 feddan"
             : null;
 
+    const positiveAreaError =
+        calculatedArea !== null && calculatedArea <= 0
+            ? "Area must be greater than 0"
+            : null;
+
     const canSubmit =
-        !!drawnPolygon &&
+        !!landGeometry &&
         calculatedArea !== null &&
-        calculatedArea >= MIN_AREA_FEDDAN &&
-        calculatedArea <= MAX_AREA_FEDDAN &&
+        calculatedArea > 0 &&
+        !areaError &&
         !!formData.name?.trim() &&
         !!formData.governorate;
 
     const handlePolygonChange = useCallback((p: GeoJSON.Polygon | null) => {
-        setDrawnPolygon(p);
+        setLandGeometry(p);
+        setBoundarySource(p ? "draw" : null);
+        setUploadedFileName(null);
+        setUploadError(null);
     }, []);
 
+    const handleGeoJSONUpload = useCallback(
+        async (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            setUploadError(null);
+            setSubmitError(null);
+
+            try {
+                const parsed = JSON.parse(await file.text()) as unknown;
+                const geojson = normalizeLandGeoJSON(parsed);
+                setLandGeometry(geojson);
+                setBoundarySource("upload");
+                setUploadedFileName(file.name);
+                setDrawKey((k) => k + 1);
+            } catch (error) {
+                setLandGeometry(null);
+                setBoundarySource(null);
+                setUploadedFileName(null);
+                setDrawKey((k) => k + 1);
+                setUploadError(
+                    error instanceof Error
+                        ? error.message
+                        : "Could not read this GeoJSON file.",
+                );
+            }
+        },
+        [],
+    );
+
     const handleClear = useCallback(() => {
-        setDrawnPolygon(null);
+        setLandGeometry(null);
+        setBoundarySource(null);
+        setUploadedFileName(null);
+        setUploadError(null);
+        setSubmitError(null);
+        setUploadInputKey((k) => k + 1);
         setDrawKey((k) => k + 1);
     }, []);
 
@@ -92,13 +149,15 @@ export default function AddLandPage() {
         setSubmitting(true);
         setSubmitError(null);
         try {
+            const district = formData.district?.trim();
+            const notes = formData.notes?.trim();
             const land = await api.lands.create({
-                name: formData.name!,
+                name: formData.name!.trim(),
                 governorate: formData.governorate!,
-                district: formData.district,
-                notes: formData.notes,
+                ...(district ? { district } : {}),
+                ...(notes ? { notes } : {}),
                 method: "polygon",
-                geometry: drawnPolygon,
+                geometry: landGeometry!,
                 area_feddan: calculatedArea!,
                 lookback_days: formData.lookback_days ?? 730,
             });
@@ -110,25 +169,28 @@ export default function AddLandPage() {
     };
 
     // AOI status strip appearance
-    const aoiStatus = drawnPolygon
-        ? areaError
+    const aoiStatus = landGeometry
+        ? areaError || positiveAreaError
             ? {
                   bg: "bg-red-50 border-red-100",
                   text: "text-red-700",
                   icon: "error",
-                  label: `${formatFeddan(calculatedArea!)} — ${areaError}`,
+                  label: `${formatFeddan(calculatedArea!)} — ${areaError || positiveAreaError}`,
               }
             : {
                   bg: "bg-teal-50 border-teal-100",
                   text: "text-teal-700",
                   icon: "check_circle",
-                  label: `${formatFeddan(calculatedArea!)} drawn`,
+                  label:
+                      aoiCount > 1
+                          ? `${formatFeddan(calculatedArea!)} across ${aoiCount} AOIs uploaded`
+                          : `${formatFeddan(calculatedArea!)} ${boundarySource === "upload" ? "uploaded" : "drawn"}`,
               }
         : {
               bg: "bg-gray-50 border-gray-100",
               text: "text-gray-500",
               icon: "draw",
-              label: "No polygon drawn — click corners on the map above",
+              label: "No boundary selected — draw on the map or upload GeoJSON",
           };
 
     return (
@@ -158,6 +220,8 @@ export default function AddLandPage() {
                         <GeoMap
                             mode="draw"
                             drawKey={drawKey}
+                            geojson={boundarySource === "upload" ? landGeometry : null}
+                            fitBoundsOnData={boundarySource === "upload"}
                             onPolygonChange={handlePolygonChange}
                             showLayerControls
                             defaultLayerMode="satellite"
@@ -184,8 +248,8 @@ export default function AddLandPage() {
                             New Land Submission
                         </h2>
                         <p className="text-xs text-gray-500 mt-0.5">
-                            Draw the land boundary on the map, then fill in the
-                            details below.
+                            Draw the land boundary or upload GeoJSON, then fill
+                            in the details below.
                         </p>
                     </div>
 
@@ -204,6 +268,54 @@ export default function AddLandPage() {
                         onSubmit={onSubmit}
                         className="flex-1 px-6 py-5 space-y-5"
                     >
+                        <FormField
+                            label="Boundary GeoJSON"
+                            hint={
+                                uploadedFileName
+                                    ? `Loaded ${uploadedFileName}`
+                                    : "Optional: upload .geojson or .json with Polygon, MultiPolygon, Feature, or FeatureCollection."
+                            }
+                            error={uploadError || undefined}
+                        >
+                            <Input
+                                key={uploadInputKey}
+                                type="file"
+                                accept=".geojson,.json,application/geo+json,application/json"
+                                onChange={handleGeoJSONUpload}
+                                error={!!uploadError}
+                            />
+                        </FormField>
+
+                        {landGeometry && calculatedArea !== null && (
+                            <div className="rounded-md border border-teal-100 bg-teal-50 px-4 py-3 text-xs text-teal-800">
+                                <div className="flex items-center gap-2 font-semibold">
+                                    <span className="material-symbols-outlined text-sm">
+                                        inventory_2
+                                    </span>
+                                    Submission review
+                                </div>
+                                <div className="mt-2 grid grid-cols-2 gap-2">
+                                    <div>
+                                        <p className="text-teal-600">AOIs</p>
+                                        <p className="font-semibold text-teal-900">
+                                            {aoiCount} land{aoiCount === 1 ? "" : "s"}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-teal-600">Total area</p>
+                                        <p className="font-semibold text-teal-900">
+                                            {formatFeddan(calculatedArea)}
+                                        </p>
+                                    </div>
+                                </div>
+                                {aoiCount > 1 && (
+                                    <p className="mt-2 leading-relaxed text-teal-700">
+                                        This will appear as one parent submission in the lands list. FarmTrust will download one shared satellite cube for the combined bbox, then analyze each AOI separately.
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
                         <FormField label="Land Name" required>
                             <Input
                                 placeholder="e.g. North Sharqia Plot A"
@@ -308,10 +420,10 @@ export default function AddLandPage() {
                                 Submit for Analysis
                             </Button>
                             <p className="text-xs text-gray-400 text-center mt-2">
-                                {!drawnPolygon
-                                    ? "Draw the land boundary on the map to continue."
-                                    : areaError
-                                      ? areaError
+                                {!landGeometry
+                                    ? "Draw or upload the land boundary to continue."
+                                    : areaError || positiveAreaError
+                                      ? areaError || positiveAreaError
                                       : "Analysis typically completes in 5–15 minutes."}
                             </p>
                         </div>

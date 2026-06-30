@@ -8,7 +8,16 @@ from pathlib import Path
 from typing import Any
 
 from api.models import Job, Land
-from api.schemas import Confidence, Indicators, LandResponse, NDVIPoint, SatelliteEvidenceCoverage, SeasonRecord
+from api.schemas import (
+    AbsenceAssessment,
+    Confidence,
+    HistoryCoverage,
+    Indicators,
+    LandResponse,
+    NDVIPoint,
+    SatelliteEvidenceCoverage,
+    SeasonRecord,
+)
 from farmtrust_core.io.paths import land_assessment_path, season_windows_path, smoothed_timeseries_path
 
 
@@ -54,7 +63,7 @@ def _risk_flags(assessment: dict[str, Any]) -> list[str]:
             mapped.append("waterlogging")
         elif "salinity" in code:
             mapped.append("salinity")
-        elif "inactivity" in code:
+        elif code == "abandonment":
             mapped.append("abandonment")
         elif "encroachment" in code:
             mapped.append("encroachment")
@@ -93,6 +102,29 @@ def _satellite_evidence_coverage(assessment: dict[str, Any]) -> SatelliteEvidenc
     )
 
 
+def _history_coverage(assessment: dict[str, Any]) -> HistoryCoverage | None:
+    raw = assessment.get("history_coverage")
+    if not isinstance(raw, dict):
+        return None
+    return HistoryCoverage(
+        status=str(raw.get("status", "insufficient_history")),
+        rationale=str(raw.get("rationale", "Activity history coverage was not established.")),
+        observed_activity_cycle_count=raw.get("observed_activity_cycle_count"),
+        complete_activity_cycle_count=raw.get("complete_activity_cycle_count"),
+        assessment_interval_days=raw.get("assessment_interval_days"),
+    )
+
+
+def _absence_assessment(assessment: dict[str, Any]) -> AbsenceAssessment | None:
+    raw = assessment.get("absence_assessment")
+    if not isinstance(raw, dict):
+        return None
+    return AbsenceAssessment(
+        status=str(raw.get("status", "not_assessed")),
+        rationale=str(raw.get("rationale", "Absence was not assessed.")),
+    )
+
+
 def _indicators(assessment: dict[str, Any]) -> Indicators:
     metrics = assessment.get("metrics_summary", {})
     season_strength = metrics.get("season_strength", [])
@@ -100,9 +132,13 @@ def _indicators(assessment: dict[str, Any]) -> Indicators:
     usable_count = metrics.get("usable_observation_count")
     return Indicators(
         ndvi_peak=metrics.get("interval_max_ndvi"),
+        ndvi_p95_peak=metrics.get("interval_max_ndvi_p95"),
+        ndvi_spread_median=metrics.get("interval_median_ndvi_spread"),
         ndvi_auc=latest.get("auc_ndvi"),
+        evi_peak=metrics.get("interval_max_evi"),
+        ndmi_median=metrics.get("interval_median_ndmi"),
+        mndwi_median=metrics.get("interval_median_mndwi"),
         cloud_free_scenes=int(usable_count) if usable_count is not None else None,
-        neighbor_comparison="avg",
         observation_coverage=metrics.get("active_observation_fraction"),
     )
 
@@ -122,8 +158,13 @@ def _report_summary(assessment: dict[str, Any]) -> str:
     latest_label = latest.get("label", "unknown") if isinstance(latest, dict) else "unknown"
     evidence = assessment.get("evidence", {})
     basis = evidence.get("land_status_basis", "") if isinstance(evidence, dict) else ""
+    trend_text = "trend not established" if trend in {"None", "uncertain"} else f"a {trend} trend"
+    if status == "None":
+        status_text = "did not assign a land activity status"
+    else:
+        status_text = f"classified this parcel as {status}"
     return (
-        f"Assessment classified this parcel as {status} with a {trend} trend. "
+        f"Assessment {status_text} with {trend_text}. "
         f"Latest vegetation activity window is {latest_label}. {basis}"
     ).strip()
 
@@ -197,6 +238,8 @@ def map_land_response(land: Land, job: Job) -> LandResponse:
                 else None,
                 "flags": [] if is_manual_review else _risk_flags(assessment),
                 "satellite_evidence_coverage": _satellite_evidence_coverage(assessment),
+                "history_coverage": _history_coverage(assessment),
+                "absence_assessment": _absence_assessment(assessment),
                 "confidence": _confidence(assessment),
                 "risk_tier": None if is_manual_review else _risk_tier(assessment),
                 "indicators": _indicators(assessment),

@@ -17,6 +17,8 @@ from typing import Any, Callable, Dict, List, Optional
 
 from farmtrust_core.ingest.cube_pipeline import (
     CubePipelineCancelledError,
+    download_cubes,
+    process_cubes,
     write_cube_outputs,
 )
 
@@ -81,6 +83,78 @@ def run_ingestion(
             on_progress=on_progress,
             cancel_check=cancel_check,
             **loader_options,
+        )
+    except CubePipelineCancelledError as exc:
+        raise IngestCancelled(str(exc)) from exc
+
+
+def download_ingestion(
+    *,
+    loader: str = DEFAULT_LOADER,
+    output_dir: Path,
+    aoi_id: str,
+    bbox: List[float],
+    start_date: str,
+    end_date: str,
+    max_cloud: float,
+    geometry: Optional[Dict[str, Any]] = None,
+    force_rerun: bool = False,
+    limit_items: Optional[int] = None,
+    log_signed_hrefs: bool = False,
+    on_progress: Optional[Callable[[int, int], None]] = None,
+    cancel_check: Optional[Callable[[], bool]] = None,
+    **loader_options: Any,
+) -> None:
+    """Run only the source download phase through the selected loader."""
+    if loader not in SUPPORTED_LOADERS:
+        raise ValueError(
+            f"Unknown ingestion loader {loader!r}; supported: {SUPPORTED_LOADERS}"
+        )
+
+    try:
+        download_cubes(
+            output_dir=output_dir,
+            aoi_id=aoi_id,
+            bbox=bbox,
+            start_date=start_date,
+            end_date=end_date,
+            max_cloud=max_cloud,
+            force_rerun=force_rerun,
+            limit_items=limit_items,
+            log_signed_hrefs=log_signed_hrefs,
+            geometry=geometry,
+            on_progress=on_progress,
+            cancel_check=cancel_check,
+            **loader_options,
+        )
+    except CubePipelineCancelledError as exc:
+        raise IngestCancelled(str(exc)) from exc
+
+
+def process_ingestion(
+    *,
+    loader: str = DEFAULT_LOADER,
+    output_dir: Path,
+    source_dir: Optional[Path] = None,
+    aoi_id: Optional[str] = None,
+    geometry: Optional[Dict[str, Any]] = None,
+    on_progress: Optional[Callable[[int, int], None]] = None,
+    cancel_check: Optional[Callable[[], bool]] = None,
+) -> None:
+    """Run only derived per-AOI processing through the selected loader."""
+    if loader not in SUPPORTED_LOADERS:
+        raise ValueError(
+            f"Unknown ingestion loader {loader!r}; supported: {SUPPORTED_LOADERS}"
+        )
+
+    try:
+        process_cubes(
+            output_dir=output_dir,
+            source_dir=source_dir,
+            aoi_id=aoi_id,
+            geometry=geometry,
+            on_progress=on_progress,
+            cancel_check=cancel_check,
         )
     except CubePipelineCancelledError as exc:
         raise IngestCancelled(str(exc)) from exc

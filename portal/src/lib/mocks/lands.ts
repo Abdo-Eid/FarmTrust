@@ -38,13 +38,17 @@ export const MOCK_LANDS: LandResult[] = [
         risk_tier: "low",
         indicators: {
             ndvi_peak: 0.78,
+            ndvi_p95_peak: 0.84,
+            ndvi_spread_median: 0.06,
             ndvi_auc: 142.3,
+            evi_peak: 0.55,
+            ndmi_median: 0.18,
+            mndwi_median: -0.32,
             cloud_free_scenes: 38,
-            neighbor_comparison: "above_avg",
             observation_coverage: 0.94,
         },
         report_summary:
-            "This land parcel demonstrates sustained vegetation activity across the observed 24-month period. Vegetation indices are consistently above the district median, and detected activity windows are strong. No risk flags identified. Recommended for standard financing consideration.",
+            "This land parcel demonstrates sustained vegetation activity across the observed window. Detected activity windows are strong, and no current risk flags were identified.",
         ndvi_series: generateNDVI("2022-03-01", 24, "good"),
         season_records: [
             {
@@ -107,13 +111,17 @@ export const MOCK_LANDS: LandResult[] = [
         risk_tier: "medium",
         indicators: {
             ndvi_peak: 0.61,
+            ndvi_p95_peak: 0.69,
+            ndvi_spread_median: 0.08,
             ndvi_auc: 98.7,
+            evi_peak: 0.42,
+            ndmi_median: 0.24,
+            mndwi_median: -0.18,
             cloud_free_scenes: 24,
-            neighbor_comparison: "avg",
             observation_coverage: 0.72,
         },
         report_summary:
-            "Vegetation activity is intermittent with observed wetness evidence in the northern section. The 2-year trend is stable, but the latest activity window showed an interruption-like signal consistent with excess irrigation or drainage failure. Recommend conditional financing with drainage assessment requirement.",
+            "Vegetation activity is intermittent with a wetness signal that requires review. The latest activity window showed an interruption-like signal, so interpretation should remain cautious.",
         ndvi_series: generateNDVI("2022-03-01", 24, "intermittent"),
         season_records: [
             {
@@ -165,13 +173,17 @@ export const MOCK_LANDS: LandResult[] = [
         risk_tier: "high",
         indicators: {
             ndvi_peak: 0.22,
+            ndvi_p95_peak: 0.29,
+            ndvi_spread_median: 0.07,
             ndvi_auc: 31.5,
+            evi_peak: 0.15,
+            ndmi_median: -0.04,
+            mndwi_median: -0.28,
             cloud_free_scenes: 41,
-            neighbor_comparison: "below_avg",
             observation_coverage: 0.96,
         },
         report_summary:
-            "This parcel shows near-complete cessation of agricultural activity over the last 18 months. NDVI values are at bare-soil levels, and spectral analysis indicates progressive salinization. Long-term trend is strongly declining. Not recommended for agricultural financing without land rehabilitation evidence.",
+            "This parcel shows low vegetation activity across the observed window. NDVI values remain low, and available signals suggest stress or absence should be reviewed with sufficient history and field context.",
         ndvi_series: generateNDVI("2022-03-01", 24, "declining"),
         season_records: [
             {
@@ -223,13 +235,17 @@ export const MOCK_LANDS: LandResult[] = [
         risk_tier: "high",
         indicators: {
             ndvi_peak: 0.18,
+            ndvi_p95_peak: 0.24,
+            ndvi_spread_median: 0.06,
             ndvi_auc: 22.1,
+            evi_peak: 0.12,
+            ndmi_median: -0.02,
+            mndwi_median: -0.25,
             cloud_free_scenes: 36,
-            neighbor_comparison: "below_avg",
             observation_coverage: 0.91,
         },
         report_summary:
-            "Satellite imagery indicates significant encroachment on agricultural land. Building structures are visible in the northern quadrant, accounting for approximately 40% of the registered area. Agricultural use has ceased in affected areas. Financing not recommended pending legal land-use verification.",
+            "Satellite evidence indicates a boundary or non-vegetated land-use signal that requires external verification. FarmTrust does not make legal-boundary or approval decisions from this signal alone.",
         ndvi_series: generateNDVI("2022-03-01", 24, "encroachment"),
         season_records: [],
     },
@@ -258,13 +274,17 @@ export const MOCK_LANDS: LandResult[] = [
         risk_tier: "low",
         indicators: {
             ndvi_peak: 0.82,
+            ndvi_p95_peak: 0.88,
+            ndvi_spread_median: 0.05,
             ndvi_auc: 158.6,
+            evi_peak: 0.58,
+            ndmi_median: 0.20,
+            mndwi_median: -0.34,
             cloud_free_scenes: 44,
-            neighbor_comparison: "above_avg",
             observation_coverage: 0.97,
         },
         report_summary:
-            "Premium agricultural land with consistent high vegetation activity. Multiple strong activity windows were observed from spectral signatures. Recommended for financing.",
+            "Consistent high vegetation activity was observed. Multiple strong activity windows were detected from satellite vegetation signals.",
         ndvi_series: generateNDVI("2022-03-01", 24, "good"),
         season_records: [
             {
@@ -308,13 +328,17 @@ export const MOCK_LANDS: LandResult[] = [
         risk_tier: "low",
         indicators: {
             ndvi_peak: 0.71,
+            ndvi_p95_peak: 0.77,
+            ndvi_spread_median: 0.06,
             ndvi_auc: 128.4,
+            evi_peak: 0.50,
+            ndmi_median: 0.16,
+            mndwi_median: -0.30,
             cloud_free_scenes: 29,
-            neighbor_comparison: "avg",
             observation_coverage: 0.81,
         },
         report_summary:
-            "Small productive plot with consistent activity. Delta location provides reliable irrigation access. Suitable for small-scale agricultural financing.",
+            "Small plot with consistent observed vegetation activity. Irrigation reliability and financing suitability require external context outside FarmTrust's current satellite packet.",
         ndvi_series: generateNDVI("2022-03-01", 24, "good"),
         season_records: [],
     },
@@ -343,13 +367,17 @@ export const MOCK_LANDS: LandResult[] = [
         risk_tier: "medium",
         indicators: {
             ndvi_peak: 0.53,
+            ndvi_p95_peak: 0.63,
+            ndvi_spread_median: 0.10,
             ndvi_auc: 87.2,
+            evi_peak: 0.34,
+            ndmi_median: 0.08,
+            mndwi_median: -0.22,
             cloud_free_scenes: 22,
-            neighbor_comparison: "below_avg",
             observation_coverage: 0.68,
         },
         report_summary:
-            "Intermittent cultivation with a declining 2-year trend. Salinity indicators are emerging in the southern section. Recommend cautious financing with annual reassessment condition.",
+            "Intermittent vegetation activity with a possible stress signal. Observation gaps limit certainty, so review should focus on evidence coverage and local field context.",
         ndvi_series: generateNDVI("2022-03-01", 24, "intermittent"),
         season_records: [],
     },

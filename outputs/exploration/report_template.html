@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NDVI Phenology Report - Menofia Parcel</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1f2a37;background:#f6f8fa;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px 60px}
+header{background:linear-gradient(135deg,#0f5132,#1b7837 55%,#3a9d5d);color:#fff;padding:34px 22px 30px}
+header .inner{max-width:1080px;margin:0 auto}
+header h1{margin:0 0 6px;font-size:25px}
+header p{margin:0;opacity:.92;font-size:14px}
+.tagline{display:inline-block;margin-top:12px;background:rgba(255,255,255,.16);padding:5px 12px;border-radius:20px;font-size:12.5px}
+.cards{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:-44px auto 30px;max-width:1080px;padding:0 22px}
+.card{background:#fff;border:1px solid #e7ebef;border-radius:12px;padding:14px 12px;box-shadow:0 1px 3px rgba(16,40,30,.06)}
+.card .k{font-size:21px;font-weight:700;color:#0f5132}
+.card .t{font-size:11px;color:#5b6b7b;margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
+.card .s{font-size:11px;color:#8795a4;margin-top:3px}
+section{background:#fff;border:1px solid #e7ebef;border-radius:14px;padding:22px 24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(16,40,30,.05)}
+section h2{margin:0 0 4px;font-size:18px;color:#0f5132}
+section .sub{color:#64748b;font-size:13px;margin:0 0 16px}
+img{width:100%;height:auto;border-radius:8px;border:1px solid #eef1f4}
+.note{background:#f0f7f2;border-left:3px solid #1b7837;padding:11px 14px;border-radius:6px;font-size:13.5px;margin-top:14px;color:#27433a}
+.note ul{margin:8px 0 4px;padding-left:20px}
+ul.ins{margin:6px 0 0;padding-left:20px}
+ul.ins li{margin-bottom:9px;font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+th,td{padding:8px 9px;border-bottom:1px solid #edf0f3;text-align:left;vertical-align:middle}
+th{background:#0f5132;color:#fff;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.3px}
+td.c{text-align:center}
+tr:nth-child(even){background:#fafcfb}
+.pill{padding:3px 9px;border-radius:12px;color:#fff;font-size:11px;font-weight:600}
+.pill.winter{background:#3a7bd5}
+.pill.summer{background:#e8a33d}
+.flag{display:inline-block;background:#eef2f6;color:#5b6b7b;border-radius:8px;padding:2px 7px;font-size:10.5px;margin:1px}
+.meth{font-size:12.5px;color:#5b6b7b}
+.meth code{background:#f1f4f7;padding:1px 5px;border-radius:4px}
+.tablewrap{overflow-x:auto}
+footer{text-align:center;color:#8795a4;font-size:12px;margin-top:24px}
+</style>
+</head>
+<body>
+<header><div class="inner">
+<h1>Parcel Phenology &amp; Crop-Cycle Report</h1>
+<p>Sentinel-2 time series &middot; Menofia, Nile Delta &middot; winter wheat/berseem to summer corn rotation</p>
+<span class="tagline">02 May 2024 to 19 Jun 2026 &middot; @@NQA@@ clean acquisitions &middot; 10 m</span>
+</div></header>
+<div class="cards">@@CARDS@@</div>
+<div class="wrap">
+<section>
+<h2>What this parcel is doing</h2>
+<p class="sub">Two years of satellite greenness, read in plain language - each point states what led to it.</p>
+<ul class="ins">@@INSIGHTS@@</ul>
+</section>
+<section>
+<h2>1 &middot; Crop phenology timeline</h2>
+<p class="sub">Each rise-and-fall is one crop: green-up, peak vigour, harvest. Winter (wheat/berseem) tinted blue, summer (corn) amber.</p>
+<img src="@@FIG1@@" alt="phenology timeline">
+<div class="note"><b>How to read it:</b> pale dots are raw satellite NDVI; the bold line is the cleaned, gap-filled curve. Each star is a crop at peak. Two peaks per year = winter + summer on the same field. With the record now starting 2 May 2024 it catches the <b>tail of the previous winter crop</b> senescing, a <b>bare-soil trough in mid-May</b>, then the <b>full summer-2024 corn</b> — so that corn now has its own green-up and planting estimate rather than being a partial cycle.</div>
+</section>
+<section>
+<h2>2 &middot; Detected crop cycles &amp; planting estimates</h2>
+<p class="sub">Every cycle with its phenology metrics and an estimated sowing window.</p>
+<div class="tablewrap"><table>
+<tr><th>Cycle</th><th>Season</th><th>Green-up (SOS)</th><th>Peak (POS)</th><th>Harvest (EOS)</th><th>Days</th><th>Peak NDVI</th><th>Amp.</th><th>Greenness sum</th><th>Crop (your notes)</th><th>Est. planting window</th><th>Notes</th></tr>
+@@ROWS@@
+</table></div>
+<div class="note"><b>Greenness sum</b> (area under NDVI above bare-soil baseline) is a biomass / productivity proxy. <b>Crops are your confirmed labels</b>, and the shapes agree: the 2024/25 mix shows the widest within-field gap (two crops at once), while 2025/26 berseem shows the long, flat, multi-cut plateau.</div>
+</section>
+<section>
+<h2>3 &middot; Greenness vs canopy moisture</h2>
+<p class="sub">NDMI reads water in the canopy. When it falls while NDVI stays up, the crop is greening but drying - the earliest stress signal you get for free.</p>
+<img src="@@FIG3@@" alt="vegetation and moisture indices">
+<div class="note"><b>What led to the read:</b> NDMI sits markedly lower through the summer corn than the winter crop - the corn canopy carries less water in the Delta heat, which is where to watch for irrigation stress.</div>
+</section>
+<section>
+<h2>4 &middot; Year-over-year comparison</h2>
+<p class="sub">The same calendar laid over each year - did green-up shift earlier or later? Is peak vigour holding?</p>
+<img src="@@FIG4@@" alt="year over year NDVI">
+<div class="note"><b>What the overlay shows:</b> the winter peak moved <b>later</b> from 2025 (early Feb) to 2026 (March) - consistent with the switch from a wheat+berseem mix to berseem-only. Summer corn 2025 peaked later and higher than 2024. The autumn turnover trough sits in <b>mid-to-late September</b> both years - a stable replant window.</div>
+</section>
+<section>
+<h2>5 &middot; Field uniformity</h2>
+<p class="sub">The gap between the field average and its greenest pixels. A wide gap = patchy emergence or a mixed stand.</p>
+<img src="@@FIG5@@" alt="within-field uniformity">
+<div class="note">The band is tight when corn is fully grown but <b>widens through the 2024/25 winter</b> - greenest pixels reached ~0.83 while the average lagged near 0.6. <b>What led to it:</b> you planted that field <b>half wheat, half berseem</b>, so the two halves greened up at different rates. The satellite was reading your split field, not a problem.</div>
+</section>
+<section>
+<h2>6 &middot; Corn seasons &amp; the Fall Armyworm question</h2>
+<p class="sub">You told me last year's corn was hit by Fall Armyworm because it went unsprayed. Here is the honest read.</p>
+<img src="@@FIG6@@" alt="corn seasons compared">
+<div class="note"><b>What the data shows:</b> last year's corn (2025) reads as a <b>clean, uniform canopy peaking NDVI 0.80</b>. So <b>NDVI does not show the damage you saw on the ground</b> - expected: FAW damage is patchy at the whorl scale and averages out over a 10 m pixel; NDVI saturates near 0.8; and FAW hits yield/ears more than canopy green. <b>Update:</b> the red-edge bands have since been added and NDRE computed (see &sect;10) - it does <b>not</b> expose the damage at 20 m either, confirming FAW is a scouting / drone-scale problem with satellite as a backstop.</div>
+</section>
+<section>
+<h2>7 &middot; Data quality</h2>
+<p class="sub">Phenology is only as trustworthy as the cloud screening under it.</p>
+<img src="@@FIG2@@" alt="acquisition quality">
+<div class="note">@@DROPPED@@ of @@NRAW@@ scenes were dropped or down-weighted for cloud / low valid-pixel fraction before smoothing; cleaner scenes were given more weight inside the smoother.</div>
+</section>
+<section>
+<h2>8 &middot; Inside the field &mdash; the raw pixels (bonus)</h2>
+<p class="sub">The delivered CSV is a field average. The raw Sentinel-2 cube keeps every 10 m pixel, so we can look <i>inside</i> this ~180 &times; 60 m field.</p>
+<img src="@@FIG7@@" alt="field from space at each crop peak">
+<div class="note"><b>The field from space at each crop peak.</b> At full canopy both winter crops look near-identical dark green (NDVI saturates), and summer corn is an even, lighter green. Grey / pale cells on the west edge are the field boundary (partial pixels).</div>
+<img src="@@FIG8@@" alt="winter two zones vs summer uniform">
+<div class="note"><b>Within-field winter structure = the berseem cutting pattern.</b> The bright diagonal in the middle panel is <b>not</b> a wheat/berseem boundary (that clean split is not resolvable in a 6&times;18 image). It marks where NDVI swings most - the parts of the field worked hardest by repeated <b>cutting</b>. The control is the right panel: in <b>summer 2025 corn</b> the structure disappears (one uniform crop), confirming the winter pattern is real management, not noise. The next section shows the cut-front actually moving.</div>
+<div class="note"><b>Two things the raw cube settled.</b> <b>(1) Validation</b> - recomputing NDVI from the raw bands reproduces the delivered CSV closely (r = 0.94, near-zero bias, 232 dates). <b>(2) The red-edge gap has since been closed</b> - the cube was upgraded with B05/B06/B07/B8A at 20 m, so NDRE is now computed (see &sect;10).</div>
+<img src="@@FIG9@@" alt="validation overlay: CSV reproduced from raw cube">
+</section>
+<section>
+<h2>9 &middot; Berseem cutting / fodder-harvest log</h2>
+<p class="sub">Berseem is cut repeatedly for animal feed; each cut drops NDVI, then it regrows - a saw-tooth.</p>
+<img src="@@FIG10@@" alt="berseem cutting log">
+<div class="note"><b>What this shows.</b> Each red arrow is a detected cut. The satellite cleanly resolves the <b>synchronized early cuts</b> (Nov-Jan); afterwards the curve plateaus because cutting becomes <b>staggered across the field</b> and averages out. <b>Per-pixel</b> the median is <b>~5 cuts</b> for the 2025/26 berseem (on the clean, full-resolution cube) - right in the 4-6 range a Miskawi berseem really takes. Still a floor, since NDVI saturation and the 5-day revisit miss the shortest regrowth, but close to your true count.</div>
+<img src="@@FIG11@@" alt="berseem cutting sweep over consecutive scenes">
+<div class="note"><b>The cut-front moving.</b> Six consecutive scenes over five weeks: a freshly-cut strip (red/orange) appears in one part of the field and regrows while a new strip is cut elsewhere - the alternating, advancing harvest you described (cut a bit, move on, return once it has regrown). This is the spatial twin of the saw-tooth above; the faint persistent line through the middle is your central walkway (mamsha).</div>
+</section>
+<section>
+<h2>10 &middot; Red-edge (NDRE) &mdash; now that the bands are in</h2>
+<p class="sub">You added the red-edge bands (B05/B06/B07/B8A, 20 m). NDRE is the chlorophyll-sensitive index they unlock - the one recommended for stress / Fall Armyworm. Here is the honest result.</p>
+<img src="@@FIG12@@" alt="NDVI vs NDRE">
+<div class="note"><b>What NDRE adds - and what it doesn't.</b> At field scale NDRE moves almost in lockstep with NDVI (<b>r = 0.99</b>), so it does <b>not</b> reveal a hidden Fall Armyworm signal in the average - even red-edge, at 20 m, can't see patchy whorl damage. Its real value is the top panel: where NDVI <b>saturates</b> in the dense winter crop (~0.89), NDRE keeps headroom (~0.65), so it grades vigour and nitrogen in thick canopy that NDVI flattens on. On corn (bottom), 2025 - the FAW year - sits a touch below 2024 in both indices, consistent with the damage you reported but small and confounded by the partial 2024 record, so not a call to make from orbit alone. <b>Bottom line:</b> red-edge was worth adding (it strengthens dense-canopy and nitrogen work), but FAW stays a scouting / drone-scale problem.</div>
+</section>
+<section>
+<h2>11 &middot; MSAVI vs NDVI (quick test)</h2>
+<p class="sub">MSAVI2 is a soil-adjusted greenness index from the same red/NIR bands. Does it beat NDVI for this field?</p>
+<img src="@@FIG13@@" alt="MSAVI2 vs NDVI spatial and temporal">
+<div class="note"><b>Same story, sharper floor.</b> NDVI and MSAVI2 track almost identically over time (<b>r = 0.98</b>) - same cycles, same timing - so for phenology and planting detection they are interchangeable. The difference is at the edges: MSAVI <b>strips the soil glow</b>, so between-crop troughs read ~0.10-0.14 (genuinely bare) vs NDVI's ~0.25, and it <b>saturates less</b> (top panels: same field, NDVI 0.79 vs MSAVI 0.52 at the corn peak), spreading dense and moderate canopy further apart. Net: keep NDVI as the familiar backbone; reach for MSAVI specifically for <b>bare-soil / fallow / planting-onset</b> detection. It does not fix the real ceiling - still no Fall Armyworm.</div>
+</section>
+<section>
+<h2>12 &middot; Cross-check &mdash; Hidden Markov Model (unsupervised)</h2>
+<p class="sub">Does an independent, threshold-free method find the same cycles? A 4-state Gaussian HMM (Baum-Welch + Viterbi) on the smoothed NDVI — no hand-set thresholds.</p>
+<img src="@@FIG14@@" alt="HMM states vs threshold windows">
+<div class="tablewrap"><table>
+<tr><th></th><th>Current (threshold)</th><th>HMM (unsupervised)</th></tr>
+<tr><td>Method</td><td>20% of amplitude + merge rule</td><td>Baum-Welch + Viterbi, 4 Gaussian states</td></tr>
+<tr><td>Thresholds</td><td>hand-set</td><td>learned from the data</td></tr>
+<tr><td>Cycles found</td><td>4</td><td>4 (+ a 6-day edge sliver)</td></tr>
+<tr><td>Boundary agreement</td><td>&mdash;</td><td>~4 d at green-up, ~1 d at harvest</td></tr>
+<tr><td>Per-day state</td><td>no</td><td>yes, probabilistic</td></tr>
+</table></div>
+<div class="note"><b>The two methods agree.</b> The HMM learns four phenological states from the data alone — LOW (fallow), RISING, HIGH, DECLINING — and its activity windows land on the same four crop cycles, boundaries within a few days. A genuine cross-validation: an unsupervised probabilistic model with <b>no 20%-amplitude rule</b> independently reproduces the result, so the cycles are a property of the field, not an artefact of our threshold. <b>HMM adds</b> learned (not hand-tuned) thresholds and a per-day state probability (built-in uncertainty), and is well-cited for remote-sensing phenology; it needs a slope feature since RISING and DECLINING share the same NDVI level. <b>The current approach keeps</b> simplicity and directly-interpretable yield-proxy metrics. The lone 6-day sliver at the start is the previous winter crop's tail at the record edge, not a real extra cycle.</div>
+</section>
+<section>
+<h2>Method, in one paragraph</h2>
+<p class="meth">Field-mean indices from Sentinel-2 L2A were quality-filtered (<code>valid_fraction &ge; 0.5</code>), placed on a daily grid, and reconstructed with a <b>weighted Whittaker smoother</b> (lambda=@@LAMBDA@@) that gap-fills cloudy dates and denoises in one pass. Crop cycles came from multi-peak detection - deliberately <b>not</b> a single-season model - with explicit handling for partial crops at the record edges. Start/Harvest of season are where NDVI crosses @@AMP@@% of each cycle's amplitude. The pixel-level maps were built by decoding the raw Zarr cube directly. Crop labels are your field notes; the curve shapes back them up. <b>Nothing here replaces ground truth</b> - it tells you where to look.</p>
+</section>
+<footer>Generated from indices_timeseries.csv + raw cube.zarr &middot; Sentinel-2 &middot; peak engine: @@ENGINE@@</footer>
+</div>
+</body>
+</html>

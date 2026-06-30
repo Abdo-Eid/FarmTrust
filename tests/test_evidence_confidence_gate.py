@@ -39,6 +39,9 @@ class EvidenceConfidenceGateTests(unittest.TestCase):
         self,
         *,
         quality_metrics: dict[str, object],
+        seasons: list[dict[str, object]] | None = None,
+        ndvi_value: float = 0.62,
+        evi_value: float = 0.48,
     ) -> dict[str, Path]:
         fixture_dir = self.tmpdir / str(quality_metrics["aoi_id"])
         fixture_dir.mkdir(parents=True)
@@ -59,65 +62,75 @@ class EvidenceConfidenceGateTests(unittest.TestCase):
             encoding="utf-8",
         )
         quality_metrics_path.write_text(json.dumps(quality_metrics), encoding="utf-8")
+        if seasons is None:
+            seasons = [
+                {
+                    "season_id": "S1",
+                    "start_date": "2024-01-01",
+                    "end_date": "2024-04-15",
+                    "peak_date": "2024-03-01",
+                    "quality_label": "good",
+                    "confirmation_level": "strong",
+                    "is_open": False,
+                    "duration_days": 106,
+                    "peak_ndvi": 0.70,
+                    "evidence_summary": "Observed strong seasonal vegetation activity.",
+                },
+                {
+                    "season_id": "S2",
+                    "start_date": "2024-05-01",
+                    "end_date": "2024-08-15",
+                    "peak_date": "2024-07-01",
+                    "quality_label": "good",
+                    "confirmation_level": "strong",
+                    "is_open": False,
+                    "duration_days": 107,
+                    "peak_ndvi": 0.71,
+                    "evidence_summary": "Observed strong seasonal vegetation activity.",
+                },
+            ]
+
         season_payload_path.write_text(
             json.dumps(
                 {
                     "aoi_id": quality_metrics["aoi_id"],
-                    "season_count": 2,
+                    "season_count": len(seasons),
                     "gap_risk": quality_metrics["gap_risk"],
-                    "seasons": [
-                        {
-                            "season_id": "S1",
-                            "start_date": "2024-01-01",
-                            "end_date": "2024-04-15",
-                            "peak_date": "2024-03-01",
-                            "quality_label": "good",
-                            "confirmation_level": "strong",
-                            "is_open": False,
-                            "duration_days": 106,
-                            "peak_ndvi": 0.70,
-                            "evidence_summary": "Observed strong seasonal vegetation activity.",
-                        },
-                        {
-                            "season_id": "S2",
-                            "start_date": "2024-05-01",
-                            "end_date": "2024-08-15",
-                            "peak_date": "2024-07-01",
-                            "quality_label": "good",
-                            "confirmation_level": "strong",
-                            "is_open": False,
-                            "duration_days": 107,
-                            "peak_ndvi": 0.71,
-                            "evidence_summary": "Observed strong seasonal vegetation activity.",
-                        },
-                    ],
+                    "seasons": seasons,
                 }
             ),
             encoding="utf-8",
         )
 
         start = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        observation_count = int(quality_metrics.get("usable_observation_count", 80))
         with smoothed_csv_path.open("w", newline="", encoding="utf-8") as handle:
             writer = csv.writer(handle)
             writer.writerow(
                 [
                     "timestamp",
                     "ndvi_smoothed",
+                    "ndvi_p95_raw",
+                    "ndvi_spread_raw",
                     "evi_smoothed",
                     "ndmi_smoothed",
                     "ndwi_smoothed",
+                    "mndwi_smoothed",
                     "is_usable",
                 ]
             )
-            for index in range(80):
+            for index in range(observation_count):
                 timestamp = start + timedelta(days=index * 5)
                 writer.writerow(
                     [
                         timestamp.isoformat(),
-                        0.62,
-                        0.48,
+                        ndvi_value,
+                        ndvi_value + 0.05,
+                        0.05,
+                        evi_value,
                         0.20,
                         -0.20,
+                        -0.30,
                         "true",
                     ]
                 )
@@ -132,6 +145,32 @@ class EvidenceConfidenceGateTests(unittest.TestCase):
     def _build_assessment(self, quality_metrics: dict[str, object]) -> dict[str, object]:
         paths = self._write_fixture_files(quality_metrics=quality_metrics)
         return build_land_assessment(**paths)
+
+    def _land_and_job(self, *, aoi_id: str) -> tuple[Land, Job]:
+        land = Land(
+            id=f"land-{aoi_id}",
+            name="Safety Slice Plot",
+            governorate="Sharqia",
+            geometry=json.dumps(
+                {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [
+                            [31.0, 30.0],
+                            [31.1, 30.0],
+                            [31.1, 30.1],
+                            [31.0, 30.1],
+                            [31.0, 30.0],
+                        ]
+                    ],
+                }
+            ),
+            area_feddan=25.0,
+            aoi_id=aoi_id,
+            job_id=f"job-{aoi_id}",
+        )
+        job = Job(id=f"job-{aoi_id}", land_id=land.id, status="succeeded")
+        return land, job
 
     def test_good_coverage_completes_with_observed_land_status(self) -> None:
         assessment = self._build_assessment(self._base_quality_metrics())
@@ -160,6 +199,77 @@ class EvidenceConfidenceGateTests(unittest.TestCase):
         self.assertEqual(assessment["confidence"]["level"], "low")
         self.assertEqual(assessment["land_status"], "active")
         self.assertEqual(assessment["risk_flags"], [])
+
+    def test_one_good_cycle_is_active_with_limited_history(self) -> None:
+        quality_metrics = self._base_quality_metrics()
+        paths = self._write_fixture_files(
+            quality_metrics=quality_metrics,
+            seasons=[
+                {
+                    "season_id": "S1",
+                    "start_date": "2024-01-01",
+                    "end_date": "2024-04-15",
+                    "peak_date": "2024-03-01",
+                    "quality_label": "good",
+                    "confirmation_level": "strong",
+                    "is_open": False,
+                    "duration_days": 106,
+                    "peak_ndvi": 0.70,
+                    "evidence_summary": "Observed strong seasonal vegetation activity.",
+                }
+            ],
+        )
+
+        assessment = build_land_assessment(**paths)
+
+        self.assertEqual(assessment["land_status"], "active")
+        self.assertEqual(assessment["trend_2y"], "uncertain")
+        self.assertEqual(assessment["history_coverage"]["status"], "limited_history")
+        self.assertEqual(assessment["absence_assessment"]["status"], "activity_present")
+        self.assertEqual(assessment["metrics_summary"]["interval_median_mndwi"], -0.3)
+        self.assertEqual(assessment["metrics_summary"]["interval_median_ndvi_spread"], 0.05)
+        self.assertFalse(any(flag["code"] == "possible_inactivity" for flag in assessment["risk_flags"]))
+
+    def test_short_no_activity_window_does_not_claim_inactivity(self) -> None:
+        quality_metrics = self._base_quality_metrics()
+        quality_metrics.update({"usable_observation_count": 20})
+        paths = self._write_fixture_files(
+            quality_metrics=quality_metrics,
+            seasons=[],
+            ndvi_value=0.12,
+            evi_value=0.10,
+        )
+
+        assessment = build_land_assessment(**paths)
+
+        self.assertIsNone(assessment["land_status"])
+        self.assertEqual(assessment["absence_assessment"]["status"], "not_assessed")
+        self.assertFalse(any(flag["code"] == "possible_inactivity" for flag in assessment["risk_flags"]))
+
+    def test_public_api_does_not_map_possible_inactivity_to_abandonment(self) -> None:
+        data_root = self.tmpdir / "data-root-inactivity"
+        aoi_id = "aoi-inactivity-public"
+        quality_metrics = self._base_quality_metrics(aoi_id=aoi_id)
+        paths = self._write_fixture_files(
+            quality_metrics=quality_metrics,
+            seasons=[],
+            ndvi_value=0.12,
+            evi_value=0.10,
+        )
+        assessment = build_land_assessment(**paths)
+
+        with patch.dict(os.environ, {"FARMTRUST_DATA_DIR": str(data_root)}):
+            write_land_assessment(assessment_dir(aoi_id), assessment)
+            land, job = self._land_and_job(aoi_id=aoi_id)
+
+            response = map_land_response(land, job)
+
+        self.assertEqual(assessment["land_status"], "inactive")
+        self.assertTrue(any(flag["code"] == "possible_inactivity" for flag in assessment["risk_flags"]))
+        self.assertEqual(response.absence_assessment.status, "absence_supported")
+        self.assertEqual(response.indicators.mndwi_median, -0.3)
+        self.assertEqual(response.indicators.ndvi_spread_median, 0.05)
+        self.assertNotIn("abandonment", response.flags or [])
 
     def test_insufficient_coverage_requires_manual_review(self) -> None:
         quality_metrics = self._base_quality_metrics()

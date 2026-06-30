@@ -17,6 +17,12 @@ Refines: <optional previous date/title>
 
 ---
 
+2026-06-29 — Decision: Multi-AOI submissions share one ingestion job and combined-bbox download
+Why: Neighboring lands should avoid repeated Sentinel-2 COG reads when one bbox request can cover the submitted AOI set. The analytical boundary remains each land polygon, so reports and scores stay per AOI while the source download is shared.
+Alternatives: Reject multi-polygon GeoJSON and require separate submissions; store multiple polygons as one `MultiPolygon` land record; download each polygon independently.
+Consequences: A GeoJSON `FeatureCollection` or `MultiPolygon` creates one parent assessment group/submission and separate child land records tied to one job. The worker downloads a shared cube for the combined bbox and processes each polygon mask independently. The portal lists the parent group as the top-level item; stopping the parent job stops all child AOIs in that submission. Far-apart polygons may over-read a large bbox until distance-based grouping is added later.
+Links: ENGINEERING §Architecture | ENGINEERING §Pipeline boundary | TASK: T-07
+
 2026-06-27 — Decision: Product anchor is lender-facing farm risk reports for credit-readiness review
 Why: The strongest and most credible current direction is a defensible satellite-to-risk-report product for lenders. Monitoring, AI explanation, crop/yield POCs, segmentation, and data-company expansion should be staged around that anchor instead of presented as the first product.
 Alternatives: Start as a general agriculture platform; lead with monitoring; lead with an AI assistant; position crop/yield models as the core current product.
@@ -205,6 +211,7 @@ Consequences: Preprocessing now produces `*_filled` columns (linear interpolatio
 Links: PIPELINE §Preprocessing | PIPELINE §Activity-window analysis
 Supersedes: 2026-01-25 — Current-build gap handling uses smoothing + light interpolation with assessment-confidence penalty
 Refines: 2026-05-18 — Current-build preprocessing does not interpolate or synthesize timestamps
+Superseded by: 2026-06-30 — Weighted Whittaker daily-grid analysis curve + timescale lambda + daily-curve detector
 
 2026-06-17 — Decision: Insufficient satellite evidence requires manual review
 Why: A completed pipeline run can still lack enough usable evidence for a final automated land assessment. In that case, the product must avoid implying land/farmer failure or issuing unsupported financing-review signals.
@@ -212,3 +219,11 @@ Alternatives: Return a provisional automated land status; return no assessment o
 Consequences: API and reports expose `assessment_status: complete | manual_review_required`. Manual-review results keep satellite evidence coverage and low assessment confidence, but do not present final automated `land_status`, `trend_2y`, `season_performance`, `risk_tier`, or land risk flags. Confidence is capped by evidence coverage: no cap for `good`, max `medium` for `fair`, max `low` for `limited`, and `low` for `insufficient`.
 Links: PROJECT §Outputs (what the user sees) | ENGINEERING §Assessment artifact boundary | PIPELINE §Evidence coverage interpretation
 Refines: 2026-06-17 — Decision: Gap diagnostics describe evidence coverage, not land risk
+
+2026-06-30 — Decision: Weighted Whittaker daily-grid analysis curve + timescale lambda + daily-curve detector
+Why: The prior smoother fit a polynomial on the integer observation index (not real time), distorting irregular cloud-gapped Sentinel-2 series and mislabeled as Savitzky-Golay; a second gap-aware smoother was dead code whose parameters were still published. The detector measured peak min-distance in observation-index units (merging two cycles across a temporal gap) and mislabeled open-edge cycles as complete.
+Alternatives: keep Savitzky-Golay but make it time-aware (weaker across long gaps); adaptive lambda via GCV (rejected as default — empirically undersmooths daily-gridded NDVI, minimizing at lambda≈1-10); double-logistic/GPR (rejected: segmentation/determinism/explainability costs); HMM as production detector (rejected — kept as research cross-check only).
+Consequences: Smoothing is a quality-weighted Whittaker-Eilers smoother on a regular daily grid (`analysis_curve.py`); lambda is derived from a ~45-day phenology timescale (`lambda=(T/2π)^4`≈2631), an agronomic constant rather than a single-AOI fit. A new `season_analysis_curve.csv` artifact is persisted; `ndvi_smoothed.csv` keeps its columns (now the daily curve sampled at observations). The detector runs on the daily curve with real-day peak distance, asymmetric per-limb SOS/EOS thresholds (alpha_start 0.20 / alpha_end 0.35), slope confirmation, sub-peak merging (berseem stays one cycle), and crossing-reachability lifecycle. A deterministic HMM cross-check (`outputs/tools/hmm_phenology.py`, diagnostic only) and a self-contained visualization HTML are produced under `outputs/diagnostics/<aoi>/`. `scipy` is now a base dependency.
+Links: PIPELINE §Preprocessing | PIPELINE §Activity-window analysis | T-11 §Done Summary
+Supersedes: 2026-06-24 — `gap_aware_local_median_weighted_mean` replaced by linear-interpolation-then-Savitzky-Golay
+Refines: 2026-06-29 — T-11 detector decision (deterministic backbone aligned with peak/trough per-cycle amplitude)

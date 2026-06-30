@@ -1,0 +1,52 @@
+{
+  "aoi_id": "land-c92521f9627b4cc1a9e0ef65909a1820",
+  "claim_type": "isolated_research_cross_check",
+  "comparison": {
+    "agreement_within_tolerance": true,
+    "cycle_count_delta": 0,
+    "hmm_cycle_count": 1,
+    "lifecycle_agreement_fraction": 1.0,
+    "matched_count": 1,
+    "matches": [
+      {
+        "eos_delta_days": 11,
+        "lifecycle_match": true,
+        "pos_delta_days": 0,
+        "season_id": "season_01",
+        "sos_delta_days": 1
+      }
+    ],
+    "max_abs_pos_delta_days": 0,
+    "mean_abs_eos_delta_days": 11.0,
+    "mean_abs_pos_delta_days": 0.0,
+    "mean_abs_sos_delta_days": 1.0,
+    "prod_cycle_count": 1,
+    "tolerance_days": 30,
+    "unmatched_hmm_indices": [],
+    "unmatched_prod_ids": []
+  },
+  "daily_curve_source": "season_analysis_curve.csv",
+  "detector_seasons": [
+    {
+      "end_date": "2026-05-11",
+      "lifecycle_status": "complete",
+      "peak_date": "2026-03-23",
+      "season_id": "season_01",
+      "start_date": "2026-01-18"
+    }
+  ],
+  "hmm_cycles": [
+    {
+      "duration_days": 123,
+      "eos_date": "2026-05-22",
+      "lifecycle_status": "complete",
+      "peak_ndvi": 0.735998,
+      "pos_date": "2026-03-23",
+      "sos_date": "2026-01-19"
+    }
+  ],
+  "hmm_has_high_state": true,
+  "method": "gaussian_hmm_4state_value_slope",
+  "provenance_level": 2,
+  "restriction": "diagnostic_only; not_consumed_by_scoring; no_crop_identity_claims"
+}

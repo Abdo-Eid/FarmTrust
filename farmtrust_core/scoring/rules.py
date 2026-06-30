@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -16,9 +17,12 @@ from .evidence import build_confidence_payload, build_risk_flag
 REQUIRED_PREPROCESS_COLUMNS = (
     "timestamp",
     "ndvi_smoothed",
+    "ndvi_p95_raw",
+    "ndvi_spread_raw",
     "evi_smoothed",
     "ndmi_smoothed",
     "ndwi_smoothed",
+    "mndwi_smoothed",
     "is_usable",
 )
 REQUIRED_QUALITY_KEYS = (
@@ -44,15 +48,24 @@ CONFIDENCE_RANK = {
     "medium": 2,
     "high": 3,
 }
+ABSENCE_MIN_WINDOW_DAYS = 180
+ABSENCE_MIN_USABLE_OBSERVATIONS = 30
+ABSENCE_MAX_GAP_DAYS = 45.0
+ABSENCE_MAX_GAP_RATIO = 0.30
+ABSENCE_LOW_NDVI_MAX = 0.25
+ABSENCE_LOW_EVI_MAX = 0.20
 
 
 @dataclass(frozen=True)
 class AssessmentObservation:
     timestamp: datetime
     ndvi_smoothed: float
+    ndvi_p95_raw: float
+    ndvi_spread_raw: float
     evi_smoothed: float
     ndmi_smoothed: float
     ndwi_smoothed: float
+    mndwi_smoothed: float
 
 
 @dataclass(frozen=True)
@@ -71,12 +84,16 @@ class SeasonMetric:
     peak_evi: float
     median_ndmi: float
     median_ndwi: float
+    median_mndwi: float
+    median_ndvi_spread: float
+    peak_ndvi_p95: float
     evidence_summary: str
     gap_overlap_count: int
     gap_overlap_risk: str
     gap_overlap_stage: str
     lifecycle_status: str
     detection_status: str
+    season_calendar_label: str = "unknown"
 
 
 def _parse_timestamp(value: str) -> datetime:
@@ -91,11 +108,20 @@ def _parse_date(value: str) -> date:
 
 
 def _median(values: list[float]) -> float:
-    ordered = sorted(values)
+    ordered = sorted(value for value in values if math.isfinite(value))
+    if not ordered:
+        return float("nan")
     middle = len(ordered) // 2
     if len(ordered) % 2 == 1:
         return ordered[middle]
     return float((ordered[middle - 1] + ordered[middle]) / 2.0)
+
+
+def _max_finite(values: list[float]) -> float:
+    finite = [value for value in values if math.isfinite(value)]
+    if not finite:
+        return float("nan")
+    return max(finite)
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -120,9 +146,12 @@ def load_assessment_observations(csv_path: Path) -> list[AssessmentObservation]:
                 AssessmentObservation(
                     timestamp=_parse_timestamp(row["timestamp"]),
                     ndvi_smoothed=float(row["ndvi_smoothed"]),
+                    ndvi_p95_raw=float(row["ndvi_p95_raw"]),
+                    ndvi_spread_raw=float(row["ndvi_spread_raw"]),
                     evi_smoothed=float(row["evi_smoothed"]),
                     ndmi_smoothed=float(row["ndmi_smoothed"]),
                     ndwi_smoothed=float(row["ndwi_smoothed"]),
+                    mndwi_smoothed=float(row["mndwi_smoothed"]),
                 )
             )
 
@@ -198,12 +227,16 @@ def _build_season_metrics(
                 peak_evi=round(max(row.evi_smoothed for row in rows), 6),
                 median_ndmi=round(_median([row.ndmi_smoothed for row in rows]), 6),
                 median_ndwi=round(_median([row.ndwi_smoothed for row in rows]), 6),
+                median_mndwi=round(_median([row.mndwi_smoothed for row in rows]), 6),
+                median_ndvi_spread=round(_median([row.ndvi_spread_raw for row in rows]), 6),
+                peak_ndvi_p95=round(_max_finite([row.ndvi_p95_raw for row in rows]), 6),
                 evidence_summary=str(season["evidence_summary"]),
                 gap_overlap_count=int(season.get("gap_overlap_count", 0)),
                 gap_overlap_risk=str(season.get("gap_overlap_risk", "low")),
                 gap_overlap_stage=str(season.get("gap_overlap_stage", "none")),
                 lifecycle_status=str(season.get("lifecycle_status", "open_right" if season.get("is_open") else "complete")),
                 detection_status=str(season.get("detection_status", "confirmed")),
+                season_calendar_label=str(season.get("season_calendar_label", "unknown")),
             )
         )
 
@@ -239,9 +272,12 @@ def _derive_land_status(
     *,
     activity_coverage_fraction: float,
     latest_timestamp: datetime,
-) -> tuple[str, str]:
+    absence_assessment: dict[str, Any],
+) -> tuple[str | None, str]:
     if not season_metrics:
-        return "inactive", "No vegetation activity windows were detected across the observed interval."
+        if absence_assessment["status"] == "absence_supported":
+            return "inactive", "No vegetation activity windows were detected and the absence gate supports a cautious inactive interpretation."
+        return None, "No vegetation activity windows were detected, but the absence gate did not support an inactivity claim."
 
     recent_seasons = _recent_season_metrics(season_metrics, latest_timestamp=latest_timestamp)
     recent_good = sum(1 for season in recent_seasons if season.quality_label == "good")
@@ -253,10 +289,22 @@ def _derive_land_status(
             f"{recent_any} recent vegetation activity windows were detected with activity_coverage_fraction={activity_coverage_fraction:.2f}.",
         )
 
+    if recent_good >= 1 and activity_coverage_fraction >= 0.18:
+        return (
+            "active",
+            f"A recent good vegetation activity window was detected with limited history (recent_windows={recent_any}, activity_coverage_fraction={activity_coverage_fraction:.2f}).",
+        )
+
     if recent_any >= 1 and activity_coverage_fraction >= 0.18:
         return (
             "intermittent",
             f"Vegetation activity windows exist but continuity is weaker (recent_windows={recent_any}, activity_coverage_fraction={activity_coverage_fraction:.2f}).",
+        )
+
+    if absence_assessment["status"] != "absence_supported":
+        return (
+            None,
+            f"Detected activity is sparse, but the absence gate did not support an inactive or idle interpretation (activity_coverage_fraction={activity_coverage_fraction:.2f}).",
         )
 
     return (
@@ -266,6 +314,11 @@ def _derive_land_status(
 
 
 def _derive_trend(season_metrics: list[SeasonMetric]) -> tuple[str, str]:
+    # `is_open` is True only for windows whose RIGHT edge is unobserved
+    # (lifecycle open_right / open_both); these are excluded as trend references
+    # because their end/peak may still be censored. An `open_left` window is NOT
+    # is_open (it is a usable closed reference) but is still flagged provisional
+    # via `lifecycle_status` / `start_boundary_certainty`. See seasons.py.
     reference = [season for season in season_metrics if not season.is_open]
     if len(reference) < 2:
         reference = season_metrics
@@ -296,6 +349,8 @@ def _derive_trend(season_metrics: list[SeasonMetric]) -> tuple[str, str]:
 
 
 def _latest_season_payload(season_metrics: list[SeasonMetric]) -> tuple[dict[str, Any], SeasonMetric]:
+    # Prefer a closed reference cycle. `is_open` == right-edge unobserved only
+    # (open_right / open_both); open_left counts as closed here. See seasons.py.
     closed = [season for season in season_metrics if not season.is_open]
     selected = closed[-1] if closed else season_metrics[-1]
     return (
@@ -456,6 +511,91 @@ def _derive_satellite_evidence_coverage(quality_metrics: dict[str, Any]) -> dict
     return {"status": status, "rationale": rationale}
 
 
+def _derive_history_coverage(
+    observations: list[AssessmentObservation],
+    season_metrics: list[SeasonMetric],
+) -> dict[str, Any]:
+    observed_count = len(season_metrics)
+    complete_count = sum(1 for season in season_metrics if not season.is_open)
+    interval_days = 0
+    if len(observations) >= 2:
+        interval_days = max(0, (observations[-1].timestamp.date() - observations[0].timestamp.date()).days)
+
+    if observed_count == 0:
+        status = "insufficient_history"
+        rationale = "No vegetation activity cycles were observed, so activity history could not be established."
+    elif observed_count < 2 or complete_count < 1:
+        status = "limited_history"
+        rationale = "Only one vegetation activity cycle, or no complete cycle, was observed; do not infer long-term stability or trend."
+    else:
+        status = "sufficient_history"
+        rationale = "Multiple vegetation activity cycles were observed in the assessment interval."
+
+    return {
+        "status": status,
+        "rationale": rationale,
+        "observed_activity_cycle_count": observed_count,
+        "complete_activity_cycle_count": complete_count,
+        "assessment_interval_days": interval_days,
+    }
+
+
+def _derive_absence_assessment(
+    quality_metrics: dict[str, Any],
+    observations: list[AssessmentObservation],
+    season_metrics: list[SeasonMetric],
+    satellite_evidence_coverage: dict[str, str],
+) -> dict[str, str]:
+    if season_metrics:
+        return {
+            "status": "activity_present",
+            "rationale": "At least one vegetation activity cycle was detected; absence was not claimed.",
+        }
+
+    if not observations:
+        return {
+            "status": "not_assessed",
+            "rationale": "No observations were available for an absence assessment.",
+        }
+
+    usable_count = int(quality_metrics["usable_observation_count"])
+    gap_ratio = float(quality_metrics.get("gap_ratio", 0.0))
+    max_gap_days = float(quality_metrics.get("max_gap_days", 0.0))
+    interval_days = max(0, (observations[-1].timestamp.date() - observations[0].timestamp.date()).days)
+    coverage_status = satellite_evidence_coverage["status"]
+
+    if coverage_status == "insufficient" or usable_count < 12:
+        return {
+            "status": "insufficient_evidence",
+            "rationale": "Satellite evidence is insufficient, so absence or inactivity cannot be assessed safely.",
+        }
+
+    if interval_days < ABSENCE_MIN_WINDOW_DAYS:
+        return {
+            "status": "not_assessed",
+            "rationale": f"The assessment window is too short for a safe absence claim (interval_days={interval_days}).",
+        }
+
+    if usable_count < ABSENCE_MIN_USABLE_OBSERVATIONS or gap_ratio > ABSENCE_MAX_GAP_RATIO or max_gap_days > ABSENCE_MAX_GAP_DAYS:
+        return {
+            "status": "insufficient_evidence",
+            "rationale": "Observation density or gaps are not strong enough to support an absence claim.",
+        }
+
+    max_ndvi = max(row.ndvi_smoothed for row in observations)
+    max_evi = max(row.evi_smoothed for row in observations)
+    if max_ndvi <= ABSENCE_LOW_NDVI_MAX and max_evi <= ABSENCE_LOW_EVI_MAX:
+        return {
+            "status": "absence_supported",
+            "rationale": f"No activity cycle was detected, evidence coverage is adequate, and vegetation signal stayed low (max_ndvi={max_ndvi:.2f}, max_evi={max_evi:.2f}).",
+        }
+
+    return {
+        "status": "absence_uncertain",
+        "rationale": f"No activity cycle was detected, but vegetation signal was not consistently low enough for a safe absence claim (max_ndvi={max_ndvi:.2f}, max_evi={max_evi:.2f}).",
+    }
+
+
 def _derive_assessment_status(satellite_evidence_coverage: dict[str, str]) -> str:
     if satellite_evidence_coverage["status"] == "insufficient":
         return "manual_review_required"
@@ -512,7 +652,8 @@ def _derive_risk_flags(
     season_metrics: list[SeasonMetric],
     latest_season: SeasonMetric | None,
     *,
-    land_status: str,
+    land_status: str | None,
+    absence_assessment: dict[str, str],
 ) -> list[dict[str, str]]:
     flags: list[dict[str, str]] = []
 
@@ -542,18 +683,18 @@ def _derive_risk_flags(
             )
         )
 
-    if land_status == "inactive":
+    if land_status == "inactive" and absence_assessment["status"] == "absence_supported":
         flags.append(
             build_risk_flag(
                 "possible_inactivity",
                 "high",
-                "Interval-level activity is too sparse for a stable active land classification.",
+                "No vegetation activity cycle was detected and the absence gate supports a cautious inactivity interpretation.",
             )
         )
     elif land_status == "intermittent":
         flags.append(
             build_risk_flag(
-                "possible_inactivity",
+                "limited_activity_continuity",
                 "moderate",
                 "Activity exists, but continuity is not strong enough for a stable active label.",
             )
@@ -576,10 +717,19 @@ def build_land_assessment(
     season_metrics = _build_season_metrics(observations, list(season_payload["seasons"]))
 
     activity_coverage_fraction = _activity_coverage_fraction(observations, season_metrics)
+    satellite_evidence_coverage = _derive_satellite_evidence_coverage(quality_metrics)
+    absence_assessment = _derive_absence_assessment(
+        quality_metrics,
+        observations,
+        season_metrics,
+        satellite_evidence_coverage,
+    )
+    history_coverage = _derive_history_coverage(observations, season_metrics)
     land_status, land_status_basis = _derive_land_status(
         season_metrics,
         activity_coverage_fraction=activity_coverage_fraction,
         latest_timestamp=observations[-1].timestamp,
+        absence_assessment=absence_assessment,
     )
     trend_2y, trend_basis = _derive_trend(season_metrics)
     if season_metrics:
@@ -587,7 +737,6 @@ def build_land_assessment(
     else:
         latest_season_payload = None
         latest_season = None
-    satellite_evidence_coverage = _derive_satellite_evidence_coverage(quality_metrics)
     assessment_status = _derive_assessment_status(satellite_evidence_coverage)
     confidence = _cap_confidence_by_coverage(
         _derive_confidence(quality_metrics, latest_season),
@@ -598,6 +747,7 @@ def build_land_assessment(
         season_metrics,
         latest_season,
         land_status=land_status,
+        absence_assessment=absence_assessment,
     )
     if assessment_status == "manual_review_required":
         land_status = None
@@ -616,6 +766,8 @@ def build_land_assessment(
         },
         "land_status": land_status,
         "trend_2y": trend_2y,
+        "history_coverage": history_coverage,
+        "absence_assessment": absence_assessment,
         "season_count": int(season_payload["season_count"]),
         "latest_season_performance": latest_season_payload,
         "risk_flags": risk_flags,
@@ -623,6 +775,8 @@ def build_land_assessment(
         "confidence": confidence,
         "evidence": {
             "land_status_basis": land_status_basis,
+            "history_coverage_basis": history_coverage["rationale"],
+            "absence_assessment_basis": absence_assessment["rationale"],
             "trend_basis": trend_basis,
             "latest_season_basis": latest_season.evidence_summary
             if latest_season is not None
@@ -637,9 +791,12 @@ def build_land_assessment(
             "active_observation_fraction": round(activity_coverage_fraction, 4),
             "activity_coverage_fraction": round(activity_coverage_fraction, 4),
             "interval_max_ndvi": round(max(row.ndvi_smoothed for row in observations), 6),
+            "interval_max_ndvi_p95": round(_max_finite([row.ndvi_p95_raw for row in observations]), 6),
+            "interval_median_ndvi_spread": round(_median([row.ndvi_spread_raw for row in observations]), 6),
             "interval_max_evi": round(max(row.evi_smoothed for row in observations), 6),
             "interval_median_ndmi": round(_median([row.ndmi_smoothed for row in observations]), 6),
             "interval_median_ndwi": round(_median([row.ndwi_smoothed for row in observations]), 6),
+            "interval_median_mndwi": round(_median([row.mndwi_smoothed for row in observations]), 6),
             "season_strength": [
                 {
                     "season_id": season.season_id,
@@ -648,6 +805,9 @@ def build_land_assessment(
                     "peak_evi": season.peak_evi,
                     "median_ndmi": season.median_ndmi,
                     "median_ndwi": season.median_ndwi,
+                    "median_mndwi": season.median_mndwi,
+                    "median_ndvi_spread": season.median_ndvi_spread,
+                    "peak_ndvi_p95": season.peak_ndvi_p95,
                     "quality_label": season.quality_label,
                     "confirmation_level": season.confirmation_level,
                     "is_open": season.is_open,
@@ -657,6 +817,7 @@ def build_land_assessment(
                     "gap_overlap_stage": season.gap_overlap_stage,
                     "lifecycle_status": season.lifecycle_status,
                     "detection_status": season.detection_status,
+                    "season_calendar_label": season.season_calendar_label,
                 }
                 for season in season_metrics
             ],

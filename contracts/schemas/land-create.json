@@ -12,24 +12,79 @@
     "notes": { "type": "string" },
     "method": { "const": "polygon" },
     "area_feddan": { "type": "number", "exclusiveMinimum": 0 },
+    "lookback_days": { "type": "integer", "minimum": 90, "maximum": 1825 },
     "geometry": {
+      "oneOf": [
+        { "$ref": "#/$defs/polygon" },
+        { "$ref": "#/$defs/multiPolygon" },
+        { "$ref": "#/$defs/feature" },
+        { "$ref": "#/$defs/featureCollection" }
+      ]
+    }
+  },
+  "$defs": {
+    "position": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "type": "number" }
+    },
+    "linearRing": {
+      "type": "array",
+      "minItems": 4,
+      "items": { "$ref": "#/$defs/position" }
+    },
+    "polygonCoordinates": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/linearRing" }
+    },
+    "polygon": {
       "type": "object",
       "required": ["type", "coordinates"],
       "additionalProperties": true,
       "properties": {
         "type": { "const": "Polygon" },
+        "coordinates": { "$ref": "#/$defs/polygonCoordinates" }
+      }
+    },
+    "multiPolygon": {
+      "type": "object",
+      "required": ["type", "coordinates"],
+      "additionalProperties": true,
+      "properties": {
+        "type": { "const": "MultiPolygon" },
         "coordinates": {
           "type": "array",
           "minItems": 1,
-          "items": {
-            "type": "array",
-            "minItems": 4,
-            "items": {
-              "type": "array",
-              "minItems": 2,
-              "items": { "type": "number" }
-            }
-          }
+          "items": { "$ref": "#/$defs/polygonCoordinates" }
+        }
+      }
+    },
+    "featureGeometry": {
+      "oneOf": [
+        { "$ref": "#/$defs/polygon" },
+        { "$ref": "#/$defs/multiPolygon" }
+      ]
+    },
+    "feature": {
+      "type": "object",
+      "required": ["type", "geometry"],
+      "additionalProperties": true,
+      "properties": {
+        "type": { "const": "Feature" },
+        "geometry": { "$ref": "#/$defs/featureGeometry" }
+      }
+    },
+    "featureCollection": {
+      "type": "object",
+      "required": ["type", "features"],
+      "additionalProperties": true,
+      "properties": {
+        "type": { "const": "FeatureCollection" },
+        "features": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/feature" }
         }
       }
     }

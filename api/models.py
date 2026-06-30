@@ -31,6 +31,20 @@ class Land(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now)
 
 
+class AssessmentGroup(SQLModel, table=True):
+    id: str = Field(primary_key=True)
+    name: str
+    governorate: str
+    district: Optional[str] = None
+    notes: Optional[str] = None
+    job_id: str = Field(index=True, unique=True)
+    primary_land_id: str = Field(index=True)
+    aoi_count: int = Field(default=1)
+    total_area_feddan: float
+    lookback_days: int = Field(default=730)
+    created_at: datetime = Field(default_factory=utc_now)
+
+
 class Job(SQLModel, table=True):
     id: str = Field(primary_key=True)
     land_id: str = Field(index=True)

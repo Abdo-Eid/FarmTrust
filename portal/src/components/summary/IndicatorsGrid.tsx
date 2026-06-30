@@ -4,18 +4,6 @@ interface IndicatorsGridProps {
   indicators: Indicators
 }
 
-const NEIGHBOR_LABELS = {
-  above_avg: 'Above District Avg',
-  avg:       'At District Avg',
-  below_avg: 'Below District Avg',
-} as const
-
-const NEIGHBOR_COLORS = {
-  above_avg: 'text-green-600',
-  avg:       'text-amber-600',
-  below_avg: 'text-red-600',
-} as const
-
 interface IndicatorCellProps {
   label: string
   value: React.ReactNode
@@ -39,7 +27,6 @@ function IndicatorCell({ label, value, unit, icon }: IndicatorCellProps) {
 }
 
 export function IndicatorsGrid({ indicators }: IndicatorsGridProps) {
-  const neighbor = indicators.neighbor_comparison
   return (
     <div>
       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Key Indicators</p>
@@ -50,10 +37,35 @@ export function IndicatorsGrid({ indicators }: IndicatorsGridProps) {
           icon="eco"
         />
         <IndicatorCell
+          label="NDVI p95 Peak"
+          value={indicators.ndvi_p95_peak?.toFixed(2) ?? '—'}
+          icon="stacked_line_chart"
+        />
+        <IndicatorCell
+          label="Field Spread"
+          value={indicators.ndvi_spread_median?.toFixed(2) ?? '—'}
+          icon="grain"
+        />
+        <IndicatorCell
           label="Vegetation AUC"
           value={indicators.ndvi_auc?.toFixed(1) ?? '—'}
           unit="(24mo)"
           icon="show_chart"
+        />
+        <IndicatorCell
+          label="EVI Confirmation"
+          value={indicators.evi_peak?.toFixed(2) ?? '—'}
+          icon="verified"
+        />
+        <IndicatorCell
+          label="Moisture Signal"
+          value={indicators.ndmi_median?.toFixed(2) ?? '—'}
+          icon="water_drop"
+        />
+        <IndicatorCell
+          label="Surface-Water Signal"
+          value={indicators.mndwi_median?.toFixed(2) ?? '—'}
+          icon="waves"
         />
         <IndicatorCell
           label="Cloud-Free Scenes"
@@ -61,15 +73,16 @@ export function IndicatorsGrid({ indicators }: IndicatorsGridProps) {
           unit="scenes"
           icon="cloud_off"
         />
-        <div className="bg-white border border-gray-200 rounded-md p-4 shadow-panel">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="material-symbols-outlined text-gray-400 text-base">compare</span>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">vs. Neighbors</p>
-          </div>
-          <p className={`text-sm font-semibold ${neighbor ? NEIGHBOR_COLORS[neighbor] : 'text-gray-400'}`}>
-            {neighbor ? NEIGHBOR_LABELS[neighbor] : '—'}
-          </p>
-        </div>
+        <IndicatorCell
+          label="Observation Coverage"
+          value={
+            indicators.observation_coverage !== undefined
+              ? `${(indicators.observation_coverage * 100).toFixed(1)}`
+              : '—'
+          }
+          unit="%"
+          icon="fact_check"
+        />
       </div>
     </div>
   )

@@ -1,3 +1,5 @@
+import type { LandGeoJSON } from "./geo";
+
 export type LandStatus =
     | "active"
     | "intermittent"
@@ -43,9 +45,13 @@ export interface SatelliteEvidenceCoverage {
 
 export interface Indicators {
     ndvi_peak?: number;
+    ndvi_p95_peak?: number;
+    ndvi_spread_median?: number;
     ndvi_auc?: number;
+    evi_peak?: number;
+    ndmi_median?: number;
+    mndwi_median?: number;
     cloud_free_scenes?: number;
-    neighbor_comparison?: "above_avg" | "avg" | "below_avg";
     observation_coverage?: number;
 }
 
@@ -74,7 +80,7 @@ export interface CreateLandPayload {
     district?: string;
     notes?: string;
     method: AOIMethod;
-    geometry: GeoJSON.Geometry | null;
+    geometry: LandGeoJSON;
     area_feddan: number;
     lookback_days?: number;
 }
@@ -101,6 +107,28 @@ export interface LandResult {
     report_summary?: string;
     ndvi_series?: NDVIPoint[];
     season_records?: SeasonRecord[];
+}
+
+export interface LandGroupResult {
+    id: string;
+    name: string;
+    governorate: string;
+    district?: string;
+    notes?: string;
+    area_feddan: number;
+    submitted_at: string;
+    job_id: string;
+    primary_land_id: string;
+    aoi_count: number;
+    job_status: JobStatus;
+    assessment_status?: AssessmentStatus;
+    land_status?: LandStatus;
+    trend_2y?: Trend2Y;
+    season_performance?: SeasonPerformance;
+    risk_tier?: RiskTier;
+    confidence?: Confidence;
+    satellite_evidence_coverage?: SatelliteEvidenceCoverage;
+    children: LandResult[];
 }
 
 export interface JobState {

@@ -13,12 +13,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   lands: {
     list: ()            => request<import('./types').LandResult[]>('/lands'),
+    groups: ()          => request<import('./types').LandGroupResult[]>('/lands/groups'),
+    group: (id: string) => request<import('./types').LandGroupResult>(`/lands/groups/${id}`),
     get:  (id: string)  => request<import('./types').LandResult>(`/lands/${id}`),
     create: (body: import('./types').CreateLandPayload) => request<import('./types').LandResult>('/lands', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
     delete: (id: string) => request<void>(`/lands/${id}`, { method: 'DELETE' }),
+    deleteGroup: (id: string) => request<void>(`/lands/groups/${id}`, { method: 'DELETE' }),
   },
   jobs: {
     get:    (id: string) => request<import('./types').JobState>(`/jobs/${id}`),

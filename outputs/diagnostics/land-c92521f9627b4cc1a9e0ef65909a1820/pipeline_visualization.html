@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FarmTrust pipeline — land-c92521f9627b4cc1a9e0ef65909a1820</title>
+<style>
+  :root { --bg:#ffffff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+          --curve:#1b7837; --filled:#9ca3af; --raw-ok:#2e7d32; --raw-bad:#ef6c00;
+          --sos:#2e7d32; --pos:#ef6c00; --eos:#8d6e63; --span:#3a7bd5;
+          --low:#d6d3cd; --rising:#a5d6a7; --high:#1b7837; --declining:#c8a36b; }
+  * { box-sizing:border-box; }
+  body { font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+         color:var(--ink); background:var(--bg); margin:0; padding:24px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:16px; }
+  .card { border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:18px; }
+  .legend { display:flex; flex-wrap:wrap; gap:14px; font-size:12px; color:var(--muted); margin-top:8px; }
+  .legend span { display:inline-flex; align-items:center; gap:6px; }
+  .swatch { width:14px; height:3px; border-radius:2px; display:inline-block; }
+  .dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th,td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; }
+  #tip { position:fixed; pointer-events:none; background:#111827; color:#fff; font-size:12px;
+         padding:6px 8px; border-radius:6px; opacity:0; transform:translate(-50%,-120%); white-space:nowrap; }
+  .pill { padding:1px 7px; border-radius:999px; font-size:11px; background:#eef2ff; color:#3730a3; }
+  .foot { color:var(--muted); font-size:12px; line-height:1.5; }
+</style>
+</head>
+<body>
+<h1>FarmTrust pipeline visualization — land-c92521f9627b4cc1a9e0ef65909a1820</h1>
+<div class="sub" id="subline"></div>
+
+<div class="card">
+  <svg id="chart" viewBox="0 0 1100 460" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block" role="img"></svg>
+  <div class="legend">
+    <span><span class="swatch" style="background:var(--curve)"></span>Whittaker smoothed curve</span>
+    <span><span class="swatch" style="background:var(--filled);height:0;border-top:2px dashed var(--filled)"></span>linear interpolation</span>
+    <span><span class="dot" style="background:var(--raw-ok)"></span>raw obs (usable)</span>
+    <span><span class="dot" style="background:var(--raw-bad)"></span>raw obs (low quality)</span>
+    <span><span class="swatch" style="background:var(--span);opacity:.4"></span>detected cycle</span>
+    <span>HMM phase band: <span class="dot" style="background:var(--rising)"></span>rising <span class="dot" style="background:var(--high)"></span>high <span class="dot" style="background:var(--declining)"></span>declining</span>
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">Detected activity cycles</h3>
+  <table id="cycles"></table>
+</div>
+
+<div class="card" id="hmmcard">
+  <h3 style="margin-top:0">HMM cross-check (research diagnostic — not production)</h3>
+  <div id="hmmsummary" class="sub"></div>
+  <table id="hmm"></table>
+</div>
+
+<div class="foot">
+  Method: <code id="method"></code>. The daily curve is a <b>model-derived</b> analysis
+  signal (weighted Whittaker), not direct evidence; gap/confidence is computed on real usable
+  observations. The HMM panel is an independent research cross-check and never changes production output.
+</div>
+
+<div id="tip"></div>
+<script id="data" type="application/json">{"aoi_id":"land-c92521f9627b4cc1a9e0ef65909a1820","method":"deterministic_peak_trough_relative_amplitude_phenology","observations":[{"d":"2025-12-31","raw":0.14961713552474976,"filled":0.14961713552474976,"smoothed":0.09009047616513477,"w":1.0,"usable":true},{"d":"2026-01-05","raw":0.13389427959918976,"filled":0.13389427959918976,"smoothed":0.12120880901684093,"w":1.0,"usable":true},{"d":"2026-01-10","raw":0.1366051882505417,"filled":0.1366051882505417,"smoothed":0.15525164562391347,"w":1.0,"usable":true},{"d":"2026-01-12","raw":0.13961993157863617,"filled":0.13961993157863617,"smoothed":0.17042204315775986,"w":1.0,"usable":true},{"d":"2026-01-20","raw":0.18220239877700806,"filled":0.18220239877700806,"smoothed":0.24339179881729595,"w":1.0,"usable":true},{"d":"2026-01-25","raw":0.24996092915534973,"filled":0.24996092915534973,"smoothed":0.2999608750636226,"w":1.0,"usable":true},{"d":"2026-02-04","raw":0.42831042408943176,"filled":0.42831042408943176,"smoothed":0.42968251101414284,"w":1.0,"usable":true},{"d":"2026-02-14","raw":0.6473233103752136,"filled":0.6473233103752136,"smoothed":0.55443591134903,"w":1.0,"usable":true},{"d":"2026-02-24","raw":0.676301896572113,"filled":0.676301896572113,"smoothed":0.646002378725016,"w":1.0,"usable":true},{"d":"2026-03-06","raw":0.6706823706626892,"filled":0.6706823706626892,"smoothed":0.7016311297725285,"w":1.0,"usable":true},{"d":"2026-03-16","raw":0.7449452877044678,"filled":0.7449452877044678,"smoothed":0.730171483178254,"w":1.0,"usable":true},{"d":"2026-03-31","raw":0.6371349096298218,"filled":0.6371349096298218,"smoothed":0.7310037757226755,"w":1.0,"usable":true},{"d":"2026-04-05","raw":0.7130584120750427,"filled":0.7130584120750427,"smoothed":0.7222741888330423,"w":1.0,"usable":true},{"d":"2026-04-10","raw":0.7347315549850464,"filled":0.7347315549850464,"smoothed":0.7062312106684626,"w":1.0,"usable":true},{"d":"2026-04-12","raw":0.7550666928291321,"filled":0.7550666928291321,"smoothed":0.6968828739191356,"w":1.0,"usable":true},{"d":"2026-04-20","raw":0.632880449295044,"filled":0.632880449295044,"smoothed":0.6397415316459556,"w":1.0,"usable":true},{"d":"2026-04-22","raw":0.7101155519485474,"filled":0.7101155519485474,"smoothed":0.6205068446391726,"w":1.0,"usable":true},{"d":"2026-04-25","raw":0.6131389141082764,"filled":0.6131389141082764,"smoothed":0.588045403362622,"w":1.0,"usable":true},{"d":"2026-04-30","raw":0.5437498688697815,"filled":0.5437498688697815,"smoothed":0.5264897250777753,"w":1.0,"usable":true},{"d":"2026-05-10","raw":0.3669780492782593,"filled":0.3669780492782593,"smoothed":0.3948562059773429,"w":1.0,"usable":true},{"d":"2026-05-12","raw":0.30462267994880676,"filled":0.30462267994880676,"smoothed":0.37036765917933184,"w":1.0,"usable":true},{"d":"2026-05-20","raw":0.2585565149784088,"filled":0.2585565149784088,"smoothed":0.2875435571778063,"w":1.0,"usable":true},{"d":"2026-05-22","raw":0.24037036299705505,"filled":0.24037036299705505,"smoothed":0.2711249554218635,"w":1.0,"usable":true},{"d":"2026-05-25","raw":0.2406255006790161,"filled":0.2406255006790161,"smoothed":0.24988020737209843,"w":1.0,"usable":true},{"d":"2026-05-30","raw":null,"filled":0.21568502272878373,"smoothed":0.22277491166178698,"w":0.0,"usable":false},{"d":"2026-06-01","raw":0.2057088315486908,"filled":0.2057088315486908,"smoothed":0.21452140537993494,"w":1.0,"usable":true},{"d":"2026-06-09","raw":0.1954636573791504,"filled":0.1954636573791504,"smoothed":0.19322799597435586,"w":1.0,"usable":true},{"d":"2026-06-11","raw":0.18916185200214386,"filled":0.18916185200214386,"smoothed":0.19014699913480593,"w":1.0,"usable":true},{"d":"2026-06-14","raw":0.19529184699058533,"filled":0.19529184699058533,"smoothed":0.1866577575550201,"w":1.0,"usable":true},{"d":"2026-06-19","raw":0.19045120477676392,"filled":0.19045120477676392,"smoothed":0.18280718449476172,"w":1.0,"usable":true},{"d":"2026-06-21","raw":0.19455033540725708,"filled":0.19455033540725708,"smoothed":0.18163388940424355,"w":1.0,"usable":true},{"d":"2026-06-24","raw":0.19506797194480896,"filled":0.19506797194480896,"smoothed":0.1799958811261998,"w":1.0,"usable":true}],"curve":{"start":"2025-12-31","ndvi":[0.09009047616513477,0.09622364433146365,0.1023794370987956,0.10858047906813371,0.11484939484048112,0.12120880901684093,0.12768134619821622,0.13429445241710908,0.1410755737060215,0.1480521560974556,0.15525164562391347,0.16270148831789719,0.17042204315775986,0.17843366912185468,0.1867450180728993,0.19536474187361144,0.2043014923867085,0.21356392147490794,0.2231606810009273,0.23310042282748417,0.24339179881729595,0.2540434608330802,0.265040804170221,0.27636922412410236,0.28801411599010823,0.2999608750636226,0.3121948966400292,0.32468257228027525,0.3373902935453081,0.35028445199607483,0.3633314391935228,0.3764976466985993,0.38974946607225186,0.40305328887542813,0.4163755066690758,0.42968251101414284,0.4429406934715773,0.456115924106252,0.4691740729830398,0.48208101016681354,0.49480260572244594,0.5073047297148098,0.5195532522087776,0.5315140432692218,0.5431529729610151,0.55443591134903,0.5653287284981394,0.5758325986606805,0.5859486960889905,0.5956781950354066,0.605022269752266,0.6139820944919058,0.6225588435066632,0.6307536910488759,0.638567811370881,0.646002378725016,0.6530585673636178,0.6597490676312958,0.6660865698726596,0.6720837644323181,0.6777533416548798,0.6831079918849531,0.6881604054671462,0.6929232727460675,0.6974092840663253,0.7016311297725285,0.705601500209286,0.709321322868496,0.7127915252420567,0.7160130348218664,0.7189867790998232,0.7217136855678254,0.7241946817177712,0.726430695041559,0.728422653031087,0.730171483178254,0.7316781129749582,0.7329490850683297,0.7339909421054982,0.7348102267335936,0.7354134815997452,0.7358072493510818,0.7359980726347324,0.7359924940978256,0.7357970563874905,0.7354183021508559,0.7348627740350502,0.7341370146872015,0.7332475667544376,0.7322009728838864,0.7310037757226755,0.7296625179179325,0.7281480648981276,0.7264312820917307,0.7244830349272121,0.7222741888330423,0.7197756092376921,0.7169546588823607,0.7137787005082465,0.7102150968565479,0.7062312106684626,0.7017944046851883,0.6968828739191356,0.6914748133827157,0.6855705323091242,0.6791703399315577,0.6722745454832122,0.6648834581972837,0.6569973873069681,0.6486166420454605,0.6397415316459556,0.630372365341648,0.6205068446391726,0.6101426710451645,0.5993116041046417,0.588045403362622,0.5763758283641237,0.5643441760727683,0.5519917434521775,0.5393598274659728,0.5264897250777753,0.5134227332512059,0.5002067091007616,0.48688950974093936,0.473518992286236,0.4601430138511486,0.44680943155017405,0.43356610249780947,0.42046088380855146,0.40754163259689696,0.3948562059773429,0.38245246106438635,0.37036765917933184,0.35863906164348414,0.3472789417485988,0.33629957278643136,0.32571322804873737,0.3155321808272724,0.305768704413792,0.2964350721000515,0.2875435571778063,0.27910643293881177,0.2711249554218635,0.2636003806657569,0.2565222756544994,0.24988020737209843,0.24366374280256148,0.23785893144632525,0.2324518228038264,0.22742846637550146,0.22277491166178698,0.21847720816311933,0.21452140537993494,0.21089355281267028,0.2075763505218824,0.20455249856812832,0.20180469701196505,0.19931564591394935,0.197068045334638,0.19504459533458787,0.19322799597435586,0.19160094731449892,0.19014699913480593,0.18884970121506572,0.18769222890517243,0.1866577575550201,0.18572946251450287,0.1848938007359196,0.18413722917156908,0.18344620477375018,0.18280718449476172,0.18220662528690248,0.18163388940424355,0.18107833910085608,0.1805342458503161,0.1799958811261998]},"cycles":[{"id":"season_01","start":"2026-01-18","peak":"2026-03-23","end":"2026-05-11","lifecycle":"complete","detection":"confirmed","quality":"good","amplitude":0.645908,"calendar":"winter","peak_ndvi":0.735998,"duration":113.0}],"hmm":{"cycles":[{"duration_days":123,"eos_date":"2026-05-22","lifecycle_status":"complete","peak_ndvi":0.735998,"pos_date":"2026-03-23","sos_date":"2026-01-19"}],"comparison":{"agreement_within_tolerance":true,"cycle_count_delta":0,"hmm_cycle_count":1,"lifecycle_agreement_fraction":1.0,"matched_count":1,"matches":[{"eos_delta_days":11,"lifecycle_match":true,"pos_delta_days":0,"season_id":"season_01","sos_delta_days":1}],"max_abs_pos_delta_days":0,"mean_abs_eos_delta_days":11.0,"mean_abs_pos_delta_days":0.0,"mean_abs_sos_delta_days":1.0,"prod_cycle_count":1,"tolerance_days":30,"unmatched_hmm_indices":[],"unmatched_prod_ids":[]}}}</script>
+<script>
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const PAL={line:"#e5e7eb",muted:"#6b7280",curve:"#1b7837",filled:"#9ca3af",rawOk:"#2e7d32",
+           rawBad:"#ef6c00",sos:"#2e7d32",eos:"#8d6e63",pos:"#ef6c00",span:"#3a7bd5",
+           rising:"#a5d6a7",high:"#1b7837",declining:"#c8a36b"};
+const W=1100,H=460,M={l:46,r:16,t:18,b:46}, IW=W-M.l-M.r, IH=H-M.t-M.b-26, BAND=18;
+const SVGNS="http://www.w3.org/2000/svg";
+const svg=document.getElementById("chart");
+function el(n,a){const e=document.createElementNS(SVGNS,n);for(const k in a)e.setAttribute(k,a[k]);return e;}
+function fmt(v){ return v==null?"—":(+v).toFixed(3); }
+const day = d => Date.parse(d)/86400000;
+
+try {
+  const ndvi = DATA.curve.ndvi || [];
+  const startISO = DATA.curve.start || (DATA.observations[0]&&DATA.observations[0].d);
+  const x0 = day(startISO);
+  const xmax = Math.max(ndvi.length?ndvi.length-1:1, ...DATA.observations.map(o=>day(o.d)-x0), 1);
+  const X = off => M.l + (off/xmax)*IW;
+  const Y = v => M.t + (1-Math.max(0,Math.min(1,v)))*IH;
+
+  // y gridlines + labels
+  for(let g=0; g<=1.0001; g+=0.25){ svg.appendChild(el("line",{x1:M.l,y1:Y(g),x2:W-M.r,y2:Y(g),stroke:PAL.line}));
+    const t=el("text",{x:M.l-8,y:Y(g)+4,"text-anchor":"end",fill:PAL.muted,"font-size":11}); t.textContent=g.toFixed(2); svg.appendChild(t); }
+  // month ticks (UTC; guarded against runaway loops)
+  const sd=new Date(x0*86400000); let mk=new Date(Date.UTC(sd.getUTCFullYear(),sd.getUTCMonth(),1)), guard=0;
+  while(((mk.getTime()/86400000)-x0)<=xmax && guard++<400){ const off=(mk.getTime()/86400000)-x0;
+    if(off>=0){ svg.appendChild(el("line",{x1:X(off),y1:M.t,x2:X(off),y2:M.t+IH,stroke:PAL.line}));
+      const t=el("text",{x:X(off),y:M.t+IH+16,"text-anchor":"middle",fill:PAL.muted,"font-size":10}); t.textContent=mk.toLocaleString("en",{month:"short",timeZone:"UTC"})+(mk.getUTCMonth()==0?" "+mk.getUTCFullYear():""); svg.appendChild(t);}
+    mk.setUTCMonth(mk.getUTCMonth()+(xmax>500?2:1)); }
+
+  // cycle spans + markers
+  const colorFor = c => c.detection==="confirmed" ? PAL.span : "#b08968";
+  DATA.cycles.forEach(c=>{ const a=X(day(c.start)-x0), b=X(day(c.end)-x0);
+    svg.appendChild(el("rect",{x:a,y:M.t,width:Math.max(b-a,1),height:IH,fill:colorFor(c),opacity:0.10}));
+    [["start",PAL.sos],["end",PAL.eos]].forEach(([k,col])=>{ svg.appendChild(el("line",{x1:X(day(c[k])-x0),y1:M.t,x2:X(day(c[k])-x0),y2:M.t+IH,stroke:col,"stroke-dasharray":"3,3","stroke-width":1,opacity:.7})); });
+    const px=X(day(c.peak)-x0), py=Y(c.peak_ndvi||0.8);
+    svg.appendChild(el("path",{d:`M${px} ${py-7} l6 11 l-12 0 z`,fill:PAL.pos}));
+    const lab=el("text",{x:px,y:M.t-4,"text-anchor":"middle","font-size":10,"font-weight":700,fill:"#374151"}); lab.textContent=c.id.replace("season_","C")+(c.lifecycle!=="complete"?"*":""); svg.appendChild(lab);
+  });
+
+  // HMM phase band
+  if(DATA.hmm && DATA.hmm.cycles && DATA.hmm.cycles.length){ const by=M.t+IH+24;
+    DATA.hmm.cycles.forEach(h=>{ const a=X(day(h.sos_date)-x0), b=X(day(h.eos_date)-x0), p=X(day(h.pos_date)-x0);
+      svg.appendChild(el("rect",{x:a,y:by,width:Math.max(p-a,1),height:BAND,fill:PAL.rising,opacity:.8}));
+      svg.appendChild(el("rect",{x:p,y:by,width:Math.max(b-p,1),height:BAND,fill:PAL.declining,opacity:.8}));
+      svg.appendChild(el("rect",{x:p-2,y:by,width:4,height:BAND,fill:PAL.high})); });
+    const t=el("text",{x:M.l-8,y:by+13,"text-anchor":"end","font-size":10,fill:PAL.muted}); t.textContent="HMM"; svg.appendChild(t);
+  }
+
+  // filled (interp) line
+  const fpts=DATA.observations.filter(o=>o.filled!=null).map(o=>`${X(day(o.d)-x0)},${Y(o.filled)}`).join(" ");
+  if(fpts) svg.appendChild(el("polyline",{points:fpts,fill:"none",stroke:PAL.filled,"stroke-width":1.2,"stroke-dasharray":"4,4",opacity:.85}));
+  // smoothed daily curve
+  const cpts=ndvi.map((v,i)=>`${X(i)},${Y(v)}`).join(" ");
+  if(cpts) svg.appendChild(el("polyline",{points:cpts,fill:"none",stroke:PAL.curve,"stroke-width":2.4}));
+  // raw points
+  DATA.observations.forEach(o=>{ if(o.raw==null)return; svg.appendChild(el("circle",{cx:X(day(o.d)-x0),cy:Y(o.raw),r:3,fill:o.usable?PAL.rawOk:PAL.rawBad,opacity:.85})); });
+
+  // hover
+  const tip=document.getElementById("tip"); const guide=el("line",{y1:M.t,y2:M.t+IH,stroke:"#9ca3af","stroke-width":1,opacity:0}); svg.appendChild(guide);
+  const hi=el("circle",{r:5,fill:"none",stroke:"#111827","stroke-width":1.5,opacity:0}); svg.appendChild(hi);
+  const overlay=el("rect",{x:M.l,y:M.t,width:IW,height:IH,fill:"transparent"}); svg.appendChild(overlay);
+  overlay.addEventListener("mousemove",ev=>{ const r=svg.getBoundingClientRect(); const sx=(ev.clientX-r.left)*(W/r.width);
+    const off=((sx-M.l)/IW)*xmax; let best=null,bd=1e9;
+    DATA.observations.forEach(o=>{ const d=Math.abs((day(o.d)-x0)-off); if(d<bd){bd=d;best=o;} });
+    if(!best)return; const bx=X(day(best.d)-x0); guide.setAttribute("x1",bx);guide.setAttribute("x2",bx);guide.setAttribute("opacity",.6);
+    hi.setAttribute("cx",bx);hi.setAttribute("cy",Y(best.smoothed!=null?best.smoothed:best.raw));hi.setAttribute("opacity",1);
+    tip.style.opacity=1; tip.style.left=ev.clientX+"px"; tip.style.top=ev.clientY+"px";
+    tip.innerHTML=`<b>${best.d}</b> &nbsp; raw ${fmt(best.raw)} · filled ${fmt(best.filled)} · smoothed ${fmt(best.smoothed)}<br>valid_fraction ${fmt(best.w)} · ${best.usable?"usable":"low quality"}`; });
+  overlay.addEventListener("mouseleave",()=>{ tip.style.opacity=0; guide.setAttribute("opacity",0); hi.setAttribute("opacity",0); });
+} catch(err){
+  const t=el("text",{x:20,y:30,fill:"#b91c1c","font-size":13}); t.textContent="visualization error: "+(err&&err.message?err.message:err); svg.appendChild(t);
+  if(typeof console!=="undefined") console.error(err);
+}
+
+// text + tables (always populated)
+document.getElementById("method").textContent=DATA.method;
+document.getElementById("subline").textContent=`${DATA.observations.length} observations · ${(DATA.curve.ndvi||[]).length} daily curve points · ${DATA.cycles.length} detected cycle(s)`;
+const ct=document.getElementById("cycles");
+ct.innerHTML="<tr><th>cycle</th><th>start (SOS)</th><th>peak (POS)</th><th>end (EOS)</th><th>lifecycle</th><th>detection</th><th>quality</th><th>amplitude</th><th>calendar</th></tr>"+
+  DATA.cycles.map(c=>`<tr><td>${c.id}</td><td>${c.start}</td><td>${c.peak}</td><td>${c.end}</td><td>${c.lifecycle}</td><td>${c.detection}</td><td>${c.quality}</td><td>${fmt(c.amplitude)}</td><td><span class="pill">${c.calendar}</span></td></tr>`).join("");
+const hc=document.getElementById("hmmcard");
+if(DATA.hmm){ const cmp=DATA.hmm.comparison||{};
+  document.getElementById("hmmsummary").textContent=`Detector ${cmp.prod_cycle_count} vs HMM ${cmp.hmm_cycle_count} cycles · matched ${cmp.matched_count} · mean |peak Δ| ${cmp.mean_abs_pos_delta_days}d · agreement ${cmp.agreement_within_tolerance}`;
+  const ht=document.getElementById("hmm");
+  ht.innerHTML="<tr><th>HMM cycle</th><th>SOS</th><th>POS</th><th>EOS</th><th>lifecycle</th></tr>"+
+    (DATA.hmm.cycles||[]).map((h,i)=>`<tr><td>H${i+1}</td><td>${h.sos_date}</td><td>${h.pos_date}</td><td>${h.eos_date}</td><td>${h.lifecycle_status}</td></tr>`).join("");
+} else { hc.style.display="none"; }
+</script>
+</body>
+</html>
