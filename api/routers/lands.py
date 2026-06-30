@@ -11,10 +11,15 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
-from api.assessment_mapper import map_land_response
+from api.assessment_mapper import map_evidence_packet_response, map_land_response
 from api.database import get_session
 from api.models import AssessmentGroup, Job, Land
-from api.schemas import AssessmentGroupResponse, CreateLandPayload, LandResponse
+from api.schemas import (
+    AssessmentGroupResponse,
+    CreateLandPayload,
+    EvidencePacketResponse,
+    LandResponse,
+)
 from api.worker import start_job
 from farmtrust_core.ingest.config import normalize_geometries
 from farmtrust_core.io.paths import aoi_dir, assessment_dir, preprocess_dir, seasonal_dir
@@ -307,3 +312,14 @@ def delete_land(land_id: str, session: SessionDep) -> None:
 @router.get("/{land_id}/report", response_model=LandResponse)
 def get_land_report(land_id: str, session: SessionDep) -> LandResponse:
     return get_land(land_id, session)
+
+
+@router.get("/{land_id}/evidence-packet", response_model=EvidencePacketResponse)
+def get_land_evidence_packet(land_id: str, session: SessionDep) -> EvidencePacketResponse:
+    land = session.get(Land, land_id)
+    if land is None:
+        raise HTTPException(status_code=404, detail="Land not found")
+    packet = map_evidence_packet_response(land)
+    if packet is None:
+        raise HTTPException(status_code=404, detail="Evidence packet not yet generated")
+    return packet

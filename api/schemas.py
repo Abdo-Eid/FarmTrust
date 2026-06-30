@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 JobStatus = Literal["queued", "running", "succeeded", "failed", "cancelled"]
@@ -134,6 +134,92 @@ class AssessmentGroupResponse(BaseModel):
     confidence: Optional[Confidence] = None
     satellite_evidence_coverage: Optional[SatelliteEvidenceCoverage] = None
     children: list[LandResponse] = Field(default_factory=list)
+
+
+class PacketInterval(BaseModel):
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    duration_days: Optional[int] = None
+
+
+class PacketHeadline(BaseModel):
+    state_label: str
+    cropping_intensity: Optional[str] = None
+    overall_confidence: Literal["high", "medium", "low"]
+    summary: str
+
+
+class PacketClaim(BaseModel):
+    id: str
+    layer: Literal["observed", "interpreted", "confidence", "watch"]
+    claim: str
+    confidence: Literal["strong", "moderate", "limited", "provisional", "none"]
+    rests_on: str
+
+
+class PacketCycle(BaseModel):
+    season_id: Optional[str] = None
+    start_date: Optional[str] = None
+    peak_date: Optional[str] = None
+    end_date: Optional[str] = None
+    season_calendar_label: Optional[str] = None
+    lifecycle_status: Optional[str] = None
+    is_open: Optional[bool] = None
+    peak_ndvi: Optional[float] = None
+    duration_days: Optional[float] = None
+    detection_status: Optional[str] = None
+    cycle_split_merged: Optional[bool] = None
+
+
+class PacketActivityRecord(BaseModel):
+    cycles: list[PacketCycle] = Field(default_factory=list)
+    complete_window_count: int = 0
+    open_window_count: int = 0
+    borderline_window_count: int = 0
+
+
+class PacketTrackRecord(BaseModel):
+    seasons_observed: int
+    seasons_for_certifiable_trend: int
+    fraction: float
+    status_so_far: Literal["improving", "declining", "stable", "too_soon_to_tell"]
+    provisional: bool
+    note: str
+
+
+class PacketRiskItem(BaseModel):
+    item: str
+    kind: Literal["land_risk", "evidence_limitation"]
+    severity: Literal["high", "moderate", "low"]
+    reason: str
+    code: Optional[str] = None
+
+
+class PacketIndicators(BaseModel):
+    values: dict[str, Optional[float]] = Field(default_factory=dict)
+    interpretation_notes: dict[str, str] = Field(default_factory=dict)
+
+
+class EvidencePacketResponse(BaseModel):
+    # The packet's "schema" key shadows BaseModel.schema; expose it via an alias.
+    model_config = ConfigDict(populate_by_name=True)
+
+    packet_version: str
+    packet_schema: str = Field(alias="schema")
+    aoi_id: str
+    assessment_status: Optional[str] = None
+    source_artifacts: list[str] = Field(default_factory=list)
+    interval: PacketInterval
+    headline: PacketHeadline
+    claims: list[PacketClaim] = Field(default_factory=list)
+    layers: dict[str, list[str]] = Field(default_factory=dict)
+    activity_record: PacketActivityRecord
+    track_record: PacketTrackRecord
+    risk_register: list[PacketRiskItem] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    boundaries: list[str] = Field(default_factory=list)
+    indicators: PacketIndicators
+    local_context: list[Any] = Field(default_factory=list)
 
 
 class JobResponse(BaseModel):

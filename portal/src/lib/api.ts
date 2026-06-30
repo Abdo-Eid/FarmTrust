@@ -16,6 +16,7 @@ export const api = {
     groups: ()          => request<import('./types').LandGroupResult[]>('/lands/groups'),
     group: (id: string) => request<import('./types').LandGroupResult>(`/lands/groups/${id}`),
     get:  (id: string)  => request<import('./types').LandResult>(`/lands/${id}`),
+    evidencePacket: (id: string) => request<import('./types').EvidencePacket>(`/lands/${id}/evidence-packet`),
     create: (body: import('./types').CreateLandPayload) => request<import('./types').LandResult>('/lands', {
       method: 'POST',
       body: JSON.stringify(body),

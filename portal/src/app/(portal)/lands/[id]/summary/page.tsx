@@ -112,6 +112,16 @@ export default function LandSummaryPage({
                             Evidence
                         </Button>
                         <Button
+                            variant="secondary"
+                            size="sm"
+                            icon="summarize"
+                            onClick={() =>
+                                router.push(`/lands/${land.id}/packet`)
+                            }
+                        >
+                            Report Card
+                        </Button>
+                        <Button
                             variant="primary"
                             size="sm"
                             icon="download"

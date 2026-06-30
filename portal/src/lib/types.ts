@@ -152,3 +152,101 @@ export interface Column<T> {
     render?: (value: unknown, row: T) => React.ReactNode;
     width?: string;
 }
+
+// --- Report evidence packet (T-11 Layer 5/6) ---------------------------------
+
+export type ClaimLayer = "observed" | "interpreted" | "confidence" | "watch";
+export type ClaimConfidence =
+    | "strong"
+    | "moderate"
+    | "limited"
+    | "provisional"
+    | "none";
+export type RiskKind = "land_risk" | "evidence_limitation";
+export type RiskSeverity = "high" | "moderate" | "low";
+export type TrackStatus =
+    | "improving"
+    | "declining"
+    | "stable"
+    | "too_soon_to_tell";
+
+export interface PacketClaim {
+    id: string;
+    layer: ClaimLayer;
+    claim: string;
+    confidence: ClaimConfidence;
+    rests_on: string;
+}
+
+export interface PacketCycle {
+    season_id?: string;
+    start_date?: string;
+    peak_date?: string;
+    end_date?: string;
+    season_calendar_label?: string;
+    lifecycle_status?: string;
+    is_open?: boolean;
+    peak_ndvi?: number;
+    duration_days?: number;
+    detection_status?: string;
+    cycle_split_merged?: boolean;
+}
+
+export interface PacketActivityRecord {
+    cycles: PacketCycle[];
+    complete_window_count: number;
+    open_window_count: number;
+    borderline_window_count: number;
+}
+
+export interface PacketTrackRecord {
+    seasons_observed: number;
+    seasons_for_certifiable_trend: number;
+    fraction: number;
+    status_so_far: TrackStatus;
+    provisional: boolean;
+    note: string;
+}
+
+export interface PacketRiskItem {
+    item: string;
+    kind: RiskKind;
+    severity: RiskSeverity;
+    reason: string;
+    code?: string;
+}
+
+export interface PacketHeadline {
+    state_label: string;
+    cropping_intensity?: string;
+    overall_confidence: ConfidenceLevel;
+    summary: string;
+}
+
+export interface PacketIndicators {
+    values: Record<string, number | null>;
+    interpretation_notes: Record<string, string>;
+}
+
+export interface EvidencePacket {
+    packet_version: string;
+    schema: string;
+    aoi_id: string;
+    assessment_status?: AssessmentStatus;
+    source_artifacts: string[];
+    interval: {
+        start_date?: string;
+        end_date?: string;
+        duration_days?: number;
+    };
+    headline: PacketHeadline;
+    claims: PacketClaim[];
+    layers: Record<string, string[]>;
+    activity_record: PacketActivityRecord;
+    track_record: PacketTrackRecord;
+    risk_register: PacketRiskItem[];
+    limitations: string[];
+    boundaries: string[];
+    indicators: PacketIndicators;
+    local_context: unknown[];
+}

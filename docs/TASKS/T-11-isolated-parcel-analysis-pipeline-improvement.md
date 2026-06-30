@@ -567,4 +567,14 @@ Implemented Implementation-Handoff layer 5 / Decision Point 9: a grounded, deter
 - **Wiring:** built per-land in the worker's `report_generation` phase (`api/worker.py` `_build_evidence_packet`), after the assessment is saved; a packet failure logs `[WARN]` and does not fail the job.
 - **Tests:** `tests/test_report_evidence_packet.py` — deterministic unit tests (structure, cautious-vocabulary cases, forbidden crop-token guard, determinism, write round-trip) plus invariant tests on both reference AOIs. Verified with a scratch end-to-end run through the real path helpers on `aoi_demo_01`.
 
-Remaining T-11 layers: 6 (polished HTML/card report + API surface) and 7 (assistant/chat, tracked in T-04).
+### Report/UI — Layer 6 (2026-06-30)
+
+Implemented Implementation-Handoff layer 6 / Decision Point 9 presentation layer: the API surface for the packet plus a polished, lender-facing report card in the portal, separate from the PDF.
+
+- **API:** `EvidencePacketResponse` DTO (`api/schemas.py`, nested Packet* models; the packet's `schema` key exposed via `Field(alias="schema")`), `map_evidence_packet_response` (`api/assessment_mapper.py`), and `GET /lands/{land_id}/evidence-packet` (`api/routers/lands.py`) — 404 for a missing land or an ungenerated packet.
+- **Portal data layer:** `EvidencePacket` TS types + `api.lands.evidencePacket` + `useEvidencePacket` react-query hook + a Next proxy route `app/api/lands/[id]/evidence-packet/route.ts` (forwards the real FastAPI status/body).
+- **Report card:** `portal/src/components/report/` — `EvidencePacketReport` (verdict, four-layer Observed/Interpreted/Confidence/Watch read, activity timeline, track-record gauge, split risk register, limitations, indicators, the dark "what this does not tell you" boundaries block) + `ActivityTimeline` (data-driven SVG, calendar-coloured, open cycles hatched, per-cycle date tooltips) + `TrackRecordGauge` (neutral maturity ring + provisional badge) + `packet-style.ts`. Rendered on a new route `app/(portal)/lands/[id]/packet/page.tsx`, linked from the summary page.
+- **Claim discipline carried into the UI:** no crop/yield/loan wording outside the boundaries block; calendar labels are summer/winter/transition only; `status_so_far` always shown with its provisional flag/note; manual-review shown honestly.
+- **Verification:** portal `tsc --noEmit` clean, `next build` green (both routes compiled), `tests/test_evidence_packet_api.py` (mapper + DTO + alias round-trip) added; 41 backend tests pass. Hardened against a 3-lens adversarial review (claim discipline, robustness, backend contract) — fixes: softened layer blurbs, neutral gauge colour, timeline label de-overlap + peak clamp + degenerate-span handling + date tooltips, indicators empty-state, collision-proof keys, honest proxy error forwarding, distinct land-load error state.
+
+Remaining T-11 layer: 7 (assistant/chat, tracked in T-04) — it consumes this same packet.

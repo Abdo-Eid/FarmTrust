@@ -11,6 +11,7 @@ from api.models import Job, Land
 from api.schemas import (
     AbsenceAssessment,
     Confidence,
+    EvidencePacketResponse,
     HistoryCoverage,
     Indicators,
     LandResponse,
@@ -18,7 +19,12 @@ from api.schemas import (
     SatelliteEvidenceCoverage,
     SeasonRecord,
 )
-from farmtrust_core.io.paths import land_assessment_path, season_windows_path, smoothed_timeseries_path
+from farmtrust_core.io.paths import (
+    land_assessment_path,
+    report_evidence_packet_path,
+    season_windows_path,
+    smoothed_timeseries_path,
+)
 
 
 VALID_TRENDS = {"improving", "stable", "declining"}
@@ -249,6 +255,18 @@ def map_land_response(land: Land, job: Job) -> LandResponse:
             }
         )
     return LandResponse(**payload)
+
+
+def map_evidence_packet_response(land: Land) -> EvidencePacketResponse | None:
+    """Load the report evidence packet for a land and shape it into the API DTO.
+
+    Returns None if the packet has not been generated yet (e.g. the job is still
+    running or the report_generation step degraded). The endpoint maps that to a 404.
+    """
+    packet = _load_json(report_evidence_packet_path(land.aoi_id))
+    if not packet:
+        return None
+    return EvidencePacketResponse(**packet)
 
 
 def job_logs(job: Job) -> list[str]:

@@ -544,6 +544,11 @@ Packet policy notes:
 - no monitoring or neighbour-baseline sections
 - no wall-clock timestamp, so the artifact is byte-deterministic for the same inputs
 
+Surfaces:
+
+- API: `GET /lands/{land_id}/evidence-packet` returns the packet as the `EvidencePacketResponse` DTO (`api/schemas.py`); 404 until it is generated.
+- Portal: rendered as a lender-facing report card at `/lands/{id}/packet` (`portal/src/components/report/`), separate from the PDF export.
+
 ## Current decision rules
 
 ### Observation continuity classification
