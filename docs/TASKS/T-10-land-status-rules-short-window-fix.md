@@ -68,6 +68,7 @@ Fix the rule-based scoring so that a short assessment window (e.g. 6 months) wit
 - [ ] Run the user's 6-month dataset again and capture the after-baseline.
 - [ ] Run the existing 24-month demo AOI and confirm no regression.
 - [ ] Verify all existing tests pass.
+- [ ] (carried from T-11) Compare land-status and abandonment behavior against the isolated parcel-analysis findings: recent healthy season, short-window coverage, inactivity flags, trend uncertainty, and mapper behavior.
 
 ## Feedback Log
 

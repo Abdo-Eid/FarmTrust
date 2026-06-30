@@ -170,12 +170,28 @@ export type TrackStatus =
     | "stable"
     | "too_soon_to_tell";
 
+export type ClaimType =
+    | "measured_observation"
+    | "deterministic_pipeline_result"
+    | "model_derived_analysis"
+    | "interpretation"
+    | "boundary_exclusion"
+    | "user_provided_local_context"
+    | "unknown";
+
 export interface PacketClaim {
     id: string;
     layer: ClaimLayer;
     claim: string;
     confidence: ClaimConfidence;
     rests_on: string;
+    // Per-claim provenance (packet v1.1) — optional; consumed by the assistant.
+    claim_type?: ClaimType;
+    provenance_level?: number;
+    source?: string;
+    method?: string;
+    allowed_use?: string[];
+    restriction?: string;
 }
 
 export interface PacketCycle {
@@ -226,6 +242,33 @@ export interface PacketHeadline {
 export interface PacketIndicators {
     values: Record<string, number | null>;
     interpretation_notes: Record<string, string>;
+}
+
+// --- Bounded report assistant (T-04 / T-11 Layer 7) --------------------------
+
+export interface AssistantLine {
+    text: string;
+    claim_type: string;
+    source?: string;
+    confidence?: string;
+    section?: string;
+}
+
+export interface AssistantResponse {
+    lines: AssistantLine[];
+    source_mode: "llm" | "deterministic";
+    fallback_used: boolean;
+    model?: string;
+}
+
+export interface ChatTurn {
+    role: "user" | "assistant";
+    content: string;
+}
+
+export interface ChatRequest {
+    question: string;
+    history?: ChatTurn[];
 }
 
 export interface EvidencePacket {

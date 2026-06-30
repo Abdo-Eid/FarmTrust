@@ -45,6 +45,28 @@ class AssessmentGroup(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now)
 
 
+class AssistantMessage(SQLModel, table=True):
+    """Audit trail for bounded-assistant interactions (T-04).
+
+    One row per narrate/chat call: records which packet (by hash) and which
+    prompt/model produced the answer, and whether the deterministic brief was
+    used as a fallback.
+    """
+
+    id: str = Field(primary_key=True)
+    land_id: str = Field(index=True)
+    aoi_id: str
+    kind: str  # "narrate" | "chat"
+    question: Optional[str] = None
+    response_text: str
+    source_mode: str  # "llm" | "deterministic"
+    model_name: Optional[str] = None
+    prompt_version: str
+    packet_hash: str
+    guardrail_result: Optional[str] = None  # vestigial: output guardrail scan removed; always None
+    created_at: datetime = Field(default_factory=utc_now)
+
+
 class Job(SQLModel, table=True):
     id: str = Field(primary_key=True)
     land_id: str = Field(index=True)

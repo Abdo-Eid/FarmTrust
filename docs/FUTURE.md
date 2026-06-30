@@ -70,11 +70,8 @@ This file is not product scope, not roadmap, and not architecture truth. It pres
 
 ### Time-series gaps and confidence
 
-- [option] Smoothing plus light interpolation with confidence penalty
-  - Tradeoff: simple, fast, explainable; long gaps may still mislead trends.
-  - Evidence needed: backtests show stable outputs in cloudy periods.
-  - Decision trigger: trends remain consistent on known plots.
-  - Kill condition: frequent false alerts in cloudy seasons.
+- [SHIPPED — 2026-06-30] Weighted Whittaker daily-grid analysis with timescale-based lambda
+  - Current implementation uses quality-weighted Whittaker-Eilers smoother on a regular daily grid with lambda derived from a ~45-day phenology timescale (agronomic constant, not per-AOI fit). The detector runs on the daily curve with real-day peak distance, asymmetric SOS/EOS thresholds, slope confirmation, and lifecycle tracking. See <DECISIONS 2026-06-30> and <DECISIONS 2026-05-18> (prior decision to keep gaps explicit for downstream reasoning).
 - [option] Multi-source fusion or model-based imputation
   - Tradeoff: better continuity, higher complexity and risk of hallucinated signals.
   - Evidence needed: side-by-side error reduction with uncertainty maintained.

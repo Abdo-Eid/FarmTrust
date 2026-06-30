@@ -155,6 +155,14 @@ class PacketClaim(BaseModel):
     claim: str
     confidence: Literal["strong", "moderate", "limited", "provisional", "none"]
     rests_on: str
+    # Per-claim provenance (packet v1.1). Optional so the Layer 6 card and older
+    # packets stay valid; the assistant consumes these for honest claim typing.
+    claim_type: Optional[str] = None
+    provenance_level: Optional[int] = None
+    source: Optional[str] = None
+    method: Optional[str] = None
+    allowed_use: Optional[list[str]] = None
+    restriction: Optional[str] = None
 
 
 class PacketCycle(BaseModel):
@@ -220,6 +228,38 @@ class EvidencePacketResponse(BaseModel):
     boundaries: list[str] = Field(default_factory=list)
     indicators: PacketIndicators
     local_context: list[Any] = Field(default_factory=list)
+
+
+# --- Bounded report assistant (T-04 / T-11 Layer 7) --------------------------
+
+
+class AssistantLine(BaseModel):
+    """One narrated line, claim-typed and sourced (free-to-ask, bounded-to-assert)."""
+
+    text: str
+    claim_type: str
+    source: Optional[str] = None
+    confidence: Optional[str] = None
+    section: Optional[str] = None
+
+
+class AssistantResponse(BaseModel):
+    lines: list[AssistantLine] = Field(default_factory=list)
+    # "llm" when the model answered; "deterministic" when the no-LLM brief was
+    # used (unconfigured or model error). Grounding is enforced by the prompt.
+    source_mode: Literal["llm", "deterministic"]
+    fallback_used: bool
+    model: Optional[str] = None
+
+
+class ChatTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class ChatRequest(BaseModel):
+    question: str
+    history: Optional[list[ChatTurn]] = None
 
 
 class JobResponse(BaseModel):

@@ -21,10 +21,11 @@ Claim discipline (T-11 decisions):
 * no monitoring or neighbour-baseline sections (Decision Point 11);
 * no wall-clock timestamp, so the artifact is byte-deterministic for tests.
 
-Per-claim provenance is intentionally lightweight in this slice
-(``layer`` + ``confidence`` + ``rests_on``). The full provenance schema
-(``claim_type``, ``provenance_level``, ``allowed_use``, ``restriction``) is
-added by T-04, which owns assistant guardrails; packet objects stay extensible.
+Per-claim provenance (``claim_type``, ``provenance_level``, ``source``,
+``method``, ``allowed_use``, ``restriction``) is attached by ``_apply_provenance``
+as a deterministic post-pass over the built claims (T-04 foundation). The
+bounded report assistant consumes these fields to keep its claim typing honest;
+the Layer 6 report card ignores them, so they are additive (packet v1.1).
 """
 
 from __future__ import annotations
@@ -35,7 +36,7 @@ from typing import Any, Optional
 
 from farmtrust_core.ingest.utils import safe_write_text
 
-PACKET_VERSION = "1.0"
+PACKET_VERSION = "1.1"
 PACKET_SCHEMA = "farmtrust_report_evidence_packet"
 SEASONS_FOR_CERTIFIABLE_TREND = 5
 # Parcel area is measured in feddan (the project unit; 1 feddan ~= 0.42 ha). Below ~0.7 feddan
@@ -79,6 +80,69 @@ _TREND_TO_STATUS = {
     "declining": "declining",
     "stable": "stable",
     "uncertain": "too_soon_to_tell",
+}
+
+# --------------------------------------------------------------------------
+# Per-claim provenance (T-04 foundation, packet v1.1)
+# --------------------------------------------------------------------------
+#
+# A small, fixed typing vocabulary. Higher provenance_level == closer to a
+# direct measurement; lower == more inferred. The assistant uses claim_type +
+# restriction to keep its narration grounded and to refuse crop/yield claims.
+CLAIM_TYPES = (
+    "measured_observation",          # a number read off the data
+    "deterministic_pipeline_result", # a rule/detector output over measurements
+    "model_derived_analysis",        # derived from the smoothed/model curve
+    "interpretation",                # an inferred pattern (confidence-gated)
+    "boundary_exclusion",            # a statement of what is NOT observable
+    "user_provided_local_context",   # context, not automatic truth
+    "unknown",                       # provenance not established
+)
+_PROVENANCE_LEVEL = {
+    "measured_observation": 4,
+    "deterministic_pipeline_result": 4,
+    "model_derived_analysis": 3,
+    "interpretation": 2,
+    "boundary_exclusion": 4,
+    "user_provided_local_context": 1,
+    "unknown": 0,
+}
+ALLOWED_USE = ("report", "chat", "status_explanation")
+DEFAULT_RESTRICTION = "do_not_infer_crop_identity_or_yield"
+
+# claim id -> (claim_type, source artifact, method). watch_<risk-code> ids are
+# handled dynamically below; anything unmapped falls back to per-layer defaults.
+CLAIM_PROVENANCE: dict[str, tuple[str, str, str]] = {
+    "observation_coverage": ("measured_observation", "quality_metrics.json", "usable-observation coverage ratio"),
+    "activity_cycles_observed": ("deterministic_pipeline_result", "season_windows.json", "peak/trough cycle detection"),
+    "cycle_lifecycle_observed": ("model_derived_analysis", "season_windows.json", "crossing-reachability on the smoothed daily curve"),
+    "calendar_pattern_observed": ("model_derived_analysis", "season_windows.json", "peak-month to broad-calendar mapping"),
+    "no_cycle_observed": ("deterministic_pipeline_result", "land_assessment.json", "absence assessment"),
+    "worked_field_interpreted": ("interpretation", "land_assessment.json", "land-status rule basis"),
+    "intensity_interpreted": ("model_derived_analysis", "land_assessment.json", "complete-cycle per-year rate"),
+    "intermittent_interpreted": ("interpretation", "land_assessment.json", "land-status rule basis"),
+    "idle_interpreted": ("interpretation", "land_assessment.json", "absence assessment"),
+    "unclear_interpreted": ("interpretation", "land_assessment.json", "absence assessment"),
+    "not_assessed_interpreted": ("interpretation", "land_assessment.json", "assessment-status gate"),
+    "conf_active_cultivation": ("deterministic_pipeline_result", "land_assessment.json", "coverage + usable-look count"),
+    "conf_activity_rhythm": ("model_derived_analysis", "season_windows.json", "peak/trough detection on the smoothed curve"),
+    "conf_stability": ("model_derived_analysis", "land_assessment.json", "trend over the observed record"),
+    "conf_crop_identity": ("boundary_exclusion", "n/a", "crop identity is out of satellite scope"),
+    "conf_yield": ("boundary_exclusion", "n/a", "yield/output is out of satellite scope"),
+    "watch_short_record": ("measured_observation", "land_assessment.json", "history-coverage record length"),
+    "watch_key_stage_gaps": ("measured_observation", "season_windows.json", "gap overlap vs real observation timestamps"),
+    "watch_open_cycle": ("model_derived_analysis", "season_windows.json", "window-edge lifecycle status"),
+    "watch_yield_invisible": ("boundary_exclusion", "n/a", "yield is not observable from greenness"),
+}
+# yield/crop-specific lines get a tighter restriction than the generic default.
+_YIELD_RESTRICTION_IDS = {"conf_yield", "watch_yield_invisible"}
+_CROP_RESTRICTION_IDS = {"conf_crop_identity"}
+# Fallback claim_type by layer for any id not in CLAIM_PROVENANCE.
+_LAYER_DEFAULT_TYPE = {
+    "observed": "measured_observation",
+    "interpreted": "interpretation",
+    "confidence": "deterministic_pipeline_result",
+    "watch": "deterministic_pipeline_result",
 }
 
 
@@ -479,6 +543,46 @@ def _build_claims(assessment: dict[str, Any], season_payload: dict[str, Any]) ->
     return claims
 
 
+def _provenance_for(claim_id: str, layer: str) -> dict[str, Any]:
+    if claim_id in CLAIM_PROVENANCE:
+        claim_type, source, method = CLAIM_PROVENANCE[claim_id]
+    elif claim_id.startswith("watch_"):
+        # dynamic watch item from a rule-based risk flag
+        claim_type, source, method = (
+            "deterministic_pipeline_result",
+            "land_assessment.json",
+            "rule-based risk flag",
+        )
+    else:
+        claim_type = _LAYER_DEFAULT_TYPE.get(layer, "unknown")
+        source, method = "land_assessment.json", "unspecified"
+    if claim_id in _YIELD_RESTRICTION_IDS:
+        restriction = "yield_not_observable"
+    elif claim_id in _CROP_RESTRICTION_IDS:
+        restriction = "crop_identity_not_observable"
+    else:
+        restriction = DEFAULT_RESTRICTION
+    return {
+        "claim_type": claim_type,
+        "provenance_level": _PROVENANCE_LEVEL[claim_type],
+        "source": source,
+        "method": method,
+        "allowed_use": list(ALLOWED_USE),
+        "restriction": restriction,
+    }
+
+
+def _apply_provenance(claims: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Attach per-claim provenance metadata in place (T-04 foundation).
+
+    A deterministic post-pass over the already-built claims, so the ~14
+    ``_claim()`` call sites stay focused on the human-readable fields.
+    """
+    for claim in claims:
+        claim.update(_provenance_for(claim["id"], claim["layer"]))
+    return claims
+
+
 def _layer_index(claims: list[dict[str, Any]]) -> dict[str, list[str]]:
     index: dict[str, list[str]] = {layer: [] for layer in LAYERS}
     for claim in claims:
@@ -655,7 +759,7 @@ def build_report_evidence_packet(
     run_metadata = _load_json(run_metadata_path) if run_metadata_path.exists() else {}
 
     area = area_feddan if (area_feddan is not None and area_feddan > 0) else _parcel_area_feddan(run_metadata)
-    claims = _build_claims(assessment, season_payload)
+    claims = _apply_provenance(_build_claims(assessment, season_payload))
 
     interval = assessment.get("interval", {})
     duration_days = assessment.get("history_coverage", {}).get("assessment_interval_days")

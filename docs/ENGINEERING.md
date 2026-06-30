@@ -29,7 +29,7 @@ Detailed pipeline runbook content lives in `PIPELINE.md`.
 - `api/`: FastAPI service for lands, jobs, health, and report endpoints.
 - `farmtrust_core/`: single importable Python package for core pipeline logic reused by workers and scripts.
 - `scripts/`: CLI entrypoints for local/demo pipeline validation.
-- `portal/`: Next.js portal for AOI input, summaries, evidence, and report export.
+- `portal/`: Next.js portal for AOI input, summaries, evidence, report export, and lender report-card route `/lands/[id]/packet` (EvidencePacketReport component, distinct from PDF export at `/lands/[id]/report`).
 - `contracts/`: shared request/response schemas and generated client types.
 - `docs/`: documentation truth.
 - Pipeline stage implementation lives under `farmtrust_core/ingest/`, `farmtrust_core/preprocess/`, `farmtrust_core/seasonal/`, and `farmtrust_core/scoring/`; exact commands, artifacts, fields, and thresholds belong in `PIPELINE.md`.
@@ -59,34 +59,47 @@ Browser
   v
 Next.js Portal (port 3000)
   |
-  |  GET  /api/lands      -> mock fixture lands + live lands from FastAPI
-  |  POST /api/lands      -> forward new real submissions to FastAPI
-  |  GET  /api/lands/{id} -> mock ID returns fixture; real ID proxies FastAPI
-  |  GET  /api/jobs/{id}  -> mock job returns fixture; real ID proxies FastAPI
+  |  GET  /api/lands           -> mock fixture lands + live lands from FastAPI
+  |  POST /api/lands           -> forward new real submissions to FastAPI
+  |  GET  /api/lands/{id}      -> mock ID returns fixture; real ID proxies FastAPI
+  |  GET  /api/lands/{id}/packet -> lender report-card + "Ask the assistant" tab (distinct from PDF)
+  |  POST /api/lands/{id}/assistant/{narrate,chat} -> bounded assistant (mock-aware; proxies FastAPI)
+  |  GET  /api/jobs/{id}       -> mock job returns fixture; real ID proxies FastAPI
+  |  GET  /api/jobs/{id}/events -> stream job progress via SSE
   v
 FastAPI (port 8000)
   |
-  |-- POST /lands              -> store land in SQLite and launch background job
-  |-- GET  /lands              -> list real lands from SQLite
-  |-- GET  /lands/{id}         -> read land + assessment result
-  |-- GET  /lands/{id}/report  -> serve mapped assessment DTO
-  |-- GET  /jobs/{id}          -> poll job status and logs
+  |-- POST /lands                     -> store land in SQLite and launch background job
+  |-- GET  /lands                     -> list real lands from SQLite
+  |-- GET  /lands/{id}                -> read land + assessment result
+  |-- GET  /lands/{id}/report         -> serve mapped assessment DTO
+  |-- GET  /lands/{id}/evidence-packet -> return EvidencePacketResponse (404 until generated)
+  |-- POST /lands/{id}/assistant/narrate -> grounded narration over the packet (AssistantResponse)
+  |-- POST /lands/{id}/assistant/chat    -> bounded analyst answer over the packet
+  |-- GET  /lands/groups              -> list parent submission groups
+  |-- GET  /lands/groups/{id}         -> read group + child AOIs
+  |-- GET  /jobs/{id}                 -> poll job status and logs
   |-- GET  /jobs/{id}/logs
+  |-- GET  /jobs/{id}/events          -> stream job progress (SSE)
+  |-- POST /jobs/{id}/cancel
   `-- GET  /health
        |
        `-- Background worker thread
              |
-             |-- 1. Ingest      -> farmtrust_core/ingest (GeoJSON polygon)
-             |-- 2. Preprocess  -> farmtrust_core/preprocess
-             |-- 3. Seasonal    -> farmtrust_core/seasonal
-             `-- 4. Score       -> farmtrust_core/scoring
+             |-- 1. AOI Validation      -> farmtrust_core/ingest (GeoJSON polygon)
+             |-- 2. Satellite Fetch     -> farmtrust_core/ingest (download cube.zarr)
+             |-- 3. Vegetation Analysis -> farmtrust_core/preprocess + seasonal
+             |-- 4. Risk Modeling       -> farmtrust_core/scoring
+             |-- 5. Report Generation   -> farmtrust_core/report
                                    -> data/assessment/<aoi_id>/land_assessment.json
-                                   -> FastAPI maps artifact to portal DTO
+                                   -> data/assessment/<aoi_id>/report_evidence_packet.json
+                                   -> FastAPI maps artifacts to portal DTOs
 ```
 
 ## Data & signals
 
 - Sources: Sentinel-2 is the current implemented source. Broader satellite-source strategy, including Landsat and when/why to use each source, remains unresolved and is tracked in `OPEN_ITEMS.md`.
+- Optional AOI-enrichment sources may write sidecar artifacts under `data/<aoi_id>/` when they are research helpers rather than core assessment inputs. The current compact soil-enrichment path uses free public SoilGrids / ISRIC layers to derive a small AOI summary artifact (`soil_features.*`) with representative topsoil/root-zone features instead of recreating the full YieldSAT static schema.
 - Key indicators/metrics: NDVI/EVI peak, AUC, season timing, within-season stability, mid-season shocks, spatial uniformity, NDMI, and NDWI/MNDWI.
 - Assessment confidence strategy: quality masks + observation count + season clarity; propagate as confidence in the assessment, not confidence in the land itself.
 - Current-build indicator set (locked):
@@ -124,10 +137,10 @@ FastAPI (port 8000)
 
 ## Assessment artifact boundary
 
-- `land_assessment.json` is an internal pipeline artifact, not a frontend contract.
-- The artifact summarizes preprocessing and seasonal evidence into lender-facing land status, trend, season performance, land risk flags, satellite evidence coverage, assessment confidence, and evidence.
+- `land_assessment.json` is an internal pipeline artifact, not a frontend contract; it summarizes preprocessing and seasonal evidence into lender-facing land status, trend, season performance, land risk flags, satellite evidence coverage, assessment confidence, and evidence.
+- `report_evidence_packet.json` (T-11 Layer 5, shipped) is emitted during the report_generation phase by `farmtrust_core/report/evidence_packet.py`. It is a deterministic, grounded projection over `land_assessment.json`, `season_windows.json`, `quality_metrics.json`, and `run_metadata.json` with no invented evidence. Structure: Observed → Interpreted → Confidence → Watch claims (each with confidence and rests_on), track record, risk register (land_risk vs evidence_limitation), a fixed boundaries block ("what this does NOT tell you"; only place yield/income/legal terms may appear), cautious indicators, and limitations.
 - Assessment logic must remain interval-based, evidence-preserving, conservative under weak continuity, and explicit that gap diagnostics are evidence limitations rather than land/farmer problems.
-- FastAPI maps the artifact into versioned API response DTOs for the portal and report endpoints.
+- FastAPI maps the artifacts into versioned API response DTOs for the portal and report endpoints.
 
 ## Exploration boundary
 
@@ -141,13 +154,20 @@ FastAPI (port 8000)
 - Versioning notes: version indicators/thresholds to keep reports stable over time.
 - API endpoints (current build):
     - GET /health
-    - GET /jobs/{id}
-    - GET /jobs/{id}/logs
     - POST /lands
+    - GET /lands
     - GET /lands/{id}
     - GET /lands/{id}/report
-- Job states: queued -> running -> succeeded/failed
-- Job stage values: fetching, processing, scoring, rendering
+    - GET /lands/{id}/evidence-packet (T-11 Layer 6, shipped; returns EvidencePacketResponse 404 until packet is generated)
+    - POST /lands/{id}/assistant/narrate, POST /lands/{id}/assistant/chat (T-11 Layer 7 / T-04, shipped; bounded report assistant over the packet, deterministic-first with Azure gpt-4o; persists an AssistantMessage audit row)
+    - GET /lands/groups
+    - GET /lands/groups/{id}
+    - GET /jobs/{id}
+    - GET /jobs/{id}/logs
+    - GET /jobs/{id}/events (SSE)
+    - POST /jobs/{id}/cancel
+- Job states: queued -> running -> succeeded/failed/cancelled
+- Job stage values: aoi_validation, satellite_fetch, vegetation_analysis, risk_modeling, report_generation
 
 ## Ops & scaling
 

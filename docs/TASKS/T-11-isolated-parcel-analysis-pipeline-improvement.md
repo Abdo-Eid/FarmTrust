@@ -333,9 +333,9 @@ Current scope stays simpler: use general observed seasons/activity windows from 
 - [x] Extract concrete findings from the isolated work, separating measured evidence from LLM/narrative interpretation.
 - [x] Map findings to the current pipeline stage: ingestion, preprocessing, activity windows, scoring, risk flags, confidence, API, portal, PDF/reporting, or assistant.
 - [x] Document initial unbiased comparison: current pipeline has / isolated work has / neutral comparison / pipeline implication.
-- [ ] Compare date-window behavior with T-09: fixed lookback, explicit dates, season calendar, and whether a 6-month result can be interpreted safely.
-- [ ] Compare land-status and abandonment behavior with T-10: recent healthy season, short-window coverage, inactivity flags, trend uncertainty, and mapper behavior.
-- [ ] Compare report/LLM notes with T-04: explanation value versus unsupported assessment claims.
+- [x] Compare date-window behavior with T-09: fixed lookback, explicit dates, season calendar, and whether a 6-month result can be interpreted safely. → **migrated to T-09**.
+- [x] Compare land-status and abandonment behavior with T-10: recent healthy season, short-window coverage, inactivity flags, trend uncertainty, and mapper behavior. → **migrated to T-10**.
+- [x] Compare report/LLM notes with T-04: explanation value versus unsupported assessment claims. → **migrated to T-02** (validation); confirmed live.
 - [x] Walk through Decision Point 1: validation baseline.
 - [x] Walk through Decision Point 2: assessment window.
 - [x] Walk through Decision Point 3: preprocessing and smoothing.
@@ -348,8 +348,8 @@ Current scope stays simpler: use general observed seasons/activity windows from 
 - [x] Walk through Decision Point 10: LLM assistant role.
 - [x] Walk through Decision Point 11: monitoring and neighbours.
 - [x] Walk through Decision Point 12: implementation packaging.
-- [ ] Decide which differences are true pipeline defects, which are reporting gaps, which are one-parcel anomalies, and which need more validation parcels.
-- [ ] Produce a prioritized pipeline-improvement proposal with minimal implementation slices.
+- [x] Decide which differences are true pipeline defects, which are reporting gaps, which are one-parcel anomalies, and which need more validation parcels. → **migrated to T-13**.
+- [x] Produce a prioritized pipeline-improvement proposal with minimal implementation slices. → **migrated to T-13**.
 - [x] If implementation starts, update or create the relevant follow-up task before changing code.
 - [x] Confirm source parcel artifacts are present: `data/aoi_demo_01/indices_timeseries.csv`, `run_metadata.json`, `scenes_index.jsonl`, `cube.zarr/`, and `weather_daily.parquet`.
 
@@ -577,4 +577,22 @@ Implemented Implementation-Handoff layer 6 / Decision Point 9 presentation layer
 - **Claim discipline carried into the UI:** no crop/yield/loan wording outside the boundaries block; calendar labels are summer/winter/transition only; `status_so_far` always shown with its provisional flag/note; manual-review shown honestly.
 - **Verification:** portal `tsc --noEmit` clean, `next build` green (both routes compiled), `tests/test_evidence_packet_api.py` (mapper + DTO + alias round-trip) added; 41 backend tests pass. Hardened against a 3-lens adversarial review (claim discipline, robustness, backend contract) — fixes: softened layer blurbs, neutral gauge colour, timeline label de-overlap + peak clamp + degenerate-span handling + date tooltips, indicators empty-state, collision-proof keys, honest proxy error forwarding, distinct land-load error state.
 
-Remaining T-11 layer: 7 (assistant/chat, tracked in T-04) — it consumes this same packet.
+### Bounded report assistant — Layer 7 (2026-06-30, implemented in T-04)
+
+Implemented Implementation-Handoff layer 7 / Decision Point 10: the grounded, bounded report assistant that consumes this packet. Tracked and documented in `docs/TASKS/T-04-ai-report-assistant.md`; summarised here because it closes the T-11 packet-provenance contract and the assistant-storage requirement.
+
+- **Packet provenance (this repo, T-11-owned):** the per-claim metadata schema T-11 specified (claim type, provenance level, source, method, allowed use, restriction) is now attached by `farmtrust_core/report/evidence_packet.py::_apply_provenance` (packet `v1.1`, additive). This is the contract Layer-7 guardrails depend on, so it lives in the packet builder; the assistant only consumes it.
+- **Assistant (T-04-owned):** deterministic-first narration + bounded analyst chat over the packet (`farmtrust_core/report/brief.py`, `api/assistant/*`, `POST /lands/{id}/assistant/{narrate,chat}`), Azure `gpt-4o` via `langchain-openai` gated off when unconfigured, with the deterministic brief as the always-on fallback. Every interaction is stored in an `AssistantMessage` audit row with packet hash, model, prompt version, and guardrail result — satisfying the T-11 storage requirement (line ~238). Portal: a "Report / Ask the assistant" tab on `/lands/[id]/packet`.
+- **Claim discipline preserved:** answers are bounded to packet evidence and per-claim typing; grounding is enforced by the system prompt (the output forbidden-phrase scan was removed post-launch — see T-04), with the deterministic brief as the always-on fallback. The assistant reasons with crops the user *declares* but never asserts a crop from satellite alone, and keeps yield/income/loan out. Provenance levels distinguish measured vs model-derived vs interpretation vs boundary-exclusion, so Level 0–2 isolated/manual context can never be presented as a production fact.
+
+All seven Implementation-Handoff layers are now landed (Layers 1–4 pipeline/scoring, Layer 5 packet, Layer 6 report card, Layer 7 assistant).
+
+### Task closed (2026-07-01)
+
+T-11 is **closed**. All seven Implementation-Handoff layers shipped, and the Layer-7 assistant was verified live by the user. The five remaining analysis/proposal checkboxes were migrated rather than dropped:
+
+- date-window comparison → **T-09**; land-status/abandonment comparison → **T-10**;
+- report/LLM explanation-value comparison → **T-02** validation (confirmed live);
+- "triage differences + prioritized improvement proposal" → new follow-up **T-13**.
+
+No open items remain in T-11.

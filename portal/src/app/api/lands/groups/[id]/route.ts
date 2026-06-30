@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { findMockGroup } from '@/lib/mocks/groups'
 
 const FASTAPI_URL = process.env.FASTAPI_URL ?? 'http://localhost:8000'
 
@@ -8,7 +9,11 @@ export async function GET(
 ) {
   const { id } = await params
   if (id.startsWith('mock-group-')) {
-    return NextResponse.json({ error: 'Mock submission detail is not available' }, { status: 404 })
+    const group = findMockGroup(id)
+    if (!group) {
+      return NextResponse.json({ detail: 'Submission not found' }, { status: 404 })
+    }
+    return NextResponse.json(group)
   }
 
   try {

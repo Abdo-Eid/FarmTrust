@@ -75,6 +75,7 @@ System suggests optimal windows from known agro-phenology calendars (e.g. winter
 - [ ] Evaluate Option C calendar source quality: winter/summer/Nili boundaries per governorate vs national generic.
 - [ ] Decide on chosen approach; record in this file and add a `DECISIONS.md` entry.
 - [ ] Promote chosen approach to `PROJECT.md` (`§Current-build scope`) and `ENGINEERING.md` (`§Interfaces`) if it changes shared truth.
+- [ ] (carried from T-11) Compare date-window behavior against the isolated parcel-analysis findings: fixed lookback, explicit dates, season calendar, and whether a 6-month result can be interpreted safely.
 
 ## Feedback Log
 

@@ -28,4 +28,13 @@ export const api = {
     get:    (id: string) => request<import('./types').JobState>(`/jobs/${id}`),
     cancel: (id: string) => request<import('./types').JobState>(`/jobs/${id}/cancel`, { method: 'POST' }),
   },
+  assistant: {
+    narrate: (id: string) =>
+      request<import('./types').AssistantResponse>(`/lands/${id}/assistant/narrate`, { method: 'POST' }),
+    chat: (id: string, body: import('./types').ChatRequest) =>
+      request<import('./types').AssistantResponse>(`/lands/${id}/assistant/chat`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+  },
 }

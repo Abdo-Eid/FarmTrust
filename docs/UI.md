@@ -113,7 +113,7 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 
 ## Screens as Functional Surfaces
 
-### Screens Designed (9 total) — Quick Reference
+### Screens Designed (11 total) — Quick Reference
 
 1. **Lands List Control Hub** — Primary operational hub; sidebar, stat cards, lands table with status, land risk, satellite evidence coverage, and assessment-confidence columns.
 2. **Add Land AOI Input** — AOI capture; draw-only polygon input. On desktop, form is left and map is right; on mobile, map appears above the form. Method: click land corners on the map, click near the first corner to close, drag corners before submit, and validate calculated area against 1–200 feddan.
@@ -122,7 +122,9 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 5. **System Operations Control** — Backend/API status panel; left nav for system sections, main panel with pipeline status, API connection, and portal notes.
 6. **Active Monitoring Queue** — High-risk alert dashboard; stat cards (18 alerts, 5 signals, 3 visits, 8,450 feddan), financed assets table with trend sparklines.
 7. **Portal Launch Screen** — Direct entry surface; centered brand panel with a short description of the interface and a primary action into the Lands List.
-8-9. **Lands List Variants** — Responsive/state alternatives of main list (2 additional variants).
+8. **Lender Report Card** — Evidence-grounded decision brief rendered from the evidence packet; route `/lands/[id]/packet`. Displays observed conditions, interpreted drivers, confidence levels, watch claims with track record, land risk vs evidence limitation, and cautious indicators. Linked from the Land Summary action bar.
+9. **Group/Portfolio Summary** — Collection view for portfolio monitoring; route `/lands/groups/[id]`. Aggregated risk signals and trend snapshots across grouped lands.
+10-11. **Lands List Variants** — Responsive/state alternatives of main list (2 additional variants).
 
 ### Entry
 
@@ -170,7 +172,7 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 * Land risk flags (with drivers)
 * Satellite evidence coverage
 * Assessment-confidence band + rationale
-* Evidence entry points
+* Evidence entry points: action bar offers **Workbench** (deep-dive analyst view), **Evidence** (supporting data drill-down), **Report Card** (grounded evidence packet at `/lands/[id]/packet`), and **Export PDF** (portable record)
 
 #### Decision Support Rules
 
@@ -196,10 +198,14 @@ Single land AOI input (Egypt-wide, **1–200 feddan**). Outputs include:
 * Evidence is surfaced proactively when land risk flags are new/worsening or conflict with summary.
 * If evidence contradicts recommendation, shift to **Hold** and request review.
 
-### Report Export (PDF)
+### Report Card & Report Export
 
-**Purpose:** portable record for sharing/archival.
-**Decisions:** export now/later; attach to case.
+**Report Card (On-Screen):** a grounded evidence packet rendered as a lender-facing decision brief at route `/lands/[id]/packet`. Built during `report_generation` from land assessment, season windows, quality metrics, and run metadata. Displays observed conditions, interpreted drivers, confidence levels, watch claims with track record, risk register (land risk vs evidence limitation), and cautious indicators. Links to this card appear in the Land Summary action bar and are separate from PDF export.
+
+**Report Export (PDF):** a portable, archival version of summary outputs + key evidence highlights + satellite evidence coverage + assessment-confidence rationale for sharing or case attachment.
+
+**Purpose (both):** portable and shareable records; the Report Card is the in-app evidence surface, while the PDF is the downloadable artifact.
+**Decisions:** which report surface to review or share; export now/later; attach to case.
 **Information required:** summary outputs + key evidence highlights + satellite evidence coverage + assessment-confidence rationale.
 
 ### Admin / Settings (Minimal)

@@ -1,6 +1,12 @@
-import type { LandResult } from "../types";
+import type { Indicators, LandResult, NDVIPoint, SeasonRecord } from "../types";
 
-export const MOCK_LANDS: LandResult[] = [
+// Each completed mock land has ONE canonical source of truth: its season
+// records (the activity cycles). Everything derived — the NDVI series shown on
+// the evidence chart, the peak/p95/AUC indicators, and (via mockEvidencePacket)
+// the report card — is computed from those cycles in `finalizeLand`, so every
+// surface for a given land shows numbers that agree.
+
+const RAW_MOCK_LANDS: LandResult[] = [
     {
         id: "land-001",
         name: "North Sharqia Plot A",
@@ -37,10 +43,7 @@ export const MOCK_LANDS: LandResult[] = [
         },
         risk_tier: "low",
         indicators: {
-            ndvi_peak: 0.78,
-            ndvi_p95_peak: 0.84,
             ndvi_spread_median: 0.06,
-            ndvi_auc: 142.3,
             evi_peak: 0.55,
             ndmi_median: 0.18,
             mndwi_median: -0.32,
@@ -49,29 +52,10 @@ export const MOCK_LANDS: LandResult[] = [
         },
         report_summary:
             "This land parcel demonstrates sustained vegetation activity across the observed window. Detected activity windows are strong, and no current risk flags were identified.",
-        ndvi_series: generateNDVI("2022-03-01", 24, "good"),
         season_records: [
-            {
-                season: "Activity window 2022/23 A",
-                start_date: "2022-11-01",
-                end_date: "2023-04-30",
-                ndvi_peak: 0.75,
-                outcome: "good",
-            },
-            {
-                season: "Activity window 2023 B",
-                start_date: "2023-05-01",
-                end_date: "2023-10-31",
-                ndvi_peak: 0.78,
-                outcome: "good",
-            },
-            {
-                season: "Activity window 2023/24 A",
-                start_date: "2023-11-01",
-                end_date: "2024-04-30",
-                ndvi_peak: 0.81,
-                outcome: "good",
-            },
+            { season: "Activity window 2022/23 A", start_date: "2022-11-01", end_date: "2023-04-30", ndvi_peak: 0.75, outcome: "good" },
+            { season: "Activity window 2023 B", start_date: "2023-05-01", end_date: "2023-10-31", ndvi_peak: 0.78, outcome: "good" },
+            { season: "Activity window 2023/24 A", start_date: "2023-11-01", end_date: "2024-04-30", ndvi_peak: 0.81, outcome: "good" },
         ],
     },
     {
@@ -110,10 +94,7 @@ export const MOCK_LANDS: LandResult[] = [
         },
         risk_tier: "medium",
         indicators: {
-            ndvi_peak: 0.61,
-            ndvi_p95_peak: 0.69,
             ndvi_spread_median: 0.08,
-            ndvi_auc: 98.7,
             evi_peak: 0.42,
             ndmi_median: 0.24,
             mndwi_median: -0.18,
@@ -122,30 +103,10 @@ export const MOCK_LANDS: LandResult[] = [
         },
         report_summary:
             "Vegetation activity is intermittent with a wetness signal that requires review. The latest activity window showed an interruption-like signal, so interpretation should remain cautious.",
-        ndvi_series: generateNDVI("2022-03-01", 24, "intermittent"),
         season_records: [
-            {
-                season: "Activity window 2022/23 A",
-                start_date: "2022-11-01",
-                end_date: "2023-04-30",
-                ndvi_peak: 0.63,
-                outcome: "good",
-            },
-            {
-                season: "Activity window 2023 B",
-                start_date: "2023-05-01",
-                end_date: "2023-10-31",
-                ndvi_peak: 0.55,
-                outcome: "interrupted",
-                anomaly: "Mid-window NDVI drop, possible waterlogging",
-            },
-            {
-                season: "Activity window 2023/24 A",
-                start_date: "2023-11-01",
-                end_date: "2024-04-30",
-                ndvi_peak: 0.61,
-                outcome: "interrupted",
-            },
+            { season: "Activity window 2022/23 A", start_date: "2022-11-01", end_date: "2023-04-30", ndvi_peak: 0.63, outcome: "good" },
+            { season: "Activity window 2023 B", start_date: "2023-05-01", end_date: "2023-10-31", ndvi_peak: 0.55, outcome: "interrupted", anomaly: "Mid-window NDVI drop, possible waterlogging" },
+            { season: "Activity window 2023/24 A", start_date: "2023-11-01", end_date: "2024-04-30", ndvi_peak: 0.61, outcome: "interrupted" },
         ],
     },
     {
@@ -172,10 +133,7 @@ export const MOCK_LANDS: LandResult[] = [
         },
         risk_tier: "high",
         indicators: {
-            ndvi_peak: 0.22,
-            ndvi_p95_peak: 0.29,
             ndvi_spread_median: 0.07,
-            ndvi_auc: 31.5,
             evi_peak: 0.15,
             ndmi_median: -0.04,
             mndwi_median: -0.28,
@@ -184,30 +142,10 @@ export const MOCK_LANDS: LandResult[] = [
         },
         report_summary:
             "This parcel shows low vegetation activity across the observed window. NDVI values remain low, and available signals suggest stress or absence should be reviewed with sufficient history and field context.",
-        ndvi_series: generateNDVI("2022-03-01", 24, "declining"),
         season_records: [
-            {
-                season: "Activity window 2022/23 A",
-                start_date: "2022-11-01",
-                end_date: "2023-04-30",
-                ndvi_peak: 0.38,
-                outcome: "weak",
-            },
-            {
-                season: "Activity window 2023 B",
-                start_date: "2023-05-01",
-                end_date: "2023-10-31",
-                ndvi_peak: 0.25,
-                outcome: "weak",
-                anomaly: "Salinization signature detected",
-            },
-            {
-                season: "Activity window 2023/24 A",
-                start_date: "2023-11-01",
-                end_date: "2024-04-30",
-                ndvi_peak: 0.22,
-                outcome: "weak",
-            },
+            { season: "Activity window 2022/23 A", start_date: "2022-11-01", end_date: "2023-04-30", ndvi_peak: 0.38, outcome: "weak" },
+            { season: "Activity window 2023 B", start_date: "2023-05-01", end_date: "2023-10-31", ndvi_peak: 0.25, outcome: "weak", anomaly: "Salinization signature detected" },
+            { season: "Activity window 2023/24 A", start_date: "2023-11-01", end_date: "2024-04-30", ndvi_peak: 0.22, outcome: "weak" },
         ],
     },
     {
@@ -234,10 +172,7 @@ export const MOCK_LANDS: LandResult[] = [
         },
         risk_tier: "high",
         indicators: {
-            ndvi_peak: 0.18,
-            ndvi_p95_peak: 0.24,
             ndvi_spread_median: 0.06,
-            ndvi_auc: 22.1,
             evi_peak: 0.12,
             ndmi_median: -0.02,
             mndwi_median: -0.25,
@@ -246,7 +181,7 @@ export const MOCK_LANDS: LandResult[] = [
         },
         report_summary:
             "Satellite evidence indicates a boundary or non-vegetated land-use signal that requires external verification. FarmTrust does not make legal-boundary or approval decisions from this signal alone.",
-        ndvi_series: generateNDVI("2022-03-01", 24, "encroachment"),
+        // No activity cycles — vegetated cropland converted to built-up land.
         season_records: [],
     },
     {
@@ -268,39 +203,22 @@ export const MOCK_LANDS: LandResult[] = [
         },
         confidence: {
             status: "high",
-            rationale:
-                "Excellent observation coverage with clear vegetation activity windows.",
+            rationale: "Excellent observation coverage with clear vegetation activity windows.",
         },
         risk_tier: "low",
         indicators: {
-            ndvi_peak: 0.82,
-            ndvi_p95_peak: 0.88,
             ndvi_spread_median: 0.05,
-            ndvi_auc: 158.6,
             evi_peak: 0.58,
-            ndmi_median: 0.20,
+            ndmi_median: 0.2,
             mndwi_median: -0.34,
             cloud_free_scenes: 44,
             observation_coverage: 0.97,
         },
         report_summary:
             "Consistent high vegetation activity was observed. Multiple strong activity windows were detected from satellite vegetation signals.",
-        ndvi_series: generateNDVI("2022-03-01", 24, "good"),
         season_records: [
-            {
-                season: "Activity window 2022 B",
-                start_date: "2022-05-01",
-                end_date: "2022-10-31",
-                ndvi_peak: 0.79,
-                outcome: "good",
-            },
-            {
-                season: "Activity window 2023 B",
-                start_date: "2023-05-01",
-                end_date: "2023-10-31",
-                ndvi_peak: 0.82,
-                outcome: "good",
-            },
+            { season: "Activity window 2022 B", start_date: "2022-05-01", end_date: "2022-10-31", ndvi_peak: 0.79, outcome: "good" },
+            { season: "Activity window 2023 B", start_date: "2023-05-01", end_date: "2023-10-31", ndvi_peak: 0.82, outcome: "good" },
         ],
     },
     {
@@ -327,20 +245,19 @@ export const MOCK_LANDS: LandResult[] = [
         },
         risk_tier: "low",
         indicators: {
-            ndvi_peak: 0.71,
-            ndvi_p95_peak: 0.77,
             ndvi_spread_median: 0.06,
-            ndvi_auc: 128.4,
-            evi_peak: 0.50,
+            evi_peak: 0.5,
             ndmi_median: 0.16,
-            mndwi_median: -0.30,
+            mndwi_median: -0.3,
             cloud_free_scenes: 29,
             observation_coverage: 0.81,
         },
         report_summary:
             "Small plot with consistent observed vegetation activity. Irrigation reliability and financing suitability require external context outside FarmTrust's current satellite packet.",
-        ndvi_series: generateNDVI("2022-03-01", 24, "good"),
-        season_records: [],
+        season_records: [
+            { season: "Activity window 2022/23 A", start_date: "2022-11-01", end_date: "2023-04-30", ndvi_peak: 0.7, outcome: "good" },
+            { season: "Activity window 2023 B", start_date: "2023-05-01", end_date: "2023-10-31", ndvi_peak: 0.72, outcome: "good" },
+        ],
     },
     {
         id: "land-007",
@@ -366,10 +283,7 @@ export const MOCK_LANDS: LandResult[] = [
         },
         risk_tier: "medium",
         indicators: {
-            ndvi_peak: 0.53,
-            ndvi_p95_peak: 0.63,
-            ndvi_spread_median: 0.10,
-            ndvi_auc: 87.2,
+            ndvi_spread_median: 0.1,
             evi_peak: 0.34,
             ndmi_median: 0.08,
             mndwi_median: -0.22,
@@ -378,8 +292,11 @@ export const MOCK_LANDS: LandResult[] = [
         },
         report_summary:
             "Intermittent vegetation activity with a possible stress signal. Observation gaps limit certainty, so review should focus on evidence coverage and local field context.",
-        ndvi_series: generateNDVI("2022-03-01", 24, "intermittent"),
-        season_records: [],
+        season_records: [
+            { season: "Activity window 2022/23 A", start_date: "2022-11-01", end_date: "2023-04-30", ndvi_peak: 0.58, outcome: "good" },
+            { season: "Activity window 2023 B", start_date: "2023-05-01", end_date: "2023-10-31", ndvi_peak: 0.5, outcome: "interrupted", anomaly: "Declining peak vigour" },
+            { season: "Activity window 2023/24 A", start_date: "2023-11-01", end_date: "2024-04-30", ndvi_peak: 0.46, outcome: "interrupted" },
+        ],
     },
     {
         id: "land-008",
@@ -436,46 +353,94 @@ export const MOCK_LANDS: LandResult[] = [
     },
 ];
 
-function generateNDVI(
-    startDate: string,
-    months: number,
-    pattern: "good" | "intermittent" | "declining" | "encroachment",
-): import("../types").NDVIPoint[] {
-    const points: import("../types").NDVIPoint[] = [];
-    const start = new Date(startDate);
+const BASELINE_NDVI = 0.13;
+const STEP_MS = 15 * 86_400_000;
 
-    for (let i = 0; i < months * 2; i++) {
-        const date = new Date(start);
-        date.setDate(date.getDate() + i * 15);
+function round(n: number, d = 3): number {
+    const f = 10 ** d;
+    return Math.round(n * f) / f;
+}
 
-        const seasonPhase = (i % 24) / 24;
-        const baseNDVI = 0.3 + 0.4 * Math.sin(seasonPhase * Math.PI * 2);
-        let ndvi = baseNDVI;
-
-        if (pattern === "good") {
-            ndvi = Math.min(
-                0.95,
-                baseNDVI + 0.15 + (Math.random() - 0.5) * 0.05,
-            );
-        } else if (pattern === "intermittent") {
-            ndvi = baseNDVI + (Math.random() - 0.5) * 0.2;
-            if (i > 16 && i < 24) ndvi *= 0.6;
-        } else if (pattern === "declining") {
-            ndvi = Math.max(
-                0.05,
-                baseNDVI - i * 0.012 + (Math.random() - 0.5) * 0.05,
-            );
-        } else if (pattern === "encroachment") {
-            ndvi = i < 8 ? baseNDVI : Math.max(0.05, baseNDVI - i * 0.025);
+// Deterministic NDVI curve traced from the season cycles: baseline between
+// cycles, an arch that peaks at each cycle's stated ndvi_peak at mid-window.
+function seriesFromSeasons(seasons: SeasonRecord[], base: number): NDVIPoint[] {
+    const sorted = [...seasons].sort(
+        (a, b) => Date.parse(a.start_date) - Date.parse(b.start_date),
+    );
+    const t0 = Date.parse(sorted[0].start_date) - STEP_MS * 2;
+    const t1 = Date.parse(sorted[sorted.length - 1].end_date) + STEP_MS * 2;
+    const points: NDVIPoint[] = [];
+    for (let t = t0; t <= t1; t += STEP_MS) {
+        let ndvi = base;
+        for (const s of sorted) {
+            const a = Date.parse(s.start_date);
+            const b = Date.parse(s.end_date);
+            if (t >= a && t <= b) {
+                const frac = (t - a) / (b - a);
+                ndvi = Math.max(ndvi, base + (s.ndvi_peak - base) * Math.sin(frac * Math.PI));
+            }
         }
-
         points.push({
-            date: date.toISOString().split("T")[0],
-            ndvi: Math.max(0, Math.min(1, ndvi)),
-            evi: Math.max(0, Math.min(1, ndvi * 0.85)),
-            cloud_coverage: Math.random() * 0.3,
+            date: new Date(t).toISOString().slice(0, 10),
+            ndvi: round(Math.max(0, ndvi)),
+            evi: round(Math.max(0, ndvi * 0.82)),
+            cloud_coverage: 0.1,
         });
     }
-
     return points;
 }
+
+// Land with no cycles (e.g. encroachment): a deterministic decline from the
+// early in-window peak down toward bare soil.
+function decliningSeries(peak: number, base: number, startDate: string): NDVIPoint[] {
+    const t0 = Date.parse(startDate);
+    const n = 48;
+    const points: NDVIPoint[] = [];
+    for (let i = 0; i < n; i++) {
+        const frac = i / (n - 1);
+        const ndvi = base + (peak - base) * (1 - frac);
+        const t = t0 + i * STEP_MS;
+        points.push({
+            date: new Date(t).toISOString().slice(0, 10),
+            ndvi: round(Math.max(0.04, ndvi)),
+            evi: round(Math.max(0.03, ndvi * 0.8)),
+            cloud_coverage: 0.1,
+        });
+    }
+    return points;
+}
+
+function aucFromSeries(series: NDVIPoint[]): number {
+    // Trapezoidal NDVI-days integral over the series.
+    let auc = 0;
+    for (let i = 1; i < series.length; i++) {
+        auc += ((series[i].ndvi + series[i - 1].ndvi) / 2) * 15;
+    }
+    return round(auc, 1);
+}
+
+// Fills the derived fields (ndvi_series, ndvi_peak, ndvi_p95_peak, ndvi_auc)
+// from the canonical cycles so every surface for the land agrees.
+function finalizeLand(land: LandResult): LandResult {
+    if (land.job_status !== "succeeded" || !land.indicators) return land;
+
+    const seasons = land.season_records ?? [];
+    const series = seasons.length
+        ? seriesFromSeasons(seasons, BASELINE_NDVI)
+        : decliningSeries(0.3, BASELINE_NDVI, "2022-05-01");
+
+    const peak = seasons.length
+        ? round(Math.max(...seasons.map((s) => s.ndvi_peak)), 2)
+        : round(Math.max(...series.map((p) => p.ndvi)), 2);
+
+    const indicators: Indicators = {
+        ...land.indicators,
+        ndvi_peak: peak,
+        ndvi_p95_peak: round(peak + 0.04, 2),
+        ndvi_auc: aucFromSeries(series),
+    };
+
+    return { ...land, indicators, ndvi_series: series };
+}
+
+export const MOCK_LANDS: LandResult[] = RAW_MOCK_LANDS.map(finalizeLand);

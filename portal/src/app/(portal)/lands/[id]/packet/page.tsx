@@ -2,6 +2,7 @@
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import * as Tabs from "@radix-ui/react-tabs";
 import { useLand } from "@/hooks/useLand";
 import { useEvidencePacket } from "@/hooks/useEvidencePacket";
 import { TopBar } from "@/components/layout/TopBar";
@@ -9,6 +10,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { EvidencePacketReport } from "@/components/report/EvidencePacketReport";
+import { AssistantPanel } from "@/components/assistant/AssistantPanel";
 import { formatFeddan } from "@/lib/geo";
 
 export default function LandPacketPage({
@@ -132,7 +134,31 @@ export default function LandPacketPage({
                         </p>
                     </div>
                 ) : (
-                    <EvidencePacketReport packet={packet} />
+                    <Tabs.Root defaultValue="report" className="w-full">
+                        <Tabs.List className="border-b border-gray-200 bg-transparent flex gap-0 mb-5">
+                            <Tabs.Trigger
+                                value="report"
+                                className="px-4 py-2 text-sm font-medium text-gray-600 border-b-2 border-transparent data-[state=active]:border-teal-600 data-[state=active]:text-teal-700 hover:text-gray-900"
+                            >
+                                <span className="material-symbols-outlined text-base align-middle mr-1">summarize</span>
+                                Report
+                            </Tabs.Trigger>
+                            <Tabs.Trigger
+                                value="assistant"
+                                className="px-4 py-2 text-sm font-medium text-gray-600 border-b-2 border-transparent data-[state=active]:border-teal-600 data-[state=active]:text-teal-700 hover:text-gray-900"
+                            >
+                                <span className="material-symbols-outlined text-base align-middle mr-1">forum</span>
+                                Ask the assistant
+                            </Tabs.Trigger>
+                        </Tabs.List>
+
+                        <Tabs.Content value="report">
+                            <EvidencePacketReport packet={packet} />
+                        </Tabs.Content>
+                        <Tabs.Content value="assistant">
+                            <AssistantPanel landId={land.id} />
+                        </Tabs.Content>
+                    </Tabs.Root>
                 )}
             </div>
         </div>

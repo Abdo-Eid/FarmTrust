@@ -102,3 +102,32 @@ export const INDICATOR_LABEL: Record<string, string> = {
 export function humanizeKey(key: string): string {
     return INDICATOR_LABEL[key] ?? key.replace(/_/g, " ");
 }
+
+/** Claim-type pills for the assistant — provenance at a glance (T-04). */
+export const CLAIM_TYPE_PILL: Record<string, string> = {
+    measured_observation: "bg-green-100 text-green-800 border-green-200",
+    deterministic_pipeline_result: "bg-teal-100 text-teal-800 border-teal-200",
+    model_derived_analysis: "bg-indigo-100 text-indigo-800 border-indigo-200",
+    interpretation: "bg-amber-100 text-amber-800 border-amber-200",
+    boundary_exclusion: "bg-gray-800 text-gray-100 border-gray-700",
+    user_provided_local_context: "bg-slate-100 text-slate-700 border-slate-200",
+    unknown: "bg-gray-100 text-gray-600 border-gray-200",
+};
+
+export const CLAIM_TYPE_LABEL: Record<string, string> = {
+    measured_observation: "Measured",
+    deterministic_pipeline_result: "Pipeline",
+    model_derived_analysis: "Model-derived",
+    interpretation: "Interpretation",
+    boundary_exclusion: "Out of scope",
+    user_provided_local_context: "Local context",
+    unknown: "Unknown",
+};
+
+export function claimTypePill(claimType?: string): string {
+    return CLAIM_TYPE_PILL[claimType ?? "unknown"] ?? CLAIM_TYPE_PILL.unknown;
+}
+
+export function claimTypeLabel(claimType?: string): string {
+    return CLAIM_TYPE_LABEL[claimType ?? "unknown"] ?? "Unknown";
+}

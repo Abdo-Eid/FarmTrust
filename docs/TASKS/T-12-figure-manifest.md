@@ -1,0 +1,105 @@
+# T-12 — Figure & Visual Manifest (Graduation Book)
+
+The single source of truth for every figure, graph, screenshot, generated image,
+and diagram used in the graduation book. Keep it in sync as figures are produced,
+captured, or replaced. The book chapters reference this manifest; the chapters
+themselves should not invent figure metadata.
+
+## Conventions
+
+- **Reader-facing only.** Captions and alt-text use product / academic language —
+  **never** internal development vocabulary (no "Layer 5/6/7", no task IDs like
+  T-04/T-11, no code identifiers such as `claim_type` or file paths). The `Source`
+  column may cite paths because this is a working doc, not book prose.
+- **Working ID:** `G-` graphs/plots, `V-` pipeline visualizations, `S-` app
+  screenshots, `D-` diagrams to generate. Final per-chapter numbers (e.g. Figure 6.1)
+  are assigned at layout time in the `Book #` column.
+- **Status:** `ready` (file exists, usable) · `capture` (screenshot still to take) ·
+  `generate` (must be produced) · `verify` (exists but confirm exact content/quality).
+- **Template insert syntax:** `![Figure 6.1: Caption](image_name.png){width=3.6}`,
+  images resolved from the template's `assets/`. Tables: `Table: Table x.x: Caption`.
+- **Asset naming in `assets/`:** copy each chosen file in as `figNN_shortname.png`
+  (book-facing name), recorded in the `Asset name` column.
+
+## A. Analysis graphs (exist — Menofia case study)
+
+Source dir: `outputs/exploration/figs/`. The Menofia parcel (`aoi_demo_01`) is the
+main case study; treat single-parcel results with the stated local-context caveats.
+
+| ID | Caption (reader-facing, draft) | Source file | Target chapter | Status | Notes |
+|---|---|---|---|---|---|
+| G-01 | Two-year greenness timeline with the detected activity cycles. | `f1_timeline.png` | Methodology / Results | ready | Core figure — the headline time-series. |
+| G-02 | Observation quality and gap profile over the study window. | `f2_quality.png` | Methodology | ready | Cloud/usable-observation coverage. |
+| G-03 | Vegetation indices compared across the season. | `f3_veg.png` | Methodology / Results | ready | NDVI/EVI (and others) together. |
+| G-04 | Canopy-moisture / surface-water signal over time. | `f4_water.png` | Results | verify | NDMI/MNDWI context; confirm exact indices. |
+| G-05 | Year-over-year comparison of the greenness cycle. | `f4_yoy.png` | Results | verify | Confirm which years/indices. |
+| G-06 | Within-field greenness spread (uniformity / patchiness). | `f5_hetero.png` | Results (spatial) | verify | mean-vs-p95 spread evidence. |
+| G-07 | Year-over-year variability (alternate view). | `f5_yoy.png` | Results | verify | Likely a variant of G-05 — pick one. |
+| G-08 | Summer cycle case: a clean canopy that greenness alone cannot fully judge. | `f6_corn.png` | Case Study | verify | The "greenness is not yield" example. |
+| G-09 | Field heterogeneity map / profile. | `f6_hetero.png` | Results (spatial) | verify | Variant of G-06 — pick the clearer one. |
+| G-10 | Spatial map of cycle-peak greenness across the parcel. | `f7_spatial_peaks.png` | Results (spatial) | ready | Strong spatial evidence figure. |
+| G-11 | Field zones / patchiness segmentation. | `f8_zones.png` | Results (spatial) | ready | Pair with G-10. |
+| G-12 | Validation: recomputed pixel signal vs the delivered series. | `f9_validation.png` | Evaluation | verify | Field-mean faithfulness check. |
+| G-13 | Winter cut-and-regrowth ("moving cut front") pattern. | `f10_cuts.png` | Case Study | ready | The fodder-management lesson. |
+| G-14 | Smoothing-strength sweep and its effect on cycle detection. | `f11_sweep.png` | Methodology / Evaluation | ready | Justifies the smoothing choice. |
+| G-15 | Red-edge index vs standard greenness. | `f12_ndre.png` | Results | ready | NDRE tracks NDVI; not a pest detector. |
+| G-16 | Alternative vegetation index vs standard greenness. | `msavi_vs_ndvi.png` | Results | ready | MSAVI comparison. |
+| G-17 | Independent cross-check of the detected phenology. | `f14_hmm.png` | Methodology / Evaluation | ready | Deterministic cross-check agreement. |
+
+> De-duplicate the variant pairs (G-05/G-07, G-06/G-09) — keep the clearer one each.
+
+## B. Pipeline visualizations & method illustrations (exist)
+
+| ID | Caption (reader-facing, draft) | Source file | Target chapter | Status | Notes |
+|---|---|---|---|---|---|
+| V-01 | End-to-end pipeline visualization for the case-study parcel. | `outputs/diagnostics/aoi_demo_01/pipeline_visualization.html` | Methodology / Case Study | capture | Interactive HTML — screenshot a clean frame. |
+| V-02 | Pipeline visualization for the short-window parcel. | `outputs/diagnostics/land-c92521f9627b4cc1a9e0ef65909a1820/pipeline_visualization.html` | Evaluation | capture | Secondary example (limited history). |
+| V-03 | Curve smoothing illustration (raw observations → smooth daily curve). | `docs/assets/session-ses_1244_smoothing.png` | Methodology | ready | Generated by `docs/assets/generate_session_images.py`. |
+| V-04 | Activity-cycle detection illustration on the smooth curve. | `docs/assets/session-ses_1244_season_detection.png` | Methodology | ready | Same generator script. |
+
+## C. App screenshots (to capture)
+
+Capture at a consistent browser width/zoom. Use a completed real land for the
+report/assistant screens; show the Arabic answer to demonstrate language support.
+
+| ID | Caption (reader-facing, draft) | Screen / route | Target chapter | Status |
+|---|---|---|---|---|
+| S-01 | Landing / entry screen. | `/` | Implementation/UI | capture |
+| S-02 | Land portfolio list. | `/lands` | Implementation/UI | capture |
+| S-03 | Drawing a field boundary on the map. | new-land map | Implementation/UI | capture |
+| S-04 | Processing / job progress while the analysis runs. | job view | Implementation/UI | capture |
+| S-05 | Land summary overview. | `/lands/[id]/summary` | Implementation/UI | capture |
+| S-06 | Greenness time-series (NDVI & EVI) in the evidence view. | `/lands/[id]/evidence` | Implementation/UI | capture |
+| S-07 | Activity record — the season-by-season cycle strip. | `/lands/[id]/evidence` | Implementation/UI | capture |
+| S-08 | Season / cycle detail table. | `/lands/[id]/evidence` | Implementation/UI | capture |
+| S-09 | Lender report — verdict + the four-part evidence read (Observed/Interpreted/Confidence/Watch). | `/lands/[id]/packet` | Implementation/UI + Results | capture |
+| S-10 | Lender report — track-record gauge, split risk register, and the "what this does not tell you" block. | `/lands/[id]/packet` | Implementation/UI | capture |
+| S-11 | Report assistant — plain-language narration with evidence-type tags and a source-mode badge. | `/lands/[id]/packet` (assistant) | Results (showcase) | capture |
+| S-12 | Report assistant — English question-and-answer over the report evidence. | assistant tab | Results (showcase) | capture |
+| S-13 | Report assistant — the same assistant answering in Arabic (right-to-left). | assistant tab | Results (showcase) | capture |
+| S-14 | Report assistant — a grounded refusal (it will not assert crop, yield, or a loan decision). | assistant tab | Results (showcase) | capture |
+| S-15 | Exported PDF report (sample page). | `/lands/[id]/report` | Implementation/UI | capture |
+
+## D. Diagrams to generate (none yet — produce these)
+
+Produce as clean vector/diagram images (e.g. draw.io / mermaid export) and drop into
+`assets/`. Keep labels reader-facing.
+
+| ID | Caption (reader-facing, draft) | What it shows | Target chapter | Status |
+|---|---|---|---|---|
+| D-01 | System architecture. | Portal ↔ API ↔ background worker ↔ stored artifacts ↔ report assistant / language model. | Architecture | generate |
+| D-02 | End-to-end data flow. | Field boundary → Sentinel-2 ingestion → indices → smoothing → activity-cycle detection → land assessment → grounded report → assistant. | Architecture / Methodology | generate |
+| D-03 | The four-part evidence read. | Observed → Interpreted → Confidence → Watch, with per-statement confidence. | Evidence modeling | generate |
+| D-04 | How the report assistant stays grounded. | Report evidence + curated field knowledge → grounded prompt → model answer; rule-based summary as the always-on fallback; every line carries an evidence type. | Implementation / Results | generate |
+| D-05 | Evidence-grounding ladder. | measured observation → model-derived analysis → interpretation → out-of-scope boundary. | Evidence modeling | generate |
+
+## Shortlist for the final book (strongest 10–14)
+
+Per the page budget, the book leans on a focused set. Provisional picks:
+
+1. G-01 timeline · 2. G-02 quality · 3. G-03 vegetation indices · 4. G-10 spatial peaks ·
+5. G-13 cut-front · 6. G-14 smoothing sweep · 7. G-17 phenology cross-check ·
+8. V-03/V-04 smoothing + detection illustrations · 9. S-09 lender report · 10. S-11 assistant narration ·
+11. S-13 Arabic assistant answer · 12. S-14 grounded refusal · 13. D-01 architecture · 14. D-02 data flow.
+
+(Adjust once the screenshots and diagrams exist and the variant graphs are de-duplicated.)

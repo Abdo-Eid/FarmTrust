@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.database import init_db
-from api.routers import jobs, lands
+from api.routers import assistant, jobs, lands
 from api.schemas import HealthResponse
 
 
@@ -50,6 +50,7 @@ app.add_middleware(
 
 app.include_router(lands.router)
 app.include_router(jobs.router)
+app.include_router(assistant.router)
 
 
 @app.get("/health", response_model=HealthResponse)

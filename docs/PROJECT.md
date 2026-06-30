@@ -40,6 +40,7 @@ Purpose: single place for product truth (vision, scope, current roadmap, open qu
 - Assessment confidence: high / medium / low, meaning confidence in FarmTrust's assessment reliability, not confidence in the land itself.
 - Smoothed evidence graphs for the most valuable time-series signals (NDVI, EVI, NDMI, NDWI).
 - Season count across the selected interval, with season boundaries explained visually.
+- **Evidence Packet Report Card** (portal route `/lands/[id]/packet`): a structured, grounded lender report showing Observed findings, Interpreted claims with per-claim confidence and evidence trail, a split risk register (land_risk vs evidence_limitation), track record, cautious indicators, and a fixed "what this does NOT tell you" boundaries block. Deterministic and byte-consistent, inventing no new evidence; built during the worker's report_generation phase. Distinct from and linked alongside the PDF export at `/lands/[id]/report`.
 - PDF report export for lender review.
 
 ## Current-build scope (what we ship first)
@@ -54,6 +55,7 @@ Purpose: single place for product truth (vision, scope, current roadmap, open qu
 - Current-build assessment must be based on interval-level evidence, not a single latest observation.
 - Validation approach: weak labels only; add public-area qualitative reviews when feasible.
 - Risk flags use conservative thresholds to protect trust in current-build outputs.
+- Abandonment and inactivity interpretations are governed by a conservative absence gate (activity_present / absence_supported / absence_uncertain / not_assessed) and a history-coverage check (sufficient / limited / insufficient); insufficient evidence lowers confidence rather than asserting abandonment.
 - Current-build execution uses a single-job worker path; queue/broker is deferred until multi-user needs.
 
 ## Current Build ownership (6 roles)
@@ -82,7 +84,7 @@ Problem this solves: frequent back-and-forth and overlapping work cause drift, r
 
 ## Claim discipline
 - Built/current-build claim: satellite-to-risk-report foundation with interval evidence, conservative risk outputs, confidence-aware assessment, portal/API foundation, and report export.
-- POC/research claim only when separately demonstrated: crop mapping, yield estimation, segmentation, and advanced modeling.
+- Research/background claim only when separately demonstrated: completed crop mapping and yield estimation work is background research, not active product scope or roadmap.
 - Future claim: monitoring at scale, AI assistant workflows, data products, cooperative/government analytics, and statistics use cases.
 - Not claimed: automated loan approval, exact guaranteed yield, pest diagnosis, or legal land surveying.
 
@@ -164,7 +166,7 @@ flowchart TD
 ## Roadmap
 - Current Build: lender-facing farm risk assessment/report + lands-only portal + PDF export; minimal persistence only; pilot validation with low confusion and very low false alarms.
 - Next: validate the risk-report flow end to end, sharpen lender-safe scoring language, and plan monitoring/AI as follow-up layers without changing the first-product anchor.
-- Later: promote monitoring at scale, AI assistant workflows, crop/yield POCs, segmentation, and data-company expansion only after validation and explicit decisions.
+- Later: promote monitoring at scale, AI assistant workflows, data-company expansion, and other explicitly approved future ideas only after validation and explicit decisions.
 - Future ideas are intentionally isolated in `FUTURE.md` and must be re-evaluated before becoming scope or a live task.
 
 ## Exploration Gate

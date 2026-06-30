@@ -183,16 +183,22 @@ Here's the high-level pipeline flow after ingestion:
   ┌─────────────┐
   │    Land     │  Final answer: active? declining? risk flags? confidence?
   │ Assessment  │  Combines everything into a decision
-  └─────────────┘
+  └──────┬──────┘
+         ↓
+  ┌──────────────────┐
+  │ Report Evidence  │  Build evidence packet for lender report card and API
+  │     Packet       │  (deterministic projection, no new claims)
+  └──────────────────┘
 ```
 
-**4 stages, 4 scripts, one AOI.** Each stage reads the previous stage's output files. The chain is:
+**5 stages, 5 scripts, one AOI.** Each stage reads the previous stage's output files. The chain is:
 
 1. **Preprocessing** — takes the irregular CSV, keeps strict usable observations (`valid_fraction ≥ 0.90`) as evidence anchors, builds filled/smoothed model-derived analysis values at observed timestamps, carries p95/spread and MNDWI, and flags long observation gaps
 2. **Seasonal analysis** — looks at the model-derived NDVI analysis curve, finds vegetation activity windows using peak/trough + per-cycle amplitude logic with threshold fallback, and records boundary provenance plus nearest real-observation support
 3. **Land assessment** — combines everything to classify current activity only when evidence supports it, separate history coverage from land status, gate absence/inactivity claims, expose cautious indicators, and report confidence
+4. **Report evidence packet** — deterministically projects land_assessment.json + season_windows.json + quality_metrics.json + run_metadata.json into a lender-facing evidence packet with observed/interpreted/confidence layers and risk register; accessible via GET /lands/{id}/evidence-packet endpoint and rendered at /lands/[id]/packet route as a Report Card
 
-**TL;DR for your professor:** *Ingestion gives us a raw time series. Preprocessing cleans it. Seasonal analysis finds the growing windows. Assessment makes the final call.*
+**TL;DR for your professor:** *Ingestion gives us a raw time series. Preprocessing cleans it. Seasonal analysis finds the growing windows. Assessment makes the final call. Evidence packet packages it for delivery.*
 
 ## Preprocessing — Detailed Explanation
 
@@ -968,11 +974,162 @@ They're not combined into a score. Each flag is an independent observed land sig
 
 ---
 
+## Report Evidence Packet — Layer 5 (Shipping)
+
+### The Problem It Solves
+
+After assessment, the system has a complete internal picture: land status, trends, confidence, risk flags, and gap analysis. But a lender needs a **structured, portable evidence packet** that can be serialized for reporting, API delivery, and archive. This stage deterministically projects the upstream results into a lender-facing format.
+
+---
+
+### Step-by-Step
+
+**1. Load All Assessment & Upstream Artifacts**
+
+Reads the deterministic outputs from the previous 4 stages:
+- `land_assessment.json` — land status, trend, confidence, risk flags
+- `season_windows.json` — season details, quality labels, gap overlap
+- `quality_metrics.json` — gap risk, usable count, long gap windows
+- `run_metadata.json` — assessment interval, run config
+
+- **Code:** `farmtrust_core/report/evidence_packet.py`
+
+**2. Structure the Packet — Observed / Interpreted / Confidence**
+
+The packet is organized in layers:
+
+| Layer | Content | Source |
+|---|---|---|
+| **Observed** | Raw metrics from ingestion and preprocessing (valid_fraction, usable_count, gap_ratio, interval_max_ndvi) | `quality_metrics.json`, `ndvi_smoothed.csv` summary |
+| **Interpreted** | Derived findings (season_count, land_status, trend_2y, latest_season_performance) | `land_assessment.json` + `season_windows.json` |
+| **Confidence** | Assessment confidence, satellite evidence coverage, component scores | `land_assessment.json`.confidence, satellite_evidence_coverage |
+
+Each claim is grounded in the upstream pipeline; the packet invents no new evidence.
+
+**3. Risk Register — Land Risk vs. Evidence Limitation**
+
+| Register | Content |
+|---|---|
+| **Land risk** | Flags that describe observed activity signals: `interruption_risk`, `weak_activity_risk`, `possible_inactivity`, `limited_activity_continuity` |
+| **Evidence limitation** | Flags for data quality issues (gap overlap, insufficient coverage) — separate from land condition |
+
+**4. Boundaries Block**
+
+A fixed "what this does NOT tell you" section:
+- No crop identification / yield / income projection
+- No legal/tenure claims
+- No farming practice judgment
+- No water stress beyond cautious NDMI/NDWI context
+- Lender must combine with ground data and external context
+
+**5. Watch Claims & Rests-On**
+
+Each land-status claim and flag includes:
+- The claim itself (e.g., "active")
+- `rests_on`: which preceding metrics it depends on (e.g., `["season_count", "active_observation_fraction", "gap_risk"]`)
+- Confidence and a confidence-penalty reason if lower than high
+
+**6. Track Record & Nearest Real Observation**
+
+For each detected season:
+- Boundary sources (model-derived analysis curve? open-left/right boundary?)
+- Nearest real observation dates and distances
+- Provenance trail so reviewers can understand the analysis curve role
+
+**7. No Wall-Clock (Deterministic)**
+
+All computations are deterministic byte-for-byte replays: same inputs → same packet output. No timestamp/run-date in the computed values (only in metadata).
+
+---
+
+### Output — `data/assessment/<aoi>/report_evidence_packet.json`
+
+Located in the worker's output folder alongside land_assessment.json. Structure (simplified):
+
+```json
+{
+  "aoi_id": "aoi_demo_01",
+  "assessment_interval": {
+    "start_date": "2024-06-01",
+    "end_date": "2026-06-01"
+  },
+  "observed_layer": {
+    "total_usable_observations": 72,
+    "gap_ratio": 0.10,
+    "max_gap_days": 15,
+    "long_gap_count": 0,
+    "satellite_evidence_coverage": "good"
+  },
+  "interpreted_layer": {
+    "land_status": "active",
+    "land_status_rests_on": ["season_count", "active_observation_fraction", "gap_risk"],
+    "trend_2y": "improving",
+    "season_count": 2,
+    "latest_season": {
+      "season_id": "season_02",
+      "label": "good",
+      "peak_ndvi": 0.55,
+      "confidence": "high"
+    }
+  },
+  "confidence_layer": {
+    "overall_confidence": "high",
+    "confidence_components": {
+      "continuity": "high",
+      "season_clarity": "high",
+      "signal_strength": "high"
+    },
+    "reasons": [
+      "Gap continuity is strong enough.",
+      "Usable observation count is solid (72)."
+    ]
+  },
+  "risk_register": {
+    "land_risk_flags": [],
+    "evidence_limitation_flags": []
+  },
+  "boundaries_and_caveats": {
+    "does_not_tell_you": [
+      "Crop type or yield",
+      "Irrigation method or water stress beyond context",
+      "Income, market value, or farm profitability",
+      "Legal tenure or ownership",
+      "Farming practice quality"
+    ]
+  },
+  "watch_claims_track_record": [
+    {
+      "claim": "Land is currently active",
+      "confidence": "high",
+      "rests_on": ["season_count=2", "active_observation_fraction=0.55"],
+      "nearest_real_observation_date": "2026-06-01",
+      "boundary_source": "model_derived_analysis_curve"
+    }
+  ]
+}
+```
+
+---
+
+### API & Portal Integration
+
+**Endpoint:** `GET /lands/{id}/evidence-packet`
+- Returns `EvidencePacketResponse` (api/schemas.py)
+- **404** until the evidence packet is generated (after worker completes report_generation phase)
+- **200** with full packet JSON if present
+
+**Portal Route:** `/lands/[id]/packet`
+- Portal component `portal/src/components/report/EvidencePacketReport.tsx` renders the packet as a **lender Report Card**
+- **Distinct from** the PDF export at `/lands/[id]/report` (which may include additional formatting/branding)
+- Linked from the Land Summary action bar
+
+---
+
 ### The Full Pipeline in One Sentence
 
 Here's how you'd summarize the entire pipeline for your professor:
 
-> *We take a farmer's field boundary, find Sentinel-2 satellite passes over the selected assessment interval via STAC, read only the relevant pixels from Cloud-Optimized GeoTIFFs, mask to the field shape, compute vegetation indices from only clear pixels (SCL-based), build a model-derived filled/smoothed analysis curve at observed timestamps while preserving real-observation gap evidence, detect vegetation activity windows using peak/trough per-cycle amplitude logic with threshold fallback, preserve unfinished windows as provisional, label quality using curve shape and multi-index cross-checks, and finally classify current activity with history coverage, absence-gate status, cautious indicators, risk flags, and confidence, or require manual review when satellite evidence is insufficient — all explainable from first principles.*
+> *We take a farmer's field boundary, find Sentinel-2 satellite passes over the selected assessment interval via STAC, read only the relevant pixels from Cloud-Optimized GeoTIFFs, mask to the field shape, compute vegetation indices from only clear pixels (SCL-based), build a model-derived filled/smoothed analysis curve at observed timestamps while preserving real-observation gap evidence, detect vegetation activity windows using peak/trough per-cycle amplitude logic with threshold fallback, preserve unfinished windows as provisional, label quality using curve shape and multi-index cross-checks, classify current activity with history coverage, absence-gate status, cautious indicators, risk flags, and confidence (or require manual review when satellite evidence is insufficient), and finally deterministically project all evidence into a lender-facing packet with observed/interpreted/confidence layers, risk register, and watch claims with provenance — all explainable from first principles.*
 
 ## What We Have vs. What a Real System Needs
 
@@ -1218,9 +1375,12 @@ Here is the **complete inventory of every metric** the current pipeline produces
 | 26 | `ndwi_raw` | Raw merged NDWI | |
 | 27 | `ndwi_filled` | Linear interpolation from inclusion-gated anchors | |
 | 28 | `ndwi_smoothed` | Daily Whittaker (NDWI) curve sampled here | |
-| 29 | `valid_fraction` | Weighted valid_fraction for the merged day | |
-| 30 | `is_usable` | `true` if `valid_fraction ≥ 0.90` | Evidence flag; all rows now have filled+smoothed |
-| 31 | `source_row_count` | How many raw scenes were merged into this row | 1 = single scene, 2+ = duplicate day |
+| 29 | `mndwi_raw` | Raw merged MNDWI | |
+| 30 | `mndwi_filled` | Linear interpolation from inclusion-gated anchors | |
+| 31 | `mndwi_smoothed` | Daily Whittaker (MNDWI) curve sampled here | |
+| 32 | `valid_fraction` | Weighted valid_fraction for the merged day | |
+| 33 | `is_usable` | `true` if `valid_fraction ≥ 0.90` | Evidence flag; all rows now have filled+smoothed |
+| 34 | `source_row_count` | How many raw scenes were merged into this row | 1 = single scene, 2+ = duplicate day |
 
 ---
 
@@ -1229,27 +1389,27 @@ Here is the **complete inventory of every metric** the current pipeline produces
 
 | # | Metric | What it is | Notes |
 |---|---|---|---|
-| 32 | `total_observation_count` | Raw scenes from ingestion | Before any merging |
-| 33 | `merged_observation_count` | Days after same-day collapse | In cube path this equals total_observation_count (one row = one solar-day mosaic) |
-| 34 | `usable_observation_count` | Days with `valid_fraction ≥ 0.90` | Core input to confidence |
-| 35 | `dropped_observation_count` | Days below usability threshold | Present but all rows now get filled+smoothed values |
-| 36 | `gap_ratio` | Sum of excess gap days ÷ total span | Range [0,1]. E.g. 0.10 = 10% of the time is "extra gap" beyond expected 5-day cadence |
-| 37 | `max_gap_days` | **Longest gap between usable observations** | E.g. 15.0 = two weeks with no clear view |
-| 38 | `median_gap_days` | Typical gap between usable observations | E.g. 3.0 = good (close to 5-day revisit) |
-| 39 | `long_gap_count` | Number of gaps exceeding 10 days | 4 = four significant gaps |
-| 40 | `long_gap_windows` | Array of `{start_timestamp, end_timestamp, gap_days, excess_gap_days}` for each long gap | Exact windows for season overlap check |
-| 41 | `smoothing_method` | Algorithm name | Currently `weighted_whittaker_eilers_daily_grid` |
-| 42 | `interpolation_policy` | How the analysis curve is built | `linear_fill_between_inclusion_gated_anchors_then_whittaker` |
-| 43 | `fill_policy` | Which timestamps receive filled values | `fill_all_observed_timestamps_from_analysis_anchors` |
-| 44 | `creates_synthetic_timestamps` | Whether a synthetic daily analysis grid is built | `true` — daily curve only; `ndvi_smoothed.csv` stays on observed timestamps |
-| 45 | `smooths_only_usable_observations` | Whether non-usable rows can be smoothed | `false` |
-| 46 | `whittaker_difference_order` / `lambda_selection_method` | Whittaker penalty order + how lambda is chosen | `2` / `phenology_timescale_fixed_day_window` |
-| 47 | `target_smoothing_days` / `selected_lambda` / `analysis_inclusion_valid_fraction` | Phenology timescale, resulting lambda, looser curve-inclusion gate | `45` days → lambda ≈ `2631`; inclusion `0.30` (strict usable gate stays `0.90`) |
-| 48 | `usable_valid_fraction_threshold` | Usability cutoff | Currently 0.90 |
-| 49 | `gap_risk` | **Classification of observation continuity** | `low` / `moderate` / `high` |
-| 50 | `confidence_penalty` | How much gaps penalize assessment confidence | `low` / `moderate` / `high` |
-| 51 | `gap_risk_reason` | Human-readable explanation | e.g. "Some continuity is missing..." |
-| 52 | `confidence_inputs` | Raw numbers used for confidence calc | `usable_observation_count`, `gap_ratio`, `max_gap_days` |
+| 35 | `total_observation_count` | Raw scenes from ingestion | Before any merging |
+| 36 | `merged_observation_count` | Days after same-day collapse | In cube path this equals total_observation_count (one row = one solar-day mosaic) |
+| 37 | `usable_observation_count` | Days with `valid_fraction ≥ 0.90` | Core input to confidence |
+| 38 | `dropped_observation_count` | Days below usability threshold | Present but all rows now get filled+smoothed values |
+| 39 | `gap_ratio` | Sum of excess gap days ÷ total span | Range [0,1]. E.g. 0.10 = 10% of the time is "extra gap" beyond expected 5-day cadence |
+| 40 | `max_gap_days` | **Longest gap between usable observations** | E.g. 15.0 = two weeks with no clear view |
+| 41 | `median_gap_days` | Typical gap between usable observations | E.g. 3.0 = good (close to 5-day revisit) |
+| 42 | `long_gap_count` | Number of gaps exceeding 10 days | 4 = four significant gaps |
+| 43 | `long_gap_windows` | Array of `{start_timestamp, end_timestamp, gap_days, excess_gap_days}` for each long gap | Exact windows for season overlap check |
+| 44 | `smoothing_method` | Algorithm name | Currently `weighted_whittaker_eilers_daily_grid` |
+| 45 | `interpolation_policy` | How the analysis curve is built | `linear_fill_between_inclusion_gated_anchors_then_whittaker` |
+| 46 | `fill_policy` | Which timestamps receive filled values | `fill_all_observed_timestamps_from_analysis_anchors` |
+| 47 | `creates_synthetic_timestamps` | Whether a synthetic daily analysis grid is built | `true` — daily curve only; `ndvi_smoothed.csv` stays on observed timestamps |
+| 48 | `smooths_only_usable_observations` | Whether non-usable rows can be smoothed | `false` |
+| 49 | `whittaker_difference_order` / `lambda_selection_method` | Whittaker penalty order + how lambda is chosen | `2` / `phenology_timescale_fixed_day_window` |
+| 50 | `target_smoothing_days` / `selected_lambda` / `analysis_inclusion_valid_fraction` | Phenology timescale, resulting lambda, looser curve-inclusion gate | `45` days → lambda ≈ `2631`; inclusion `0.30` (strict usable gate stays `0.90`) |
+| 51 | `usable_valid_fraction_threshold` | Usability cutoff | Currently 0.90 |
+| 52 | `gap_risk` | **Classification of observation continuity** | `low` / `moderate` / `high` |
+| 53 | `confidence_penalty` | How much gaps penalize assessment confidence | `low` / `moderate` / `high` |
+| 54 | `gap_risk_reason` | Human-readable explanation | e.g. "Some continuity is missing..." |
+| 55 | `confidence_inputs` | Raw numbers used for confidence calc | `usable_observation_count`, `gap_ratio`, `max_gap_days` |
 
 ---
 
@@ -1258,37 +1418,37 @@ Here is the **complete inventory of every metric** the current pipeline produces
 
 | # | Metric | What it is | Notes |
 |---|---|---|---|
-| 53 | `season_id` | `season_01`, `season_02`, ... | Sequenced across the combined confirmed + borderline lists |
-| 55 | `start_date` | Start date of the accepted activity window | |
-| 56 | `peak_date` | Date of **maximum smoothed NDVI** | |
-| 57 | `end_date` | Last observation in the season | |
-| 58 | `is_open` | Season still active at end of data? | `true` = we don't know when it ends yet |
-| 59 | `peak_ndvi` | Maximum smoothed NDVI in the season | Core strength indicator |
-| 60 | `duration_days` | Length of season in days | |
-| 61 | `quality_label` | **Overall season quality** | `good` / `interrupted` / `weak` |
-| 62 | `evidence_summary` | Concise text explaining the label | |
-| 63 | `confirmation_level` | How well do EVI/NDMI/NDWI support the NDVI signal? | `strong` / `moderate` / `weak` |
-| 64 | `gap_overlap_count` | Number of long gaps overlapping this season | 0 is ideal |
-| 65 | `gap_overlap_risk` | How seriously does gap overlap affect this season? | `low` / `moderate` / `high` |
-| 66 | `gap_overlap_stage` | Which part of the season was obscured | `onset` / `peak` / `tail` / `multiple` / `none` |
-| 67 | `lifecycle_status` | Cycle completeness | `complete` / `open_left` / `open_right` / `open_both` |
-| 68 | `detection_status` | Confidence tier | `confirmed` / `borderline` |
-| 69 | `amplitude_ndvi` | Peak minus baseline (cycle strength) | model-derived |
-| 70 | `season_calendar_label` | Broad calendar descriptor | `summer` / `winter` / `unknown` (a calendar descriptor, **not** a crop label) |
-| 71 | `greenup_rate` / `senescence_rate` | Mean rising / falling limb slope of the daily curve | per-day units |
-| 72 | `integrated_ndvi` | Area under the daily curve above baseline | model-derived; distinct from scoring's observation-based `auc_ndvi` |
-| 73 | `cycle_split_merged` | Were sub-peaks merged into this cycle? | `true` for berseem-style multi-cut cycles |
-| 74 | `daily_curve_lambda` | Whittaker lambda used for the analysis curve | ≈ 2631 |
-| 75 | `season_confidence_note` | Overall confidence note | |
+| 56 | `season_id` | `season_01`, `season_02`, ... | Sequenced across the combined confirmed + borderline lists |
+| 57 | `start_date` | Start date of the accepted activity window | |
+| 58 | `peak_date` | Date of **maximum smoothed NDVI** | |
+| 59 | `end_date` | Last observation in the season | |
+| 60 | `is_open` | Season still active at end of data? | `true` = we don't know when it ends yet |
+| 61 | `peak_ndvi` | Maximum smoothed NDVI in the season | Core strength indicator |
+| 62 | `duration_days` | Length of season in days | |
+| 63 | `quality_label` | **Overall season quality** | `good` / `interrupted` / `weak` |
+| 64 | `evidence_summary` | Concise text explaining the label | |
+| 65 | `confirmation_level` | How well do EVI/NDMI/NDWI support the NDVI signal? | `strong` / `moderate` / `weak` |
+| 66 | `gap_overlap_count` | Number of long gaps overlapping this season | 0 is ideal |
+| 67 | `gap_overlap_risk` | How seriously does gap overlap affect this season? | `low` / `moderate` / `high` |
+| 68 | `gap_overlap_stage` | Which part of the season was obscured | `onset` / `peak` / `tail` / `multiple` / `none` |
+| 69 | `lifecycle_status` | Cycle completeness | `complete` / `open_left` / `open_right` / `open_both` |
+| 70 | `detection_status` | Confidence tier | `confirmed` / `borderline` |
+| 71 | `amplitude_ndvi` | Peak minus baseline (cycle strength) | model-derived |
+| 72 | `season_calendar_label` | Broad calendar descriptor | `summer` / `winter` / `unknown` (a calendar descriptor, **not** a crop label) |
+| 73 | `greenup_rate` / `senescence_rate` | Mean rising / falling limb slope of the daily curve | per-day units |
+| 74 | `integrated_ndvi` | Area under the daily curve above baseline | model-derived; distinct from scoring's observation-based `auc_ndvi` |
+| 75 | `cycle_split_merged` | Were sub-peaks merged into this cycle? | `true` for berseem-style multi-cut cycles |
+| 76 | `daily_curve_lambda` | Whittaker lambda used for the analysis curve | ≈ 2631 |
+| 77 | `season_confidence_note` | Overall confidence note | |
 
 **Top-level in same file:**
 
 | # | Metric | What it is |
 |---|---|---|
-| 76 | `season_count` | Number of seasons detected across the interval |
-| 77 | `complete_window_count` / `open_window_count` / `borderline_window_count` | Window counts by lifecycle / tier |
-| 78 | `activity_detection_model` | Detector parameters (`method`, `alpha_start`, `alpha_end`, `slope_confirm_steps`, `cycle_split_amplitude_fraction`, `boundary_method`, `gap_confidence_source`) |
-| 79 | `gap_risk` | Copied from quality_metrics for convenience |
+| 78 | `season_count` | Number of seasons detected across the interval |
+| 79 | `complete_window_count` / `open_window_count` / `borderline_window_count` | Window counts by lifecycle / tier |
+| 80 | `activity_detection_model` | Detector parameters (`method`, `alpha_start`, `alpha_end`, `slope_confirm_steps`, `cycle_split_amplitude_fraction`, `boundary_method`, `gap_confidence_source`) |
+| 81 | `gap_risk` | Copied from quality_metrics for convenience |
 
 ---
 
@@ -1299,73 +1459,73 @@ Here is the **complete inventory of every metric** the current pipeline produces
 
 | # | Metric | What it is | Possible values |
 |---|---|---|---|---|
-| 70 | `assessment_status` | **Can the automated result be presented as final?** | `complete` / `manual_review_required` |
-| 71 | `land_status` | **Is this land actively farmed?** | `active` / `intermittent` / `inactive`; `null` when manual review is required |
-| 72 | `trend_2y` | **Is the land getting better or worse?** | `improving` / `stable` / `declining` / `uncertain`; `null` when manual review is required |
-| 73 | `latest_season_performance.label` | How did the most recent season go? | `good` / `interrupted` / `weak`; `null` when manual review is required |
-| 74 | `latest_season_performance.provisional` | Is the latest season still open? | `true` = not fully assessed yet |
-| 75 | `latest_season_performance.confirmation_level` | Multi-index support for latest season | `strong` / `moderate` / `weak` |
+| 82 | `assessment_status` | **Can the automated result be presented as final?** | `complete` / `manual_review_required` |
+| 83 | `land_status` | **Is this land actively farmed?** | `active` / `intermittent` / `inactive`; `null` when manual review is required |
+| 84 | `trend_2y` | **Is the land getting better or worse?** | `improving` / `stable` / `declining` / `uncertain`; `null` when manual review is required |
+| 85 | `latest_season_performance.label` | How did the most recent season go? | `good` / `interrupted` / `weak`; `null` when manual review is required |
+| 86 | `latest_season_performance.provisional` | Is the latest season still open? | `true` = not fully assessed yet |
+| 87 | `latest_season_performance.confirmation_level` | Multi-index support for latest season | `strong` / `moderate` / `weak` |
 
 **Confidence system:**
 
 | # | Metric | What it is | Notes |
 |---|---|---|---|---|
-| 76 | `confidence.level` | **Overall assessment confidence** | `high` / `medium` / `low`; capped by evidence coverage |
-| 77 | `confidence.reasons` | List of human-readable reasons | e.g. "Usable count is solid (72)" |
-| 78 | `confidence.components.continuity` | Satellite coverage quality | `high` / `medium` / `low` |
-| 79 | `confidence.components.season_clarity` | How clear were the season boundaries? | `high` / `medium` / `low` |
-| 80 | `confidence.components.signal_strength` | How strong was the vegetation signal? | `high` / `medium` / `low` |
+| 88 | `confidence.level` | **Overall assessment confidence** | `high` / `medium` / `low`; capped by evidence coverage |
+| 89 | `confidence.reasons` | List of human-readable reasons | e.g. "Usable count is solid (72)" |
+| 90 | `confidence.components.continuity` | Satellite coverage quality | `high` / `medium` / `low` |
+| 91 | `confidence.components.season_clarity` | How clear were the season boundaries? | `high` / `medium` / `low` |
+| 92 | `confidence.components.signal_strength` | How strong was the vegetation signal? | `high` / `medium` / `low` |
 
 **Satellite evidence quality (separate from land quality):**
 
 | # | Metric | What it is | Notes |
 |---|---|---|---|---|
-| 81 | `satellite_evidence_coverage.status` | **How good was the satellite data itself?** | `good` / `fair` / `limited` / `insufficient` |
-| 82 | `satellite_evidence_coverage.rationale` | Why that status | Insufficient evidence triggers manual review |
+| 93 | `satellite_evidence_coverage.status` | **How good was the satellite data itself?** | `good` / `fair` / `limited` / `insufficient` |
+| 94 | `satellite_evidence_coverage.rationale` | Why that status | Insufficient evidence triggers manual review |
 
 **Risk flags (array, each entry):**
 
 | # | Metric | What it is | Example values |
 |---|---|---|---|---|
-| 83 | `risk_flags[].code` | Machine-readable flag ID | `water_stress_risk`, `weak_activity_risk`, `possible_inactivity`, etc. |
-| 84 | `risk_flags[].severity` | How seriously to take this flag | `high` / `moderate` / `low` |
-| 85 | `risk_flags[].reason` | Human-readable explanation | "Latest season median NDMI is low" |
+| 95 | `risk_flags[].code` | Machine-readable flag ID | `water_stress_risk`, `weak_activity_risk`, `possible_inactivity`, etc. |
+| 96 | `risk_flags[].severity` | How seriously to take this flag | `high` / `moderate` / `low` |
+| 97 | `risk_flags[].reason` | Human-readable explanation | "Latest season median NDMI is low" |
 
 **Evidence trail (why the system said what it said):**
 
 | # | Metric | What it is |
 |---|---|---|---|
-| 86 | `evidence.land_status_basis` | Text explaining why active/inactive, or why manual review is required |
-| 87 | `evidence.trend_basis` | Text explaining improving/declining, or why trend is suppressed |
-| 88 | `evidence.latest_season_basis` | Raw evidence for latest season |
-| 89 | `evidence.gap_note` | Gap-related limitation note |
+| 98 | `evidence.land_status_basis` | Text explaining why active/inactive, or why manual review is required |
+| 99 | `evidence.trend_basis` | Text explaining improving/declining, or why trend is suppressed |
+| 100 | `evidence.latest_season_basis` | Raw evidence for latest season |
+| 101 | `evidence.gap_note` | Gap-related limitation note |
 
 **Interval-level aggregate metrics:**
 
 | # | Metric | What it is | Notes |
 |---|---|---|---|---|
-| 90 | `metrics_summary.active_observation_fraction` / `activity_coverage_fraction` | **Fraction of observations inside confirmed activity windows** | Key input to land_status. 0.75 = 75% of observations fall within confirmed windows |
-| 91 | `metrics_summary.interval_max_ndvi` | Highest smoothed NDVI across the entire 2 years | |
-| 92 | `metrics_summary.interval_max_evi` | Highest smoothed EVI across the 2 years | |
-| 93 | `metrics_summary.interval_median_ndmi` | Typical NDMI across the 2 years | Negative = dry, positive = moist |
-| 94 | `metrics_summary.interval_median_ndwi` | Typical NDWI across the 2 years | Negative = vegetation, positive = water |
+| 102 | `metrics_summary.active_observation_fraction` / `activity_coverage_fraction` | **Fraction of observations inside confirmed activity windows** | Key input to land_status. 0.75 = 75% of observations fall within confirmed windows |
+| 103 | `metrics_summary.interval_max_ndvi` | Highest smoothed NDVI across the entire 2 years | |
+| 104 | `metrics_summary.interval_max_evi` | Highest smoothed EVI across the 2 years | |
+| 105 | `metrics_summary.interval_median_ndmi` | Typical NDMI across the 2 years | Negative = dry, positive = moist |
+| 106 | `metrics_summary.interval_median_ndwi` | Typical NDWI across the 2 years | Negative = vegetation, positive = water |
 
 **Per-season metrics (inside `metrics_summary.season_strength[]`):**
 
 | # | Metric | What it is | Notes |
 |---|---|---|---|---|
-| 95 | `auc_ndvi` | **Area under the NDVI curve** during the season | Measures total "greenwork" — more complete than just peak |
-| 96 | `peak_evi` | Max EVI during the season | Cross-check on density |
-| 97 | `median_ndmi` | Typical moisture during the season | |
-| 98 | `median_ndwi` | Typical wetness during the season | |
+| 107 | `auc_ndvi` | **Area under the NDVI curve** during the season | Measures total "greenwork" — more complete than just peak |
+| 108 | `peak_evi` | Max EVI during the season | Cross-check on density |
+| 109 | `median_ndmi` | Typical moisture during the season | |
+| 110 | `median_ndwi` | Typical wetness during the season | |
 
 ---
 
-### Grand Total: **98 distinct metrics** across all 4 stages
+### Grand Total: **110 distinct metrics** across all 4 stages
 
 For a **condensed reference** or one-pager for a professor, these are the most important:
 
-**The 11 metrics that tell the whole story:**
+**The 12 metrics that tell the whole story:**
 
 | Metric | What it answers |
 |---|---|
@@ -1380,3 +1540,4 @@ For a **condensed reference** or one-pager for a professor, these are the most i
 | `trend_2y` | Getting better or worse over time? |
 | `confidence.level` | How much should we trust this assessment? |
 | `risk_flags` | What specific concerns should a lender investigate? |
+| Evidence packet (report_generation phase) | Is the assessment packaged for API delivery and lender report card? |

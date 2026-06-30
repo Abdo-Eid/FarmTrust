@@ -36,13 +36,13 @@ The validation target is the first-product anchor: a conservative farm risk repo
 
 ## Task List
 
-- [ ] Polygon ingestion smoke test: run demo AOI as GeoJSON polygon input and confirm output structure.
-- [ ] Backend E2E: start FastAPI, POST a real land, poll job until `succeeded` or actionable failure, then GET land result.
-- [ ] Portal E2E: draw polygon, submit, confirm real job ID polling, and verify result page with real assessment data.
-- [ ] Report-output check: confirm Risk Tier, risk flags, evidence coverage, assessment confidence, and report summary are present when assessment status is complete.
-- [ ] Manual-review check: confirm insufficient evidence hides final automated land status, trend, season performance, Risk Tier, and land risk flags.
-- [ ] Language check: confirm current wording stays conservative and does not imply loan approval/rejection.
-- [ ] Capture any failures with logs and decide whether each is a fix-now bug or a separate follow-up.
+- [x] Polygon ingestion smoke test: run demo AOI as GeoJSON polygon input and confirm output structure.
+- [x] Backend E2E: start FastAPI, POST a real land, poll job until `succeeded` or actionable failure, then GET land result.
+- [x] Portal E2E: draw polygon, submit, confirm real job ID polling, and verify result page with real assessment data.
+- [x] Report-output check: confirm Risk Tier, risk flags, evidence coverage, assessment confidence, and report summary are present when assessment status is complete.
+- [x] Manual-review check: confirm insufficient evidence hides final automated land status, trend, season performance, Risk Tier, and land risk flags.
+- [x] Language check: confirm current wording stays conservative and does not imply loan approval/rejection.
+- [x] Capture any failures with logs and decide whether each is a fix-now bug or a separate follow-up.
 
 ### Evidence packet (T-11 Layer 5 — backend artifact)
 
@@ -54,16 +54,28 @@ The validation target is the first-product anchor: a conservative farm risk repo
 
 ### Report/UI surface (T-11 Layer 6 — verify when finished)
 
-- [ ] API: `GET /lands/{id}/evidence-packet` returns the packet for a completed land, 404s before generation and for an unknown land, and the DTO matches the artifact on disk.
-- [ ] Portal: the polished HTML/card renders the four layers, the track-record gauge, the split risk register, the boundaries block, and the cautious indicators from the packet — distinct from the PDF export.
-- [ ] Claim discipline holds in the rendered surface (no crop/yield/loan wording; the `status_so_far` value is always shown inside its provisional framing).
-- [ ] Edge cases render safely: manual-review, fallow/absence-gated, and limited-history parcels show cautious wording and no false abandonment.
+- [x] API: `GET /lands/{id}/evidence-packet` returns the packet for a completed land, 404s before generation and for an unknown land, and the DTO matches the artifact on disk.
+- [x] Portal: the polished HTML/card renders the four layers, the track-record gauge, the split risk register, the boundaries block, and the cautious indicators from the packet — distinct from the PDF export.
+- [x] Claim discipline holds in the rendered surface (no crop/yield/loan wording; the `status_so_far` value is always shown inside its provisional framing).
+- [x] Edge cases render safely: manual-review, fallow/absence-gated, and limited-history parcels show cautious wording and no false abandonment.
+
+### Bounded report assistant (T-11 Layer 7 / T-04 — verify the grounded path)
+
+- [x] Packet provenance: every claim in `report_evidence_packet.json` carries `claim_type` (∈ the 7-type vocab), `provenance_level` 0–4, `source`, `method`, non-empty `allowed_use`, and a `restriction` (packet `v1.1`); the Layer 6 card still renders unchanged (fields are additive).
+- [x] Deterministic fallback (no `AZURE_API_KEY`): `POST /lands/{id}/assistant/narrate` and `.../chat` return `source_mode: "deterministic"`, `fallback_used: true`, fully claim-typed lines, and write one `AssistantMessage` audit row each; the brief never contains crop/yield/loan wording. *(Covered by `tests/test_assistant_service.py`; not re-run live since the key was set.)*
+- [x] LLM path (`AZURE_API_KEY` set): narrate returns structured typed lines and chat a bounded answer, both `source_mode: "llm"`; the key is never logged. Grounding is by prompt only (no output guardrail scan). Asking for yield/income or a loan decision is refused; naming a crop the user did NOT provide is refused.
+- [x] Expert reasoning: when the user declares the crops/rotation, the assistant treats them as ground truth, maps them onto the activity-record cycles, and reasons about consistency (it has the per-cycle summer/winter timeline + the `api/assistant/knowledge.md` field knowledge). Editing `knowledge.md` changes its reasoning without a restart.
+- [x] Rendering: chat renders Markdown (no raw `**`, no inline `[claim_type]` tags); replies follow the user's language; mixed Arabic/English reads correctly (per-paragraph direction, numbers/acronyms not scrambled).
+- [x] Portal: the "Report / Ask the assistant" tab on `/lands/[id]/packet` renders narration claim-type pills, the source-mode indicator, suggested chips, and the decision-support disclaimer; mock lands narrate offline; an errored send shows the error bubble (no misleading "Deterministic brief" badge).
+- [x] Explanation value vs unsupported claims (carried from T-11): the assistant adds genuine explanation value while refusing unsupported assessment claims (crop identity from satellite alone, yield/income, loan calls) — confirmed in live testing.
 
 ## Feedback Log
 
 - 2026-06-16: User chose one follow-up task for the remaining unchecked E2E verification items from the completed backend implementation work.
 - 2026-06-27: Product direction clarified: risk assessment first, monitoring second, AI explanation alongside both, data-company expansion later. Current wording such as Risk Tier remains preferred.
 - 2026-06-30: Added evidence-packet (T-11 Layer 5) verification items now that the artifact ships, plus a Report/UI (Layer 6) block to run once that surface is built — so the full chain can be validated in one pass when Layer 6 finishes.
+- 2026-06-30: Added a Layer 7 (bounded assistant / T-04) verification block now that the assistant ships. Dev-level checks already pass (43 backend tests, portal typecheck + build, live Azure narrate/chat, 4-lens adversarial review); these items are for the full real-worker e2e pass.
+- 2026-07-01: User verified on a real land — **core pipeline E2E, the Report-card render block, and the assistant block are all checked off**. The **Evidence-packet (Layer 5) block is intentionally kept open** for a future dedicated real-worker pass (packet-on-disk internals: byte determinism, `[WARN]` non-fatal behavior, multi-AOI/feddan). Also folded in T-11's "compare report/LLM explanation value vs unsupported claims" as a validation item here (confirmed live).
 
 ## Decisions
 

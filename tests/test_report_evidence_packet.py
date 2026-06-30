@@ -17,7 +17,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from farmtrust_core.report import build_report_evidence_packet, write_report_evidence_packet
-from farmtrust_core.report.evidence_packet import BOUNDARIES, LAYERS
+from farmtrust_core.report.evidence_packet import BOUNDARIES, CLAIM_TYPES, LAYERS
 from farmtrust_core.scoring import build_land_assessment
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -288,6 +288,14 @@ class _Harness(unittest.TestCase):
             self.assertIsInstance(claim["claim"], str)
             self.assertIn(claim["confidence"], ALLOWED_CONFIDENCE)
             self.assertIsInstance(claim["rests_on"], str)
+            # provenance (packet v1.1) — every claim is typed and bounded
+            self.assertIn(claim["claim_type"], CLAIM_TYPES)
+            self.assertIn(claim["provenance_level"], range(0, 5))
+            self.assertTrue(claim["allowed_use"])
+            self.assertIsInstance(claim["allowed_use"], list)
+            self.assertTrue(claim["restriction"])
+            self.assertTrue(claim["source"])
+            self.assertTrue(claim["method"])
 
         # layers projection mirrors claims exactly
         for layer in LAYERS:
@@ -454,6 +462,27 @@ class ClaimLogicTests(_Harness):
         self.assertFalse(any(c["id"] == "intensity_interpreted" for c in packet["claims"]))
         self.assertNotIn("per year", json.dumps(packet))
         self.assertNotIn("intensively managed", json.dumps(packet))
+
+    def test_provenance_typing_is_claim_specific(self) -> None:
+        seasons = [
+            _season("season_01", "2024-01-10", "2024-03-01", "2024-04-20", calendar="winter"),
+        ]
+        packet = self._packet_from_dicts(self._assessment(), self._payload(seasons=seasons, complete=1))
+        by_id = {c["id"]: c for c in packet["claims"]}
+        # coverage is a measured observation; cycle detection is deterministic
+        self.assertEqual(by_id["observation_coverage"]["claim_type"], "measured_observation")
+        self.assertEqual(by_id["activity_cycles_observed"]["claim_type"], "deterministic_pipeline_result")
+        # calendar/lifecycle are curve-derived
+        self.assertEqual(by_id["cycle_lifecycle_observed"]["claim_type"], "model_derived_analysis")
+        # the crop/yield confidence lines are explicit boundary exclusions
+        self.assertEqual(by_id["conf_crop_identity"]["claim_type"], "boundary_exclusion")
+        self.assertEqual(by_id["conf_crop_identity"]["restriction"], "crop_identity_not_observable")
+        self.assertEqual(by_id["conf_yield"]["claim_type"], "boundary_exclusion")
+        self.assertEqual(by_id["conf_yield"]["restriction"], "yield_not_observable")
+        # provenance_level tracks how grounded the claim_type is
+        self.assertEqual(by_id["observation_coverage"]["provenance_level"], 4)
+        self.assertEqual(by_id["worked_field_interpreted"]["claim_type"], "interpretation")
+        self.assertEqual(by_id["worked_field_interpreted"]["provenance_level"], 2)
 
     def test_track_record_provisional_flag_set_below_threshold(self) -> None:
         packet = self._packet_from_dicts(

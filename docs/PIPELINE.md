@@ -372,7 +372,7 @@ Important season fields:
 - `evidence_summary`
 - `lifecycle_status`
 - `detection_status`
-- `season_calendar_label` — broad `summer`/`winter`/`unknown` calendar descriptor from the peak month (not a crop label)
+- `season_calendar_label` — broad `summer`/`winter`/`transition` calendar descriptor from the peak month (not a crop label)
 - `greenup_rate` — mean rising-limb slope of the daily curve
 - `senescence_rate` — mean falling-limb slope of the daily curve
 - `integrated_ndvi` — area under the daily curve above baseline over the cycle (model-derived; distinct from scoring's observation-based `auc_ndvi`)
@@ -450,9 +450,10 @@ Input files:
 - `data/preprocess/<aoi_id>/quality_metrics.json`
 - `data/seasonal/<aoi_id>/season_windows.json`
 
-Main output:
+Main outputs:
 
 - `data/assessment/<aoi_id>/land_assessment.json`
+- `data/assessment/<aoi_id>/report_evidence_packet.json` — built during the worker's `report_generation` phase; see section 5 for full details
 
 Backend handoff:
 
@@ -504,7 +505,7 @@ Important assessment diagnostics:
 
 ### 5. Report evidence packet
 
-A grounded aggregation layer that the polished report surface and the bounded assistant consume. It does not compute new evidence: it is a deterministic projection over the already-written assessment, season, and quality artifacts.
+A grounded aggregation layer that the polished report surface and the bounded report assistant consume. It does not compute new evidence: it is a deterministic projection over the already-written assessment, season, and quality artifacts. The shipped assistant (T-04 / Layer 7) reads this packet's per-claim provenance to keep its narration grounded; see docs/TASKS/T-04-ai-report-assistant.md.
 
 Main code:
 
@@ -527,7 +528,7 @@ Top-level fields:
 
 - `packet_version`, `schema`, `aoi_id`, `assessment_status`, `source_artifacts`, `interval`
 - `headline` — cautious `state_label`, `cropping_intensity` (provisional), `overall_confidence`, plain-language `summary`
-- `claims` — typed list organised as `Observed -> Interpreted -> Confidence -> Watch`; each claim carries `layer`, `confidence`, and `rests_on`
+- `claims` — typed list organised as `Observed -> Interpreted -> Confidence -> Watch`; each claim carries `layer`, `confidence`, `rests_on`, and per-claim provenance (`claim_type`, `provenance_level`, `source`, `method`, `allowed_use`, `restriction`)
 - `layers` — projection mapping each layer to its claim ids
 - `activity_record` — per-cycle dates, calendar label, lifecycle status, peak NDVI
 - `track_record` — seasons observed toward a certifiable trend (provisional framing)
@@ -537,7 +538,7 @@ Top-level fields:
 
 Packet policy notes:
 
-- per-claim provenance is intentionally lightweight (`layer` + `confidence` + `rests_on`); the full provenance schema is added by the assistant work (T-04)
+- per-claim provenance is attached by a deterministic post-pass (`_apply_provenance`, packet `v1.1`): `claim_type`, `provenance_level` (0–4), `source`, `method`, `allowed_use`, `restriction` — additive, so the Layer 6 card is unaffected and the assistant (T-04) consumes them
 - cautious vocabulary only: one good cycle is `Active — limited history`, never single/double-cropped, stable, or trending
 - no crop identity; `season_calendar_label` is a summer/winter calendar descriptor only
 - yield, income, price, pest, and legal terms appear only inside the fixed `boundaries` exclusions
@@ -548,6 +549,7 @@ Surfaces:
 
 - API: `GET /lands/{land_id}/evidence-packet` returns the packet as the `EvidencePacketResponse` DTO (`api/schemas.py`); 404 until it is generated.
 - Portal: rendered as a lender-facing report card at `/lands/{id}/packet` (`portal/src/components/report/`), separate from the PDF export.
+- Assistant (T-04 / Layer 7): `POST /lands/{land_id}/assistant/{narrate,chat}` narrate/answer over this packet, deterministic-first with Azure `gpt-4o` layered on top (`api/assistant/`); rendered on the "Ask the assistant" tab of the same report-card page.
 
 ## Current decision rules
 
@@ -647,7 +649,7 @@ The current-build surface should stay focused on:
 ## Current limitations
 
 - gap-risk thresholds are still static
-- preprocessing fills and smooths model-derived analysis values at observed timestamps; no synthetic timestamps are created
+- preprocessing smooths model-derived analysis values over a synthetic regular daily grid, then samples back to observed timestamps; the daily grid is model-derived, not direct observation evidence
 - land status is rule-based, not region-calibrated
 - crop category is deferred
 - activity-window detection remains NDVI-primary

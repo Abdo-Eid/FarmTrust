@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { MOCK_LANDS } from "@/lib/mocks";
-import { mockEvidencePacket } from "@/lib/mocks/packet";
+import { mockNarrate } from "@/lib/mocks/assistant";
 
 const FASTAPI_URL = process.env.FASTAPI_URL ?? "http://localhost:8000";
 
-export async function GET(
+export async function POST(
     _req: Request,
     { params }: { params: Promise<{ id: string }> },
 ) {
@@ -18,15 +18,14 @@ export async function GET(
                 { status: 404 },
             );
         }
-        return NextResponse.json(mockEvidencePacket(mock));
+        return NextResponse.json(mockNarrate(mock));
     }
 
     try {
-        const res = await fetch(`${FASTAPI_URL}/lands/${id}/evidence-packet`, {
+        const res = await fetch(`${FASTAPI_URL}/lands/${id}/assistant/narrate`, {
+            method: "POST",
             cache: "no-store",
         });
-        // Forward the real status + body (even on 4xx/5xx with a non-JSON body),
-        // so the client sees the true failure rather than a fabricated 503.
         const body = await res.text();
         return new NextResponse(body, {
             status: res.status,
