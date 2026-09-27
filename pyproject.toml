@@ -4,6 +4,15 @@ version = "0.1.0"
 description = "Satellite time-series pipeline for explainable land assessment signals"
 readme = "README.md"
 requires-python = ">=3.12"
+license = { text = "Proprietary - all rights reserved. Research material under CC BY-NC-SA 4.0. See LICENSE and NOTICE." }
+authors = [
+    { name = "Abdulhamed Samy Eid" },
+    { name = "Sagda Esmat Elsawy" },
+    { name = "Fatma Sabry Mahmoud" },
+    { name = "Esraa Ebrahim Qashwa" },
+    { name = "Fares Mamdouh" },
+    { name = "Omar Mohamad Elmllwany" },
+]
 dependencies = [
     "fastapi[standard]>=0.115",
     "langchain-openai>=1.3.3",

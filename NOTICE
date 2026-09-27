@@ -1,0 +1,94 @@
+# NOTICE
+
+This file records third-party and institutional material that is **excluded**
+from the license in [`LICENSE`](./LICENSE). The FarmTrust Team holds copyright
+only in the work it authored. Everything listed below remains subject to its own
+terms and is used for the stated purpose.
+
+## Institutional marks — not ours to license
+
+| Material | Path | Status |
+| --- | --- | --- |
+| Faculty of Artificial Intelligence logo | `graduation_pitch/book/assets/faculty_ai_logo.png` | Trademark of the Faculty. Used to identify the academic context in which the work was produced. Not licensed by the FarmTrust Team. |
+| Menoufia University logo | `graduation_pitch/book/assets/menoufia_logo.jpeg` | Trademark of Menoufia University. Same status. |
+
+**Menoufia University and its Faculty of Artificial Intelligence claim no
+copyright in, and assert no rights over, the FarmTrust software or research
+outcomes.** The presence of these marks indicates institutional affiliation
+only. If either mark is redistributed outside an academic context, it must be
+removed or replaced and is not covered by this repository's license.
+
+## Satellite and geospatial data
+
+| Source | Use | Terms |
+| --- | --- | --- |
+| **Sentinel-2 L2A** (European Space Agency / Copernicus Programme) | Primary optical imagery for all land assessment and vegetation-index analysis | Open data, free of charge, subject to the Copernicus data policy and the Sentinel-2 Product Specification. Attribution to ESA/Copernicus is required. Not covered by this license. |
+| **Microsoft Planetary Computer** | STAC catalog hosting and cloud access for Sentinel-2 collection access | Free access subject to Microsoft's terms of use. Not covered by this license. |
+
+Derived products (indices, activity-window detections, assessment outputs) are
+the Team's original work and are covered by `LICENSE`.
+
+## Third-party reporting cited in the pitch deck
+
+The pitch deck at `graduation_pitch/presentation/farmtrust_deck.html` cites
+external market research. The **facts and figures** attributed to these sources
+are the property of their respective publishers and are used under fair-use /
+citation for commentary. The underlying reports are **not** redistributed here
+and are **not** covered by this license. Summarised claims in the deck are the
+Team's own phrasing.
+
+- CAPMAS, via Amwal Alghad — Egypt cultivated-land area
+- ISF Advisors — smallholder finance analysis
+- Daily News Egypt — agricultural credit portfolio reporting
+- DataMINT Intelligence — farming and agriculture finance market report
+- Grand View Research — precision farming market analysis
+
+## Fonts
+
+The deck references **Google Fonts**, fetched over the network at render time
+and **not vendored** into this repository:
+
+- Archivo Black
+- Fraunces
+- IBM Plex Sans
+- IBM Plex Mono
+- Yellowtail
+
+These are free/open-source typefaces distributed by Google under the SIL Open
+Font License 1.1. The embed step in `graduation_pitch/presentation/scripts/render_deck.ps1`
+downloads them at render time. Font names and marks belong to their respective
+owners; their inclusion here conveys no endorsement.
+
+## Software dependencies
+
+Third-party Python and JavaScript packages resolved through `uv.lock` and
+`portal/bun.lock` are **not** covered by this license. Each remains under its own
+license, as recorded in its own distribution. Those licenses include, among
+others:
+
+- FastAPI, Pydantic, SQLModel, Uvicorn — MIT
+- NumPy, pandas, SciPy — BSD-3-Clause
+- scikit-learn, XGBoost, PyTorch, torchvision, torchgeo, torchmetrics
+- Next.js, React, Leaflet — MIT
+- Radix UI — MIT
+- TanStack Query — MIT
+- openai / langchain-openai and other model-provider SDKs — provider terms
+
+Review the lockfiles and each dependency's own licensing before redistribution.
+A dependency under a copyleft or source-available license continues to impose
+its own obligations regardless of this repository's terms.
+
+## Research datasets
+
+`notebooks/data/` and the contents of `data/` are gitignored local artifacts, not
+part of this repository. Several originate from public research datasets
+(including Morocco crop-mapping and yield-estimation collections) whose terms
+are the responsibility of the user who downloads them.
+
+## Summary
+
+- **Authored by the Team and protected by `LICENSE`:** all code, architecture,
+  specifications, engineering records, and research notebooks/analyses.
+- **Not owned by the Team:** the two institutional logos, Sentinel-2/ESA and
+  Planetary Computer data, Google Fonts, cited market-research publications, and
+  all third-party packages and datasets.

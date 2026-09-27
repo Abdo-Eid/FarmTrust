@@ -131,4 +131,12 @@ uv run python -m compileall farmtrust_core scripts api -q
 cd portal && bun run typecheck
 ```
 
+## License
+
+Proprietary. Copyright (c) 2026 the FarmTrust Team; Menoufia University holds no
+rights in it. Code is all-rights-reserved; research material
+(`notebooks/`, `outputs/exploration/`, `outputs/diagnostics/`, `outputs/tools/`,
+`docs/documentations/`) is CC BY-NC-SA 4.0. See [`LICENSE`](./LICENSE) and
+[`NOTICE`](./NOTICE) for the third-party carve-outs.
+
 Note: README stays short. The source of truth lives in `/docs`.

@@ -1,0 +1,11 @@
+# Local assistant/editor metadata
+.claude/
+
+# Generated render outputs
+output/
+tmp/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+desktop.ini

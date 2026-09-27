@@ -31,8 +31,13 @@ Detailed pipeline runbook content lives in `PIPELINE.md`.
 - `scripts/`: CLI entrypoints for local/demo pipeline validation.
 - `portal/`: Next.js portal for AOI input, summaries, evidence, report export, and lender report-card route `/lands/[id]/packet` (EvidencePacketReport component, distinct from PDF export at `/lands/[id]/report`).
 - `contracts/`: shared request/response schemas and generated client types.
+- `tests/`: backend and pipeline test suites.
 - `docs/`: documentation truth.
+- `notebooks/`: exploratory and modelling notebooks; research material, licensed under CC BY-NC-SA 4.0 (see `LICENSE`).
+- `outputs/`: generated diagnostics, exploratory figures, and research tooling. Tracked for `exploration/`, `diagnostics/`, and `tools/`; research material, CC BY-NC-SA 4.0. Local data artifacts are gitignored.
+- `graduation_pitch/`: graduation book sources (`book/`) and the self-contained HTML pitch deck (`presentation/`). Book sources and deck are tracked; `outputs/` is generated and gitignored. Prose and imagery are project material, not product code.
 - Pipeline stage implementation lives under `farmtrust_core/ingest/`, `farmtrust_core/preprocess/`, `farmtrust_core/seasonal/`, and `farmtrust_core/scoring/`; exact commands, artifacts, fields, and thresholds belong in `PIPELINE.md`.
+- Licensing is split by component: software and documentation are proprietary and all-rights-reserved; research material is CC BY-NC-SA 4.0. `LICENSE` states both parts and `NOTICE` records third-party and institutional exclusions.
 
 ## Contracts (source of truth)
 

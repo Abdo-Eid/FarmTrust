@@ -35,13 +35,13 @@ main case study; treat single-parcel results with the stated local-context cavea
 | G-05 | Year-over-year comparison of the greenness cycle. | `f4_yoy.png` | Results | verify | Confirm which years/indices. |
 | G-06 | Within-field greenness spread (uniformity / patchiness). | `f5_hetero.png` | Results (spatial) | verify | mean-vs-p95 spread evidence. |
 | G-07 | Year-over-year variability (alternate view). | `f5_yoy.png` | Results | verify | Likely a variant of G-05 — pick one. |
-| G-08 | Summer cycle case: a clean canopy that greenness alone cannot fully judge. | `f6_corn.png` | Case Study | verify | The "greenness is not yield" example. |
+| G-08 | Corn-season comparison of greenness and canopy-moisture signals during a Fall Armyworm risk window. | `f6_corn.png` -> `fig14_corn_season_comparison.png` | Case Study / Evaluation | ready | Use as a limitation example: no clear pest fingerprint from the satellite curves; not a pest diagnosis. |
 | G-09 | Field heterogeneity map / profile. | `f6_hetero.png` | Results (spatial) | verify | Variant of G-06 — pick the clearer one. |
 | G-10 | Spatial map of cycle-peak greenness across the parcel. | `f7_spatial_peaks.png` | Results (spatial) | ready | Strong spatial evidence figure. |
 | G-11 | Field zones / patchiness segmentation. | `f8_zones.png` | Results (spatial) | ready | Pair with G-10. |
 | G-12 | Validation: recomputed pixel signal vs the delivered series. | `f9_validation.png` | Evaluation | verify | Field-mean faithfulness check. |
 | G-13 | Winter cut-and-regrowth ("moving cut front") pattern. | `f10_cuts.png` | Case Study | ready | The fodder-management lesson. |
-| G-14 | Smoothing-strength sweep and its effect on cycle detection. | `f11_sweep.png` | Methodology / Evaluation | ready | Justifies the smoothing choice. |
+| G-14 | Moving cut-front raster sequence during winter cut-and-regrowth. | `f11_sweep.png` | Case Study | ready | Pair with G-13; this is spatial cut-and-regrowth evidence, not a smoothing-strength figure. |
 | G-15 | Red-edge index vs standard greenness. | `f12_ndre.png` | Results | ready | NDRE tracks NDVI; not a pest detector. |
 | G-16 | Alternative vegetation index vs standard greenness. | `msavi_vs_ndvi.png` | Results | ready | MSAVI comparison. |
 | G-17 | Independent cross-check of the detected phenology. | `f14_hmm.png` | Methodology / Evaluation | ready | Deterministic cross-check agreement. |
@@ -98,7 +98,7 @@ Produce as clean vector/diagram images (e.g. draw.io / mermaid export) and drop 
 Per the page budget, the book leans on a focused set. Provisional picks:
 
 1. G-01 timeline · 2. G-02 quality · 3. G-03 vegetation indices · 4. G-10 spatial peaks ·
-5. G-13 cut-front · 6. G-14 smoothing sweep · 7. G-17 phenology cross-check ·
+5. G-13 cut-front · 6. G-14 moving cut-front sequence · 7. G-17 phenology cross-check ·
 8. V-03/V-04 smoothing + detection illustrations · 9. S-09 lender report · 10. S-11 assistant narration ·
 11. S-13 Arabic assistant answer · 12. S-14 grounded refusal · 13. D-01 architecture · 14. D-02 data flow.
 

@@ -14,6 +14,7 @@ Purpose: single place for product truth (vision, scope, current roadmap, open qu
 ## Positioning
 - Product hierarchy: risk assessment first, monitoring second, AI explanation alongside both, data-company expansion later.
 - The first product is a lender-facing farm risk report. Monitoring continues the same evidence trail after the first report.
+- Monitoring has two future roles: a lender service for follow-up review and a validated data foundation for improving regional models.
 - AI is an explanation layer for report evidence, visuals, score reasons, confidence notes, and monitoring changes; it does not create assessment evidence or scores.
 - FarmTrust does not start as a general agriculture platform. Broader data products become credible only after enough validated usage exists.
 
@@ -85,7 +86,7 @@ Problem this solves: frequent back-and-forth and overlapping work cause drift, r
 ## Claim discipline
 - Built/current-build claim: satellite-to-risk-report foundation with interval evidence, conservative risk outputs, confidence-aware assessment, portal/API foundation, and report export.
 - Research/background claim only when separately demonstrated: completed crop mapping and yield estimation work is background research, not active product scope or roadmap.
-- Future claim: monitoring at scale, AI assistant workflows, data products, cooperative/government analytics, and statistics use cases.
+- Future claim: monitoring at scale, AI assistant workflows, data products, cooperative/government analytics, statistics use cases, and model refinement from validated monitoring records.
 - Not claimed: automated loan approval, exact guaranteed yield, pest diagnosis, or legal land surveying.
 
 ## Big picture (end-to-end)
@@ -166,7 +167,8 @@ flowchart TD
 ## Roadmap
 - Current Build: lender-facing farm risk assessment/report + lands-only portal + PDF export; minimal persistence only; pilot validation with low confusion and very low false alarms.
 - Next: validate the risk-report flow end to end, sharpen lender-safe scoring language, and plan monitoring/AI as follow-up layers without changing the first-product anchor.
-- Later: promote monitoring at scale, AI assistant workflows, data-company expansion, and other explicitly approved future ideas only after validation and explicit decisions.
+- Later: promote monitoring at scale as both a service and a data foundation. If validated records accumulate, use the refinement loop (collect monitoring evidence -> add verified context -> train/test better models -> return better reports) before expanding toward village, district, governorate, or national agricultural digitization support.
+- Public-sector/cooperative use remains future-only: FarmTrust may support faster statistics, field-check prioritization, declared-activity comparison, and fraud reduction in workflows such as subsidized fertilizer distribution, but only with official integration, privacy controls, ground truth, and human review.
 - Future ideas are intentionally isolated in `FUTURE.md` and must be re-evaluated before becoming scope or a live task.
 
 ## Exploration Gate

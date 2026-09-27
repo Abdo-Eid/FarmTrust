@@ -37,6 +37,11 @@ Thumbs.db
 portal/node_modules/
 portal/.next/
 
+# Graduation book + pitch deck (self-contained HTML; build renders are disposable).
+# Per-directory rules in graduation_pitch/.gitignore and
+# graduation_pitch/presentation/.gitignore already cover outputs/, archive/,
+# node_modules/, output/, and tmp/.
+
 # Data artifacts (keep docs)
 data/*
 notebooks/data/*

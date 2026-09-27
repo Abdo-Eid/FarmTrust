@@ -1,0 +1,1170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FarmTrust — Pitch Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Yellowtail&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0c1712; --ink-2:#122019; --ink-3:#183026;
+  --paper:#e8ebe1; --paper-2:#f3f5ee; --card:#fbfcf8;
+  --fg:#15231b; --fg-soft:#5d6c61; --fg-faint:#8b9a8c;
+  --line:#cdd3c4; --line-2:#dde1d5;
+  /* NDVI colormap ramp */
+  --n0:#9a5a2a; --n1:#c99a3a; --n2:#8fa53e; --n3:#3f9451; --n4:#15663a;
+  --signal:#2f8f4e; --soil:#b06a2c; --sky:#3f7d7a;
+  --paper-dim:#b9c1b1;
+  --gold:#f4b81f;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:#0a0f0c;
+  color:var(--fg);
+  font-family:"IBM Plex Sans",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+body.is-overview{overflow:auto}
+
+/* ---------- deck layout ---------- */
+.deck.present{position:fixed;inset:0;display:grid;place-items:center;padding:0}
+.deck.present .slide{width:min(95vw,calc(94svh * 16 / 9))}
+.deck.present .slide:not(.is-active){display:none}
+.deck.present .slide.is-active{animation:rise .34s cubic-bezier(.2,.7,.2,1)}
+@keyframes rise{from{opacity:0;transform:translateY(1.2cqh)}to{opacity:1;transform:none}}
+
+.deck.overview{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;padding:16px 16px 96px}
+.deck.overview .slide{width:100%;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.deck.overview .slide.is-active{outline:3px solid var(--signal);outline-offset:2px}
+
+/* ---------- slide base ---------- */
+.slide{
+  position:relative;aspect-ratio:16/9;overflow:hidden;
+  container-type:inline-size;
+  background:var(--paper);color:var(--fg);
+  border-radius:2px;
+}
+.slide.dark{background:radial-gradient(120% 140% at 78% 12%,#1a3226 0%,var(--ink-2) 42%,var(--ink) 100%);color:var(--paper)}
+.slide-inner{position:absolute;inset:0;padding:6.6cqw 7.2cqw;display:flex;flex-direction:column}
+
+/* faint field grid on dark */
+.slide.dark::before{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background:
+    linear-gradient(transparent 96%,rgba(129,163,140,.10) 96%) 0 0/100% 7.4cqh,
+    linear-gradient(90deg,transparent 96%,rgba(129,163,140,.10) 96%) 0 0/7.4cqh 100%;
+  -webkit-mask:radial-gradient(120% 120% at 80% 10%,#000,transparent 70%);
+          mask:radial-gradient(120% 120% at 80% 10%,#000,transparent 70%);
+}
+
+/* ---------- type ---------- */
+.t-eyebrow{
+  font-family:"IBM Plex Mono",monospace;font-size:1.28cqw;font-weight:500;
+  letter-spacing:.28em;text-transform:uppercase;color:var(--fg-soft);
+  display:flex;align-items:center;gap:1.1cqw;margin:0 0 3.4cqh;
+}
+.slide.dark .t-eyebrow{color:#9ab3a2}
+.t-eyebrow .tick{width:3.4cqw;height:.5cqh;min-height:3px;border-radius:2px;
+  background:linear-gradient(90deg,var(--n0),var(--n1),var(--n2),var(--n3),var(--n4))}
+.t-head{
+  font-family:"Fraunces",serif;font-weight:600;font-optical-sizing:auto;
+  font-size:5.3cqw;line-height:1.02;letter-spacing:-.015em;margin:0;color:var(--fg);
+  max-width:20ch;
+}
+.slide.dark .t-head{color:var(--paper)}
+.t-head em{font-style:italic;color:var(--signal)}
+.slide.dark .t-head em{color:#6fd08c}
+.t-head.big{font-size:6.4cqw}
+.t-lead{font-size:2.15cqw;line-height:1.4;color:var(--fg-soft);max-width:46ch;margin:2.6cqh 0 0;font-weight:400}
+.slide.dark .t-lead{color:#b8c8bc}
+.t-body{font-size:1.62cqw;line-height:1.55;color:var(--fg);margin:0}
+.spacer{flex:1}
+
+/* eyebrow + head cluster */
+.head-block{max-width:80%}
+
+/* points */
+.points{list-style:none;margin:3.6cqh 0 0;padding:0;display:flex;flex-direction:column;gap:1.9cqh;max-width:52ch}
+.points li{position:relative;padding-left:3.2cqw;font-size:1.62cqw;line-height:1.45;color:var(--fg)}
+.slide.dark .points li{color:#d5e0d6}
+.points li::before{content:"";position:absolute;left:0;top:.62em;width:1.5cqw;height:.42cqh;min-height:3px;border-radius:2px;background:var(--signal)}
+.points li b{font-weight:600}
+.points li .mono{font-family:"IBM Plex Mono",monospace;font-size:.92em;color:var(--soil);font-weight:500}
+
+.qlist{list-style:none;margin:3.4cqh 0 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:1.6cqh 3cqw;max-width:66ch}
+.qlist li{font-family:"Fraunces",serif;font-size:2.2cqw;font-weight:500;line-height:1.15;color:var(--fg);padding-left:2.6cqw;position:relative}
+.qlist li::before{content:"?";position:absolute;left:0;top:0;color:var(--soil);font-family:"IBM Plex Mono",monospace;font-size:1.6cqw}
+
+/* layout helpers */
+.split{display:grid;grid-template-columns:1.02fr 1fr;gap:5cqw;flex:1;align-items:center}
+.split.wide-viz{grid-template-columns:.9fr 1.1fr}
+.col{min-width:0}
+.viz{min-width:0}
+
+/* chip / tag */
+.chip{display:none;position:absolute;top:5.4cqw;right:6.4cqw;z-index:3;font-family:"IBM Plex Mono",monospace;
+  font-size:1.02cqw;letter-spacing:.16em;font-weight:500;padding:.7cqh 1.1cqw;border-radius:999px;
+  border:1px solid currentColor;text-transform:uppercase}
+.chip--real{color:var(--signal)}
+.chip--concept{color:var(--soil)}
+.chip--research{color:var(--sky)}
+.slide.dark .chip{opacity:.85}
+
+/* page number */
+.pageno{position:absolute;bottom:5cqw;right:6.4cqw;font-family:"IBM Plex Mono",monospace;font-size:1.16cqw;color:var(--fg-faint);letter-spacing:.1em}
+.slide.dark .pageno{color:#6f8578}
+
+/* small data labels */
+.dtag{font-family:"IBM Plex Mono",monospace;font-size:1.06cqw;color:var(--soil);letter-spacing:.02em}
+.figref{font-family:"IBM Plex Mono",monospace;font-size:1.06cqw;color:var(--fg-faint);margin-top:1.6cqh}
+.figref a{color:inherit;text-decoration:underline;text-decoration-thickness:.06em;text-underline-offset:.22em;
+  text-decoration-color:color-mix(in srgb,currentColor 40%,transparent);transition:color .15s,text-decoration-color .15s}
+.figref a:hover,.figref a:focus-visible{color:var(--n4);text-decoration-color:var(--n4);outline:none}
+.slide.dark .figref a:hover,.slide.dark .figref a:focus-visible{color:#8fe0a6;text-decoration-color:#8fe0a6}
+
+/* ---- component: pill / stat ---- */
+.pill{display:inline-flex;align-items:center;gap:.7cqw;font-family:"IBM Plex Mono",monospace;font-size:1.16cqw;
+  padding:.7cqh 1.2cqw;border-radius:999px;background:#e6f0e6;color:var(--n4);border:1px solid #bcd6bf;font-weight:500}
+.slide.dark .pill{background:rgba(111,208,140,.12);border-color:rgba(111,208,140,.4);color:#8fe0a6}
+
+/* ============ VISUALS ============ */
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:2.6cqh 2.4cqw}
+.figcard{background:#fff;border:1px solid var(--line);border-radius:10px;padding:1.2cqh 1.2cqw;box-shadow:0 2px 12px rgba(20,35,27,.07);margin:0}
+.figcard img{width:100%;height:auto;display:block;border-radius:3px}
+.figcard.hero{text-align:center;padding:1.3cqh 1.3cqw}
+.figcard.hero img{width:auto;max-width:100%;max-height:25cqw;margin:0 auto}
+.figcard.pivot-radial{width:min(100%,42cqw);padding:1.1cqh 1cqw}
+.figcard.pivot-radial img{max-height:52cqh;object-fit:contain}
+
+/* ---- component: photographic images ---- */
+.photo{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--line);
+  box-shadow:0 3px 16px rgba(20,35,27,.12);background:#0c1611}
+.photo img{display:block;width:100%;height:100%;object-fit:cover}
+.photo.fill{height:100%}
+.photo .cap{position:absolute;left:0;right:0;bottom:0;padding:2cqh 1.2cqw .9cqh;
+  font-family:"IBM Plex Mono",monospace;font-size:1.06cqw;color:#eef3ec;letter-spacing:.02em;
+  background:linear-gradient(transparent,rgba(8,18,12,.85))}
+.photo .geo{position:absolute;top:.9cqh;left:.9cqw;font-family:"IBM Plex Mono",monospace;
+  font-size:.92cqw;letter-spacing:.05em;color:#eef3ec;background:rgba(8,18,12,.5);
+  border:1px solid rgba(255,255,255,.18);border-radius:4px;padding:.4cqh .7cqw}
+.photo .alert{position:absolute;font-family:"IBM Plex Mono",monospace;font-size:1.04cqw;
+  background:#f6ecdf;border:1px solid #e0c3a3;color:var(--soil);border-radius:999px;padding:.55cqh 1cqw;white-space:nowrap;
+  box-shadow:0 2px 12px rgba(20,35,27,.3)}
+.photo .ring{position:absolute;border:2.5px solid #f2b25a;border-radius:50%;box-shadow:0 0 0 3px rgba(242,178,90,.3)}
+
+/* full-bleed background photo (title / closing) */
+.bgphoto{position:absolute;inset:0;z-index:0;overflow:hidden}
+.bgphoto img{width:100%;height:100%;object-fit:cover;display:block}
+.bgphoto::after{content:"";position:absolute;inset:0}
+.photo-hero .slide-inner{z-index:2}
+.photo-hero.slide.dark::before{display:none}
+.bgphoto.scrim-title::after{background:
+  radial-gradient(120% 130% at 78% 8%,rgba(10,24,17,.25),rgba(8,18,13,.85) 80%),
+  linear-gradient(200deg,rgba(8,18,13,.28),rgba(8,18,13,.7))}
+.bgphoto.scrim-close::after{background:
+  linear-gradient(180deg,rgba(8,20,14,.6) 0%,rgba(8,20,14,.4) 42%,rgba(8,20,14,.82) 100%)}
+
+/* compact chips under a photo */
+.tagrow{display:flex;gap:.7cqw;flex-wrap:wrap;margin-top:2cqh}
+.tagrow .t{font-family:"IBM Plex Mono",monospace;font-size:1.18cqw;letter-spacing:.02em;
+  padding:.6cqh 1.1cqw;border-radius:999px;background:#f2ede3;border:1px solid var(--line);color:var(--soil)}
+
+/* pipeline */
+.pipe{display:flex;align-items:stretch;gap:0;width:100%}
+.pipe .stg{flex:1;text-align:center;position:relative;padding:0 .5cqw}
+.pipe .dot{width:100%;aspect-ratio:1;max-width:6cqw;margin:0 auto;border-radius:50%;
+  display:grid;place-items:center;font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:1.7cqw;color:#fff}
+.pipe .stg:nth-child(1) .dot{background:var(--n0)}
+.pipe .stg:nth-child(3) .dot{background:var(--n1);color:#3a2a12}
+.pipe .stg:nth-child(5) .dot{background:var(--n2);color:#22300f}
+.pipe .stg:nth-child(7) .dot{background:var(--n3)}
+.pipe .stg:nth-child(9) .dot{background:var(--n4)}
+.pipe .lbl{font-size:1.28cqw;font-weight:600;margin-top:1.4cqh;color:var(--fg)}
+.pipe .art{display:block;font-family:"IBM Plex Mono",monospace;font-size:1.02cqw;color:var(--soil);margin-top:.7cqh;word-break:break-word}
+.pipe .arr{flex:0 0 3cqw;align-self:center;color:var(--fg-faint);font-size:2cqw;text-align:center}
+
+/* raster grid */
+.raster{display:grid;gap:.28cqw;aspect-ratio:1.2/1;width:100%}
+.raster .cell{border-radius:1px}
+.frame-row{display:flex;gap:1.1cqw;align-items:flex-start}
+.frame{flex:1;text-align:center}
+.frame .cap{font-family:"IBM Plex Mono",monospace;font-size:.98cqw;color:var(--fg-soft);margin-top:.8cqh}
+
+/* pivot */
+.evi{display:flex;flex-direction:column;gap:1.2cqh}
+.evi .band{border:1px solid var(--line);border-radius:8px;padding:1.5cqh 1.6cqw;background:var(--card);display:flex;align-items:center;gap:1.4cqw}
+.evi .band .k{font-family:"IBM Plex Mono",monospace;font-size:1.06cqw;letter-spacing:.14em;text-transform:uppercase;color:#fff;padding:.5cqh .9cqw;border-radius:5px;flex:0 0 auto}
+.evi .b-obs .k{background:var(--n4)}
+.evi .b-int .k{background:var(--n2);color:#22300f}
+.evi .b-con .k{background:var(--sky)}
+.evi .b-wat .k{background:var(--soil)}
+.evi .band .d{font-size:1.28cqw;color:var(--fg)}
+
+/* confidence meter */
+.meter{margin-top:2cqh}
+.meter .bar{height:1.8cqh;min-height:12px;border-radius:999px;background:linear-gradient(90deg,var(--n0),var(--n1),var(--n2),var(--n3),var(--n4));position:relative}
+.meter .mk{position:absolute;top:-.7cqh;width:.5cqw;min-width:3px;height:3.2cqh;background:var(--fg);border-radius:2px;box-shadow:0 0 0 2px var(--card)}
+.meter .lg{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:1cqw;color:var(--fg-soft);margin-top:.9cqh}
+
+/* two land types */
+.lt{display:grid;grid-template-columns:1fr 1fr;gap:2.4cqw;width:100%}
+.lt .box{border:1px solid var(--line);border-radius:10px;padding:2cqh 1.8cqw;background:var(--card)}
+.lt h4{font-family:"Fraunces",serif;font-size:1.9cqw;margin:0 0 1.2cqh;font-weight:600}
+.lt p{font-size:1.28cqw;color:var(--fg-soft);margin:0;line-height:1.45}
+.fieldmini{display:grid;grid-template-columns:repeat(6,1fr);gap:.3cqw;margin-bottom:1.6cqh;aspect-ratio:2/1}
+.fieldmini span{background:var(--n3);border-radius:1px;opacity:.85}
+
+/* flow chain */
+.chain{display:flex;align-items:center;gap:1.2cqw;flex-wrap:wrap}
+.chain .node{border:1px solid var(--line);border-radius:8px;padding:1.3cqh 1.4cqw;background:var(--card);font-size:1.28cqw;font-weight:500;text-align:center}
+.chain .to{color:var(--fg-faint);font-size:1.7cqw}
+
+/* chat mock */
+.chat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:2cqh 1.9cqw;display:flex;flex-direction:column;gap:1.3cqh}
+.chat .q{align-self:flex-end;background:var(--ink-2);color:var(--paper);border-radius:12px 12px 3px 12px;padding:1.1cqh 1.3cqw;font-size:1.26cqw;max-width:82%}
+.chat .a{align-self:flex-start;background:#eef2ea;border:1px solid var(--line-2);border-radius:12px 12px 12px 3px;padding:1.1cqh 1.3cqw;font-size:1.26cqw;max-width:88%;line-height:1.4}
+.chat .a .src{display:block;font-family:"IBM Plex Mono",monospace;font-size:.92cqw;color:var(--fg-faint);margin-top:.7cqh}
+.chat .a.refuse{border-color:#e0c3a3;background:#f6ecdf}
+
+/* flywheel */
+.stage-path{display:flex;align-items:center;gap:1cqw;margin-top:2.4cqh;flex-wrap:wrap}
+.stage-path .s{font-family:"IBM Plex Mono",monospace;font-size:1.16cqw;padding:.8cqh 1cqw;border-radius:6px;border:1px dashed var(--line);color:var(--fg-soft)}
+.stage-path .s.on{border-style:solid;border-color:var(--signal);color:var(--n4);background:#e9f2e9}
+
+/* title hero */
+.hero-curve{width:100%;height:auto;display:block}
+.draw{stroke-dasharray:2600;stroke-dashoffset:2600;animation:draw 2.1s .25s cubic-bezier(.2,.7,.2,1) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+
+.brand{font-family:"IBM Plex Mono",monospace;letter-spacing:.34em;font-size:1.4cqw;color:#9ab3a2;text-transform:uppercase}
+.wordmark{font-family:"Fraunces",serif;font-weight:600;font-size:3cqw;letter-spacing:-.01em;color:var(--paper)}
+.teaminfo{font-family:"IBM Plex Mono",monospace;font-size:1.14cqw;color:#7f978a;letter-spacing:.06em;line-height:1.8}
+
+/* market stats */
+.mkt{display:grid;grid-template-columns:repeat(4,1fr);gap:2.4cqw}
+.mkt-k{font-family:"IBM Plex Mono",monospace;font-size:1.04cqw;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-soft)}
+.mkt-v{font-family:"Fraunces",serif;font-weight:600;font-size:4.6cqw;line-height:1;color:var(--n4);margin:.9cqh 0}
+.mkt-d{font-size:1.14cqw;line-height:1.4;color:var(--fg-soft)}
+/* traction */
+.ph{color:var(--soil);border-bottom:1px dashed var(--soil)}
+.award{text-align:center}
+.award-badge{width:11cqw;height:11cqw;margin:0 auto;border-radius:50%;background:radial-gradient(circle at 38% 32%,#ffe08a,var(--gold));display:grid;place-items:center;font-size:5.4cqw;color:#7a5410;box-shadow:0 .5cqw 1.4cqw rgba(176,106,44,.28)}
+.award-t{margin-top:1.6cqh;font-family:"IBM Plex Mono",monospace;font-size:1.24cqw;letter-spacing:.16em;text-transform:uppercase;color:var(--soil);line-height:1.5}
+
+/* ---------- app mockups ---------- */
+.mk-report{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 4px 22px rgba(20,35,27,.11);overflow:hidden}
+.mk-report .hd{display:flex;align-items:center;justify-content:space-between;gap:1cqw;padding:1.3cqh 1.4cqw;border-bottom:1px solid var(--line-2);background:var(--paper-2)}
+.mk-report .ttl{font-family:"IBM Plex Mono",monospace;font-size:1cqw;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-soft)}
+.verdict{font-family:"IBM Plex Mono",monospace;font-size:1.02cqw;font-weight:600;color:#fff;background:var(--n4);padding:.5cqh 1cqw;border-radius:999px;letter-spacing:.03em;white-space:nowrap}
+.mk-report .metrics{display:grid;grid-template-columns:repeat(4,1fr);padding:1.4cqh 1.4cqw .8cqh}
+.mk-report .m{text-align:center}
+.mk-report .m .mv{font-family:"Fraunces",serif;font-weight:600;font-size:2.2cqw;color:var(--n4);line-height:1}
+.mk-report .m .ml{font-family:"IBM Plex Mono",monospace;font-size:.8cqw;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-faint);margin-top:.6cqh}
+.mk-report .rows{padding:.2cqh 1.4cqw 1.3cqh}
+.mk-report .r{display:flex;gap:1cqw;align-items:flex-start;padding:.95cqh 0;border-top:1px solid var(--line-2)}
+.mk-report .r .tag{font-family:"IBM Plex Mono",monospace;font-size:.82cqw;letter-spacing:.09em;text-transform:uppercase;color:#fff;padding:.4cqh 0;border-radius:5px;flex:0 0 9cqw;text-align:center}
+.mk-report .r .rt{font-size:1.08cqw;color:var(--fg);line-height:1.35}
+.mk-report .tag.t-obs{background:var(--n4)}
+.mk-report .tag.t-int{background:var(--n2);color:#22300f}
+.mk-report .tag.t-con{background:var(--sky)}
+.mk-report .tag.t-wat{background:var(--soil)}
+.riskchip{display:inline-flex;align-items:center;gap:.5cqw;font-family:"IBM Plex Mono",monospace;font-size:.94cqw;color:var(--soil);background:#f6ecdf;border:1px solid #e0c3a3;border-radius:999px;padding:.4cqh .9cqw}
+.mk-report .assess{padding:1.4cqh 1.4cqw;border-bottom:1px solid var(--line-2)}
+.mk-report .assess .ah{font-family:"Fraunces",serif;font-weight:600;font-size:2cqw;color:var(--fg);line-height:1.08}
+.mk-report .assess .as{font-size:1cqw;color:var(--fg-soft);margin-top:.7cqh}
+.mk-report .r .rt{flex:1}
+.mk-report .r .cb{flex:0 0 auto;align-self:center;font-family:"IBM Plex Mono",monospace;font-size:.78cqw;letter-spacing:.05em;padding:.3cqh .7cqw;border-radius:4px}
+.cb.strong{background:#e6f0e6;color:var(--n4);border:1px solid #bcd6bf}
+.cb.mod{background:#f6ecdf;color:var(--soil);border:1px solid #e0c3a3}
+
+.mk-flow{display:flex;align-items:center;gap:1.6cqw;width:100%}
+.mk-frame{flex:1;min-width:0;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 4px 22px rgba(20,35,27,.11);overflow:hidden}
+.mk-frame .bar{display:flex;align-items:center;gap:.55cqw;padding:.9cqh 1.1cqw;border-bottom:1px solid var(--line-2);background:var(--paper-2)}
+.mk-frame .bar i{width:.7cqw;height:.7cqw;border-radius:50%;background:var(--line-2);display:block}
+.mk-frame .bar .bt{margin-left:.5cqw;font-family:"IBM Plex Mono",monospace;font-size:.86cqw;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-soft)}
+.mk-map{aspect-ratio:1.55/1;position:relative;background:
+  repeating-linear-gradient(0deg,#e6ebdb,#e6ebdb 2cqw,#e0e7d1 2cqw,#e0e7d1 4cqw),
+  repeating-linear-gradient(90deg,rgba(110,140,110,.10),rgba(110,140,110,.10) 2cqw,transparent 2cqw,transparent 4cqw)}
+.mk-map svg{position:absolute;inset:0;width:100%;height:100%}
+.mk-rep-mini{padding:1.3cqh 1.2cqw;display:flex;flex-direction:column;gap:1.1cqh}
+.mk-rep-mini .mono{font-family:"IBM Plex Mono",monospace;font-size:.9cqw;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-soft)}
+.mk-flow>.to{flex:0 0 auto;color:var(--n3);font-size:2.6cqw}
+.flow-steps{display:flex;justify-content:space-between;gap:1cqw;margin-top:2.6cqh}
+.flow-steps span{flex:1;text-align:center;font-family:"IBM Plex Mono",monospace;font-size:1cqw;letter-spacing:.04em;color:var(--fg-soft)}
+.flow-steps span::before{content:"";display:block;width:1.1cqw;height:1.1cqw;border-radius:50%;background:var(--n3);margin:0 auto .8cqh}
+
+.chat .chd{display:flex;align-items:center;gap:.8cqw;font-family:"IBM Plex Mono",monospace;font-size:.94cqw;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-soft);padding-bottom:1cqh;border-bottom:1px solid var(--line-2)}
+.chat .chd .av{width:1.9cqw;height:1.9cqw;border-radius:50%;background:linear-gradient(135deg,var(--n2),var(--n4));flex:0 0 auto}
+.chat .gp{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:.8cqw;color:var(--n4);background:#e6f0e6;border:1px solid #bcd6bf;border-radius:999px;padding:.25cqh .7cqw;letter-spacing:.03em;text-transform:none}
+.a .tg{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:.76cqw;padding:.22cqh .6cqw;border-radius:4px;margin-top:.7cqh;letter-spacing:.04em}
+.tg.int{background:#eef1f6;color:#3a5f7a;border:1px solid #cad7e3}
+.tg.mdl{background:#efeaf4;color:#5a4a7a;border:1px solid #d6cce4}
+.tg.oos{background:#1c2b23;color:#cdd9cf}
+
+.roadmap{display:flex;gap:1cqw;margin-top:4.4cqh;position:relative}
+.roadmap::before{content:"";position:absolute;left:6%;right:6%;top:1cqw;height:2px;background:linear-gradient(90deg,var(--n1),var(--n3),var(--n4))}
+.rm-step{flex:1;text-align:center;position:relative}
+.rm-dot{width:2cqw;height:2cqw;border-radius:50%;background:var(--paper);border:2px solid var(--n3);margin:0 auto 1.5cqh}
+.rm-step:last-child .rm-dot{background:var(--n4);border-color:var(--n4)}
+.rm-t{font-family:"Fraunces",serif;font-weight:600;font-size:1.55cqw;color:var(--fg);line-height:1.08}
+.rm-d{font-size:1.06cqw;color:var(--fg-soft);margin-top:.8cqh;line-height:1.35}
+.lim-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.4cqw 2cqw;margin-top:3.6cqh}
+.lim{border:1px solid var(--line);border-left:3px solid var(--soil);border-radius:8px;background:var(--card);padding:1.6cqh 1.6cqw;font-size:1.34cqw;color:var(--fg);line-height:1.35}
+
+/* ---------- thank-you closing ---------- */
+.slide.thanksbg{background:#f0efe7;color:#173d2d}
+.slide.thanksbg::after{content:"";position:absolute;inset:2cqw;border:1px solid rgba(20,45,32,.34);border-radius:2px;pointer-events:none}
+.thanks{position:relative;display:inline-block;line-height:1}
+.thanks-word{font-family:"Archivo Black",sans-serif;font-size:16cqw;line-height:.86;letter-spacing:.012em;color:#173d2d;text-transform:uppercase}
+.thanks-script{position:absolute;left:50%;top:54%;transform:translateX(-45%);font-family:"Yellowtail",cursive;font-size:13cqw;line-height:1;color:var(--gold);text-shadow:0 .4cqw .7cqw rgba(20,40,30,.18)}
+.thanks-foot{position:absolute;bottom:5.4cqw;left:0;right:0;text-align:center;font-family:"IBM Plex Mono",monospace;font-size:1.28cqw;letter-spacing:.12em;color:#5d6c61}
+
+/* ---------- nav bar ---------- */
+.navbar{position:fixed;left:0;right:0;bottom:0;height:58px;z-index:50;
+  display:flex;align-items:center;gap:16px;padding:0 18px;
+  background:linear-gradient(0deg,#0a0f0c,rgba(10,15,12,.86));
+  border-top:1px solid #1e2a22;color:#c7d4c9;font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.08em}
+.navbar .sec{min-width:230px;color:#e7efe7;text-transform:uppercase}
+.navbar .sec b{color:var(--signal)}
+.rail{flex:1;display:flex;gap:5px;height:8px}
+.rail .seg{flex:1;border-radius:3px;background:#20302700;border:1px solid #26362c;position:relative;overflow:hidden}
+.rail .seg i{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);
+  background:linear-gradient(90deg,var(--n1),var(--n3));transition:transform .3s}
+.rail .seg.done i{transform:scaleX(1);opacity:.45}
+.rail .seg.cur i{transform:scaleX(1)}
+.navbar .count{min-width:66px;text-align:right;color:#e7efe7}
+.navbar button{font:inherit;letter-spacing:.1em;color:#c7d4c9;background:#16221b;border:1px solid #294034;border-radius:6px;padding:7px 12px;cursor:pointer;transition:.15s}
+.navbar button:hover{background:#1e3227;color:#fff}
+.navbar button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.hint{color:#5f7568}
+
+@media (max-width:640px){
+  .navbar .sec{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+  .rail{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .deck.present .slide.is-active{animation:none}
+  .draw{animation:none;stroke-dashoffset:0}
+  .rail .seg i{transition:none}
+}
+</style>
+</head>
+<body>
+
+<!-- shared gradient defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="ndvi" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#9a5a2a"/><stop offset=".28" stop-color="#c99a3a"/>
+    <stop offset=".55" stop-color="#8fa53e"/><stop offset=".78" stop-color="#3f9451"/>
+    <stop offset="1" stop-color="#15663a"/>
+  </linearGradient>
+  <linearGradient id="ndviGlow" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#c99a3a"/><stop offset="1" stop-color="#3f9451"/>
+  </linearGradient>
+</defs></svg>
+
+<main class="deck present" id="deck">
+
+  <!-- 1 · TITLE -->
+  <section class="slide dark photo-hero" data-sec="1">
+    <div class="bgphoto scrim-title"><img src="assets/delta_orbit_dusk.png" alt="Nile Delta seen from orbit at dusk — green farmland threaded through dark desert"></div>
+    <div class="slide-inner">
+      <p class="brand">FarmTrust · NeuralAlloy</p>
+      <div class="spacer"></div>
+      <h1 class="t-head big" style="max-width:26ch">Turns a land boundary into a <em>lender-facing</em> Land Assessment Report.</h1>
+      <p class="t-lead" style="margin-top:3cqh">A satellite land-assessment platform for agricultural finance — evidence, not a decision.</p>
+      <div class="spacer"></div>
+      <svg class="hero-curve" viewBox="0 0 1000 150" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,120 C60,120 90,60 150,55 C210,50 240,120 300,120 C360,120 400,34 470,34 C540,34 570,120 640,120 C710,120 745,44 820,43 C895,42 940,116 1000,113"
+              fill="none" stroke="url(#ndvi)" stroke-width="10" stroke-linecap="round" opacity=".22"/>
+        <path class="draw" d="M0,120 C60,120 90,60 150,55 C210,50 240,120 300,120 C360,120 400,34 470,34 C540,34 570,120 640,120 C710,120 745,44 820,43 C895,42 940,116 1000,113"
+              fill="none" stroke="url(#ndvi)" stroke-width="3.2" stroke-linecap="round"/>
+      </svg>
+      <p class="teaminfo" style="margin-top:2.4cqh">Graduation project — NeuralAlloy · Faculty of Artificial Intelligence, Menoufia University</p>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="slide" data-sec="1">
+    <div class="chip chip--real">real</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 1 — The problem</p>
+      <div class="split">
+        <div class="col">
+          <h2 class="t-head">Land is a frozen asset.</h2>
+          <ul class="points">
+            <li>The farmer needs financing — a season, equipment, expansion, a way out of a crisis.</li>
+            <li>His main asset is the land. But <b>land alone isn't cash</b> — it needs financing and operation to become production.</li>
+          </ul>
+        </div>
+        <div class="viz">
+          <div class="photo" style="aspect-ratio:16/10">
+            <img src="assets/frozen_asset.png" alt="Aerial view of one plot: bare idle soil on the left, an irrigation canal, and a lush financed crop on the right">
+            <div class="cap">Same plot — idle soil vs. a financed, growing crop</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="slide" data-sec="1">
+    <div class="chip chip--real">real</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 1 — The problem</p>
+      <h2 class="t-head">The lender asks harder questions.</h2>
+      <ul class="qlist">
+        <li>Is the land actually active?</li>
+        <li>Is the activity recent and repeated?</li>
+        <li>Will the money reach the crop?</li>
+        <li>Does activity continue after financing?</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="slide" data-sec="1">
+    <div class="chip chip--real">real</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 1 — The problem</p>
+      <div class="split">
+        <div class="col">
+          <h2 class="t-head">Today's review doesn't scale.</h2>
+          <ul class="points">
+            <li>Paper, collateral, relationships, field visits.</li>
+            <li>Visits matter — but they're <b>slow, costly, and don't scale</b>.</li>
+            <li>The same land gets judged differently by different people. It's manual, not standardised.</li>
+          </ul>
+        </div>
+        <div class="viz">
+          <div class="photo" style="aspect-ratio:16/10">
+            <img src="assets/manual_review.png" alt="A field officer standing on a plot boundary reviewing paper documents on a clipboard">
+            <div class="cap">Manual field review — a person, paper, and a trip</div>
+          </div>
+          <div class="tagrow">
+            <span class="t">slow</span><span class="t">costly</span><span class="t">inconsistent</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · dark statement -->
+  <section class="slide dark" data-sec="1">
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>The evidence gap</p>
+      <h2 class="t-head big" style="max-width:24ch">The land has a history.<br>Finance can't read it.</h2>
+      <p class="t-lead">Satellite data exists — but a raw image isn't a decision, and the lender isn't a remote-sensing expert.</p>
+      <div class="spacer"></div>
+      <div class="split" style="align-items:end">
+        <p class="t-lead" style="color:#cddcd0;max-width:38ch;font-size:1.9cqw">
+          <b style="color:#6fd08c;font-weight:600">FarmTrust</b> turns land history into a readable Land Assessment Report.
+          We don't approve or reject — we're the <em style="font-style:italic;color:#6fd08c">evidence layer</em>.
+        </p>
+        <svg viewBox="0 0 460 140" class="viz" aria-hidden="true">
+          <g opacity=".55">
+            <circle cx="20" cy="90" r="3" fill="#c99a3a"/><circle cx="55" cy="60" r="3" fill="#c99a3a"/>
+            <circle cx="80" cy="105" r="3" fill="#c99a3a"/><circle cx="120" cy="40" r="3" fill="#c99a3a"/>
+            <circle cx="150" cy="88" r="3" fill="#c99a3a"/><circle cx="185" cy="55" r="3" fill="#c99a3a"/>
+            <circle cx="205" cy="30" r="3" fill="#c99a3a"/>
+          </g>
+          <text x="20" y="128" fill="#7f978a" font-family="IBM Plex Mono" font-size="11">raw satellite</text>
+          <path d="M245,150 h20" stroke="#7f978a"/>
+          <text x="250" y="16" fill="#7f978a" font-family="IBM Plex Mono" font-size="11" text-anchor="middle" transform="translate(232,60) rotate(0)">→</text>
+          <path d="M250,95 C285,95 300,45 335,42 C370,39 385,95 420,90"
+                fill="none" stroke="url(#ndviGlow)" stroke-width="3.4" stroke-linecap="round"/>
+          <text x="335" y="128" fill="#8fe0a6" font-family="IBM Plex Mono" font-size="11" text-anchor="middle">readable report</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- market size -->
+  <section class="slide" data-sec="2">
+    <div class="chip chip--concept">concept</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 2 — Market</p>
+      <h2 class="t-head">A large, underserved market.</h2>
+      <div class="mkt" style="margin-top:4cqh">
+        <div class="mkt-col"><div class="mkt-k">The pain</div><div class="mkt-v">$200B+</div><div class="mkt-d">unmet smallholder agri-finance every year — the underwriting gap FarmTrust closes</div></div>
+        <div class="mkt-col"><div class="mkt-k">Buyer market</div><div class="mkt-v">$183B</div><div class="mkt-d">global agriculture-finance market (2024) → $257B by 2032</div></div>
+        <div class="mkt-col"><div class="mkt-k">Tech layer</div><div class="mkt-v">~$11B</div><div class="mkt-d">precision-ag &amp; satellite analytics, growing ~13–15% a year</div></div>
+        <div class="mkt-col"><div class="mkt-k">Beachhead · Egypt</div><div class="mkt-v">10.4M</div><div class="mkt-d">feddans cultivated, ~90% smallholder; the Ag Bank reaches only ~252k farmers via crop loans</div></div>
+      </div>
+      <p class="figref"><a href="https://isfadvisors.co/beyond-the-frontier-smallholder-finance/" target="_blank" rel="noopener noreferrer">ISF Advisors 2025</a> · <a href="https://www.datamintelligence.com/research-report/farming-and-agriculture-finance-market" target="_blank" rel="noopener noreferrer">DataM Intelligence</a> · <a href="https://www.grandviewresearch.com/industry-analysis/precision-farming-market" target="_blank" rel="noopener noreferrer">Grand View Research</a> · <a href="https://en.amwalalghad.com/egypts-cultivated-land-expands-to-10-44m-feddans-in-2023-capmas/" target="_blank" rel="noopener noreferrer">CAPMAS</a> / <a href="https://www.dailynewsegypt.com/2024/12/28/abes-crop-loan-portfolio-reaches-egp-25-6bn-in-september-2024/" target="_blank" rel="noopener noreferrer">Agricultural Bank of Egypt</a></p>
+    </div>
+  </section>
+
+  <!-- competitors -->
+  <section class="slide" data-sec="2">
+    <div class="chip chip--concept">concept</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 2 — Market</p>
+      <h2 class="t-head">Everyone reads land. For someone else.</h2>
+      <div class="evi" style="margin-top:3cqh">
+        <div class="band"><span class="k" style="background:var(--n3)">Agri-insight</span><span class="d">crop-health &amp; agronomy tools → built for the <b>farmer</b></span></div>
+        <div class="band"><span class="k" style="background:var(--n1);color:#3a2a12">Imagery &amp; data</span><span class="d">satellites, imagery, APIs → built for <b>developers</b></span></div>
+        <div class="band"><span class="k" style="background:var(--sky)">Gov &amp; space</span><span class="d">infrastructure &amp; authority → not a product</span></div>
+        <div class="band"><span class="k" style="background:var(--soil)">Local GIS</span><span class="d">per-project consulting → doesn't scale</span></div>
+      </div>
+      <p class="t-lead" style="margin-top:2.6cqh">Powerful tools — but the buyer is the farmer or the developer, <b style="color:var(--fg)">not the lender</b>.</p>
+    </div>
+  </section>
+
+  <!-- the gap -->
+  <section class="slide" data-sec="2">
+    <div class="chip chip--concept">concept</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 2 — Market</p>
+      <div class="split">
+        <div class="col">
+          <h2 class="t-head">FarmTrust is the <em>finance layer</em>.</h2>
+          <p class="t-lead">It turns land history into credit-review language — not a farmer tool, not an imagery API.</p>
+        </div>
+        <div class="viz">
+          <div class="chain" style="flex-direction:column;align-items:stretch;gap:1.4cqh">
+            <div class="node" style="opacity:.6">Everyone → reads land</div>
+            <div class="to" style="text-align:center;color:var(--signal)">↓</div>
+            <div class="node" style="border-color:var(--signal);color:var(--n4);font-weight:600">FarmTrust → speaks finance</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- traction -->
+  <section class="slide" data-sec="2">
+    <div class="chip chip--real">real</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 2 — Market · traction</p>
+      <div class="split">
+        <div class="col">
+          <h2 class="t-head">And it's already been validated.</h2>
+          <ul class="points">
+            <li>The idea landed with the people who'd actually use it — strong early reception.</li>
+            <li><b>Won Entlaq · AgriTech Hackathon</b> — 1st place, 2025.</li>
+          </ul>
+        </div>
+        <div class="viz">
+          <div class="award">
+            <div class="award-badge">★</div>
+            <div class="award-t">Entlaq AgriTech<br>1st place · 2025</div>
+          </div>
+        </div>
+      </div>
+      <p class="figref">Entlaq — AgriTech Hackathon 2025</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide" data-sec="3">
+    <div class="chip chip--real">real</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 3 — Product &amp; pipeline</p>
+      <h2 class="t-head">Boundary in. Report out.</h2>
+      <div class="mk-flow" style="margin-top:3.4cqh">
+        <div class="mk-frame">
+          <div class="bar"><i></i><i></i><i></i><span class="bt">Draw the parcel</span></div>
+          <div class="mk-map">
+            <svg viewBox="0 0 300 200" preserveAspectRatio="none" aria-hidden="true">
+              <polygon points="68,58 214,44 236,142 92,162" fill="rgba(47,143,78,.20)" stroke="#15663a" stroke-width="2.6" stroke-dasharray="7 4"/>
+              <circle cx="150" cy="102" r="4.5" fill="#15663a"/>
+            </svg>
+          </div>
+        </div>
+        <div class="to">→</div>
+        <div class="mk-frame">
+          <div class="bar"><i></i><i></i><i></i><span class="bt">Land Assessment Report</span></div>
+          <div class="mk-rep-mini">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span class="mono">Verdict</span><span class="verdict">ACTIVE · med</span></div>
+            <svg viewBox="0 0 300 84" preserveAspectRatio="none" style="width:100%" aria-hidden="true"><path d="M0,68 C40,68 55,18 95,18 C135,18 150,68 190,68 C230,68 245,24 300,24" fill="none" stroke="url(#ndvi)" stroke-width="4.5" stroke-linecap="round"/></svg>
+            <div style="display:flex;gap:.7cqw"><span class="pill" style="font-size:.92cqw">4 cycles</span><span class="pill" style="font-size:.92cqw">↑ improving</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="flow-steps">
+        <span>Draw the AOI</span><span>Read satellite history</span><span>Land Assessment Report</span><span>The institution decides</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide" data-sec="3">
+    <div class="chip chip--real">real</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 3 — Product &amp; pipeline</p>
+      <div class="split wide-viz">
+        <div class="col">
+          <h2 class="t-head">A dip can be a <em>harvest</em>, not a failure.</h2>
+          <ul class="points">
+            <li>One image misleads. A time window shows activity appear, repeat, pause, recover.</li>
+            <li>We smooth a daily curve (Whittaker–Eilers, ~45-day phenology) — a model-derived curve, kept distinct from raw evidence.</li>
+          </ul>
+        </div>
+        <div class="viz">
+          <svg viewBox="0 0 440 210" aria-hidden="true" style="width:100%">
+            <line x1="0" y1="180" x2="440" y2="180" stroke="var(--line)"/>
+            <path d="M0,170 C70,170 100,55 190,52 L235,52 C255,52 262,120 285,120 C305,120 312,58 330,58 L380,58 C420,58 435,168 440,168"
+                  fill="none" stroke="url(#ndvi)" stroke-width="3.4" stroke-linecap="round"/>
+            <circle cx="285" cy="120" r="5" fill="none" stroke="var(--soil)" stroke-width="2.4"/>
+            <text x="285" y="150" fill="var(--soil)" font-family="IBM Plex Mono" font-size="11" text-anchor="middle">harvest</text>
+            <text x="285" y="164" fill="var(--soil)" font-family="IBM Plex Mono" font-size="11" text-anchor="middle">not failure</text>
+            <text x="8" y="200" fill="var(--fg-faint)" font-family="IBM Plex Mono" font-size="10">two-year NDVI</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide" data-sec="3">
+    <div class="chip chip--concept">concept</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 3 — Product &amp; pipeline</p>
+      <h2 class="t-head">Same engine, different questions.</h2>
+      <div class="lt" style="margin-top:3.2cqh">
+        <div class="box">
+          <div class="photo" style="aspect-ratio:2/1;margin-bottom:1.6cqh">
+            <img src="assets/delta_fragmented.png" style="object-position:center 58%" alt="Sentinel-2 true-color view of densely fragmented Nile Delta farmland — many small irregular parcels">
+            <div class="geo">30.55°N · 31.00°E · Nile Delta</div>
+          </div>
+          <h4>Traditional fields</h4>
+          <p>Small, fragmented, seasonal → cultivation history, crop-health trend, seasonal behaviour.</p>
+        </div>
+        <div class="box">
+          <div class="photo" style="aspect-ratio:2/1;margin-bottom:1.6cqh">
+            <img src="assets/desert_pivots.png" style="object-position:center 82%" alt="Satellite view of reclaimed desert agriculture — green center-pivot circles across tan desert">
+            <div class="geo">22.5°N · 28.7°E · reclaimed desert</div>
+          </div>
+          <h4>Reclaimed pivots</h4>
+          <p>Large, circular, irrigation-driven → active-vs-idle, within-pivot uniformity, weak zones.</p>
+        </div>
+      </div>
+      <p class="figref">per-cycle amplitude — each cycle vs. its own baseline/peak, not one fixed threshold</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide" data-sec="3">
+    <div class="chip chip--real">real</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 3 — Product &amp; pipeline</p>
+      <h2 class="t-head">Five stages. Every one inspectable.</h2>
+      <div class="pipe" style="margin-top:4.6cqh">
+        <div class="stg"><div class="dot">1</div><div class="lbl">Ingestion</div><span class="art">cube.zarr</span></div>
+        <div class="arr">→</div>
+        <div class="stg"><div class="dot">2</div><div class="lbl">Preprocess</div><span class="art">analysis curve</span></div>
+        <div class="arr">→</div>
+        <div class="stg"><div class="dot">3</div><div class="lbl">Windows</div><span class="art">season_windows.json</span></div>
+        <div class="arr">→</div>
+        <div class="stg"><div class="dot">4</div><div class="lbl">Assessment</div><span class="art">land_assessment.json</span></div>
+        <div class="arr">→</div>
+        <div class="stg"><div class="dot">5</div><div class="lbl">Report</div><span class="art">evidence packet</span></div>
+      </div>
+      <p class="t-lead" style="margin-top:4cqh">Never image → score. Every claim traces back to data. <span class="dtag">+ crop &amp; yield on top of the seasons</span></p>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide" data-sec="3">
+    <div class="chip chip--real">real</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 3 — Product &amp; pipeline · stages 1–2</p>
+      <h2 class="t-head">Ingestion &amp; indices.</h2>
+      <div style="display:flex;align-items:stretch;gap:1.3cqw;margin-top:3.8cqh">
+        <div class="card" style="flex:1;padding:2.2cqh 1.6cqw">
+          <div class="dtag" style="color:var(--n4);letter-spacing:.12em">1 · FETCH</div>
+          <p style="font-size:1.24cqw;color:var(--fg);margin:1.2cqh 0 0;line-height:1.42">AOI → bbox → <b>Planetary Computer STAC</b> → Sentinel-2 L2A. Solar-day mosaic; reads only the needed COG windows.</p>
+          <div class="dtag" style="margin-top:1.4cqh">↳ cube.zarr</div>
+        </div>
+        <div class="to" style="align-self:center;color:var(--n3);font-size:2.2cqw">→</div>
+        <div class="card" style="flex:1;padding:2.2cqh 1.6cqw">
+          <div class="dtag" style="color:var(--n4);letter-spacing:.12em">2 · MASK</div>
+          <p style="font-size:1.24cqw;color:var(--fg);margin:1.2cqh 0 0;line-height:1.42">Polygon mask · <b>SCL</b> cloud removal · in-parcel <span style="font-family:'IBM Plex Mono',monospace;color:var(--soil)">valid_fraction</span> — measured only inside the boundary.</p>
+        </div>
+        <div class="to" style="align-self:center;color:var(--n3);font-size:2.2cqw">→</div>
+        <div class="card" style="flex:1;padding:2.2cqh 1.6cqw">
+          <div class="dtag" style="color:var(--n4);letter-spacing:.12em">3 · INDICES</div>
+          <p style="font-size:1.24cqw;color:var(--fg);margin:1.2cqh 0 0;line-height:1.42">NDVI · EVI · NDMI · NDWI · MNDWI — mean + p95 per solar day.</p>
+          <div class="dtag" style="margin-top:1.4cqh">↳ indices_timeseries.csv</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide" data-sec="3">
+    <div class="chip chip--real">real</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 3 — Product &amp; pipeline · stages 3–5</p>
+      <div class="split wide-viz">
+        <div class="col">
+          <h2 class="t-head">Smoothing → windows → assessment.</h2>
+          <ul class="points">
+            <li>Quality-weighted Whittaker–Eilers smoothing on a daily grid.</li>
+            <li>Per-cycle activity windows — <b>good / interrupted / weak</b>, with boundary certainty.</li>
+            <li><b>Coverage</b> (how good the record is) stays separate from <b>confidence</b> — data gaps ≠ land risk.</li>
+          </ul>
+        </div>
+        <div class="viz">
+          <svg viewBox="0 0 400 210" aria-hidden="true" style="width:100%">
+            <rect x="60" y="20" width="120" height="120" fill="var(--n3)" opacity=".08"/>
+            <rect x="250" y="20" width="90" height="120" fill="var(--n3)" opacity=".08"/>
+            <path d="M0,150 C50,150 70,40 120,40 C170,40 190,150 240,150 C280,150 300,55 340,55 C380,55 395,140 400,140"
+                  fill="none" stroke="url(#ndvi)" stroke-width="3.2"/>
+            <text x="120" y="176" fill="var(--fg-soft)" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">window · good</text>
+            <text x="300" y="176" fill="var(--fg-soft)" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">window · open</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide" data-sec="3">
+    <div class="chip chip--real">real</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 3 — Product &amp; pipeline</p>
+      <div class="split" style="grid-template-columns:.72fr 1.28fr">
+        <div class="col">
+          <h2 class="t-head">What's in the report.</h2>
+          <p class="t-body" style="margin-top:2.2cqh;color:var(--fg-soft)">Facts, meaning, confidence, and what to check — <b style="color:var(--fg)">every claim with its provenance</b>. Confidence before claims.</p>
+        </div>
+        <div class="viz">
+          <div class="mk-report">
+            <div class="hd"><span class="ttl">Lender Report Card · Monoufia · 0.39 fd</span><span class="verdict">medium confidence</span></div>
+            <div class="assess">
+              <div class="ah">Active — multiple cycles observed</div>
+              <div class="as">4 complete cycles over 2.0 yr · latest peak NDVI 0.87 · latest cycle provisional</div>
+            </div>
+            <div class="rows">
+              <div class="r"><span class="tag t-obs">Observed</span><span class="rt">4 vegetation cycles completed; coverage over the 2-year window is fair.</span><span class="cb strong">Strong</span></div>
+              <div class="r"><span class="tag t-int">Interpreted</span><span class="rt">Rhythm consistent with a worked, actively cropped field — not idle.</span><span class="cb mod">Moderate</span></div>
+              <div class="r"><span class="tag t-con">Confidence</span><span class="rt">Medium — the latest window overlaps an observation gap.</span></div>
+              <div class="r"><span class="tag t-wat">Watch</span><span class="rt">Provisional season boundary; verify recent activity on the ground.</span></div>
+              <div class="r" style="align-items:center"><span class="riskchip">⚑ weak_activity_risk</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 -->
+  <section class="slide" data-sec="4">
+    <div class="chip chip--real">real</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 4 — Crop mapping &amp; yield</p>
+      <h2 class="t-head">Then: what, and how much?</h2>
+      <div class="chain" style="margin-top:4cqh">
+        <div class="node" style="border-color:var(--signal);color:var(--n4)">Detected seasons</div>
+        <span class="to">→</span>
+        <div class="node">Crop identification — <i>what was planted?</i></div>
+        <span class="to">+</span>
+        <div class="node">Yield estimation — <i>how much?</i></div>
+      </div>
+      <p class="t-lead" style="margin-top:3.6cqh">The layers that make it useful for crop-linked finance, contract farming, and procurement.</p>
+    </div>
+  </section>
+
+  <!-- 18 -->
+  <section class="slide" data-sec="4">
+    <div class="chip chip--real">real</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 4 — Crop mapping &amp; yield</p>
+      <div class="split">
+        <div class="col">
+          <h2 class="t-head">How we identify the crop.</h2>
+          <ul class="points">
+            <li><b>Field-level</b> (not pixel) seasonal features — less cloud &amp; edge noise.</li>
+            <li>Sentinel-2 features; XGBoost / CatBoost / LightGBM / LSTM, validated on the AOI.</li>
+          </ul>
+        </div>
+        <div class="viz" style="display:flex;flex-direction:column;gap:2.2cqh;align-items:flex-start">
+          <div class="chain">
+            <div class="node">seasonal features</div><span class="to">→</span>
+            <div class="node">model</div><span class="to">→</span>
+            <div class="node" style="border-color:var(--signal)">crop label</div>
+          </div>
+          <span class="pill">~0.91 macro-F1 &nbsp;·&nbsp; baseline</span>
+          <div class="tagrow" style="margin-top:.2cqh">
+            <span class="t">cut the weather shortcut</span>
+            <span class="t">domain-shift → Morocco distribution</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19 -->
+  <section class="slide" data-sec="4">
+    <div class="chip chip--real">real</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 4 — Crop mapping &amp; yield</p>
+      <h2 class="t-head">How we estimate yield.</h2>
+      <p class="t-lead">Seasonal features → yield in <b style="color:var(--fg)">tons/ha</b>. Timing is the value:</p>
+      <div class="pipe" style="margin-top:4cqh">
+        <div class="stg"><div class="dot" style="background:var(--n1);color:#3a2a12">M</div><div class="lbl">Mid-season</div><span class="art">first useful forecast</span></div>
+        <div class="arr">→</div>
+        <div class="stg"><div class="dot" style="background:var(--n3)">N</div><div class="lbl">Near-harvest</div><span class="art">best volume estimate</span></div>
+        <div class="arr">→</div>
+        <div class="stg"><div class="dot" style="background:var(--n4)">A</div><div class="lbl">After-season</div><span class="art">validation &amp; learning</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20 -->
+  <section class="slide" data-sec="5">
+    <div class="chip chip--research">research</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 5 — Case study · El-Kom El-Akhdar</p>
+      <div class="split" style="grid-template-columns:.78fr 1.22fr">
+        <div class="col">
+          <h2 class="t-head">Reading the parcel like an analyst.</h2>
+          <ul class="points">
+            <li>One Menoufia parcel, two years of Sentinel-2.</li>
+            <li>Four cycles a year — a <b>double-crop rotation</b>.</li>
+            <li>Sharp winter cereal hump vs. a later, broader berseem plateau; the edge cycle stays open.</li>
+          </ul>
+        </div>
+        <div class="viz">
+          <figure class="figcard"><img src="assets/case_timeline.png" alt="Two-year crop phenology timeline showing four detected NDVI cycles for the El-Kom El-Akhdar parcel"></figure>
+        </div>
+      </div>
+      <p class="figref">Real El-Kom El-Akhdar parcel · two-year greenness, four detected cycles</p>
+    </div>
+  </section>
+
+  <!-- 21 -->
+  <section class="slide" data-sec="5">
+    <div class="chip chip--research">research</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 5 — Case study · El-Kom El-Akhdar</p>
+      <h2 class="t-head">A dip is a harvest, not a failure.</h2>
+      <p class="t-body" style="margin-top:1.2cqh;color:var(--fg-soft);max-width:72ch">A freshly-cut strip <b style="color:var(--fg)">migrates across the field</b> while the field-mean barely moves — the dips are fodder cuts (berseem), not crop failure.</p>
+      <figure class="figcard hero" style="margin-top:1.6cqh"><img src="assets/case_cutfront.png" alt="Six dated NDVI rasters showing a freshly-cut low-NDVI strip migrating across the berseem field while the field-mean holds"></figure>
+      <p class="figref">Real El-Kom El-Akhdar parcel · six dates, field-mean ≈ 0.76</p>
+    </div>
+  </section>
+
+  <!-- 22 -->
+  <section class="slide" data-sec="5">
+    <div class="chip chip--research">research</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 5 — Case study · El-Kom El-Akhdar</p>
+      <h2 class="t-head">Patchiness is management, not a bad crop.</h2>
+      <p class="t-body" style="margin-top:1.2cqh;color:var(--fg-soft);max-width:78ch">Winter variability is the <b style="color:var(--fg)">cutting pattern</b>, not a static wheat/berseem boundary; summer corn is uniform — so a wide spread reads as management. <span style="color:var(--soil)">Exactly the facts the platform captures.</span></p>
+      <figure class="figcard hero" style="margin-top:1.6cqh"><img src="assets/case_zones.png" alt="Three field rasters: winter mean NDVI, winter temporal variability driven by cutting, and uniform summer corn"></figure>
+      <p class="figref">Real El-Kom El-Akhdar parcel · winter mean / variability / summer corn</p>
+    </div>
+  </section>
+
+  <!-- 23 -->
+  <section class="slide" data-sec="6">
+    <div class="chip chip--real">real</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 6 — The AI assistant</p>
+      <div class="split" style="grid-template-columns:.7fr 1.3fr">
+        <div class="col">
+          <h2 class="t-head">The same reads — <em>without</em> the analyst.</h2>
+          <p class="t-body" style="margin-top:2.2cqh;color:var(--fg-soft)">Ask what a reviewer asks. Answered from the report's <b style="color:var(--fg)">evidence — values and text, not images</b>. Arabic &amp; English.</p>
+        </div>
+        <div class="viz">
+          <div class="chat">
+            <div class="chd"><span class="av"></span>FarmTrust Assistant<span class="gp">gpt-4o · grounded</span></div>
+            <div class="q">Why does this land carry higher risk?</div>
+            <div class="a">The latest winter cycle is still open and overlaps an observation gap, so its boundary is provisional — that lowers confidence, not the land itself. <span class="tg mdl">Model-Derived</span>
+              <span class="src">rests on: activity_record · confidence · watch</span></div>
+            <div class="q">في مشكلة واضحة في جزء من الحقل؟</div>
+            <div class="a">في تبقّع داخلي في الشتا متسق مع نمط القص، مش فشل — يُفضّل مراجعته ميدانيًا. <span class="tg int">Interpretation</span><span class="src">rests on: ndvi_spread_median · field knowledge</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 24 -->
+  <section class="slide" data-sec="6">
+    <div class="chip chip--real">real</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 6 — The AI assistant</p>
+      <div class="split" style="grid-template-columns:.7fr 1.3fr">
+        <div class="col">
+          <h2 class="t-head">It knows its limits.</h2>
+          <p class="t-body" style="margin-top:2.2cqh;color:var(--fg-soft)">Decision <b style="color:var(--fg)">support</b>, not a decision — it won't approve, reject, or score financing. A deterministic fallback keeps the pipeline the source of truth, and the hallucination risk stays stated, not hidden.</p>
+        </div>
+        <div class="viz">
+          <div class="chat">
+            <div class="chd"><span class="av"></span>FarmTrust Assistant<span class="gp">gpt-4o · grounded</span></div>
+            <div class="q">So — should we approve this loan?</div>
+            <div class="a refuse">That's your call to make. I can lay out the land evidence and where it's uncertain, but I don't approve, reject, or score financing. <span class="tg oos">Out of scope</span>
+              <span class="src">boundary · decision support only</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- monitoring (post-financing) -->
+  <section class="slide" data-sec="7">
+    <div class="chip chip--concept">concept</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 7 — Data engine &amp; monitoring</p>
+      <div class="split wide-viz">
+        <div class="col">
+          <h2 class="t-head">After financing, we don't stop.</h2>
+          <ul class="points">
+            <li>Track the financed land: planted as agreed? activity started? trending normally?</li>
+            <li>Watch a <b>pivot</b> → catch a broken sprinkler or stressed wedge → <b>alert</b> → fast inspection.</li>
+          </ul>
+        </div>
+        <div class="viz" style="display:grid;place-items:center;position:relative">
+          <figure class="figcard pivot-radial">
+            <img src="assets/pivot_radial.png" alt="Within-pivot NDVI radial heatmap where a weak wedge stands out">
+          </figure>
+          <span class="pill" style="position:absolute;bottom:5%;right:12%;background:#f6ecdf;border-color:#e0c3a3;color:var(--soil)">⚠ weak wedge · inspect</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- data engine -->
+  <section class="slide" data-sec="7">
+    <div class="chip chip--concept">concept</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 7 — Data engine &amp; monitoring</p>
+      <div class="split wide-viz">
+        <div class="col">
+          <h2 class="t-head">The real bottleneck is data. So we store it.</h2>
+          <p class="t-body" style="margin-top:2.2cqh;color:var(--fg-soft)">In Egypt the scarce thing is high-quality <b style="color:var(--fg)">local</b> data. So we store it from day one — and <b style="color:var(--fg)">monitoring</b> is the primary source.</p>
+        </div>
+        <div class="viz">
+          <div class="chain" style="flex-direction:column;align-items:stretch;gap:1.1cqh">
+            <div style="display:flex;gap:.7cqw;justify-content:center"><span class="pill">reports</span><span class="pill">monitoring</span><span class="pill">outcomes</span></div>
+            <div class="to" style="text-align:center">↓</div>
+            <div class="node" style="border-color:var(--n4);color:var(--n4);font-weight:600">Local data store — history that compounds</div>
+            <div class="to" style="text-align:center">↓</div>
+            <div class="node">validation labels → better models &amp; a sharper assistant</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- flywheel & business -->
+  <section class="slide" data-sec="7">
+    <div class="chip chip--concept">concept</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 7 — Data engine &amp; monitoring</p>
+      <h2 class="t-head">It compounds — into a data company.</h2>
+      <div class="chain" style="margin-top:3.4cqh">
+        <div class="node">Reports → history</div><span class="to">→</span>
+        <div class="node">Monitoring → events</div><span class="to">→</span>
+        <div class="node">Outcomes → labels</div><span class="to">→</span>
+        <div class="node" style="border-color:var(--signal);color:var(--n4)">Better models → data products</div>
+      </div>
+      <p class="t-eyebrow" style="margin:4.4cqh 0 1.4cqh"><span class="tick"></span>Business path</p>
+      <div class="stage-path" style="margin-top:0">
+        <span class="s on">Reports</span><span class="to">→</span>
+        <span class="s">Monitoring subscriptions</span><span class="to">→</span>
+        <span class="s">Portfolio analytics</span><span class="to">→</span>
+        <span class="s">Data products</span>
+      </div>
+      <p class="figref">land assessment today → agricultural data intelligence tomorrow</p>
+    </div>
+  </section>
+
+  <!-- 28 -->
+  <section class="slide" data-sec="8">
+    <div class="chip chip--concept">concept</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 8 — Future work</p>
+      <h2 class="t-head">Where it grows.</h2>
+      <div class="roadmap">
+        <div class="rm-step"><div class="rm-dot"></div><div class="rm-t">Crop &amp; yield accuracy</div><div class="rm-d">as local labels accumulate</div></div>
+        <div class="rm-step"><div class="rm-dot"></div><div class="rm-t">Segmentation</div><div class="rm-d">cleaner parcel boundaries</div></div>
+        <div class="rm-step"><div class="rm-dot"></div><div class="rm-t">Outcome validation</div><div class="rm-d">assessment vs. field &amp; credit outcomes</div></div>
+        <div class="rm-step"><div class="rm-dot"></div><div class="rm-t">Data products</div><div class="rm-d">portfolio &amp; beyond</div></div>
+      </div>
+      <p class="figref" style="margin-top:4cqh">every step grows through validation, not claims</p>
+    </div>
+  </section>
+
+  <!-- 29 -->
+  <section class="slide" data-sec="8">
+    <div class="chip chip--real">real</div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Section 8 — Limitations</p>
+      <h2 class="t-head">Stated plainly.</h2>
+      <div class="lim-grid">
+        <div class="lim">Satellite-only — no ground sensors or visits in the MVP.</div>
+        <div class="lim">Small, fragmented fields are hard.</div>
+        <div class="lim">Not yet validated against real loan outcomes.</div>
+        <div class="lim">Crop &amp; yield accuracy still improving with local labels.</div>
+        <div class="lim">Assistant carries residual hallucination / prompt-injection risk.</div>
+        <div class="lim" style="border-left-color:var(--n4);color:var(--n4);font-weight:600">We state confidence before claims.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 30 · dark close -->
+  <section class="slide dark photo-hero" data-sec="8">
+    <div class="bgphoto scrim-close"><img src="assets/closing_sunrise.png" alt="Sunrise over a green Egyptian wheat field with an irrigation channel"></div>
+    <div class="slide-inner">
+      <p class="t-eyebrow"><span class="tick"></span>Closing</p>
+      <div class="spacer"></div>
+      <h2 class="t-head big" style="max-width:24ch">It doesn't approve the loan.<br>It makes the land <em>readable</em>.</h2>
+      <p class="t-lead" style="margin-top:3cqh">A bounded, satellite-backed Land Assessment Report — structured, readable, repeatable.</p>
+      <div class="spacer"></div>
+      <svg class="hero-curve" viewBox="0 0 1000 90" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,70 C80,70 120,20 200,20 C280,20 320,72 420,72 C520,72 560,16 660,16 C760,16 800,72 880,66 C930,62 970,64 1000,60"
+              fill="none" stroke="url(#ndvi)" stroke-width="2.6" stroke-linecap="round"/>
+      </svg>
+      <p class="teaminfo" style="margin-top:2.4cqh;color:#8fe0a6;letter-spacing:.14em">Land assessment today — land-history intelligence tomorrow.</p>
+    </div>
+  </section>
+
+  <!-- 31 · thank you -->
+  <section class="slide thanksbg" data-sec="8">
+    <div class="slide-inner" style="align-items:center;justify-content:center">
+      <div class="thanks">
+        <div class="thanks-word">THANK</div>
+        <div class="thanks-script">You</div>
+      </div>
+      <p class="thanks-foot">NeuralAlloy · Faculty of Artificial Intelligence, Menoufia University&nbsp;&nbsp;·&nbsp;&nbsp;Questions?</p>
+    </div>
+  </section>
+
+</main>
+
+<nav class="navbar" aria-label="Slide navigation">
+  <div class="sec" id="secLabel">—</div>
+  <div class="rail" id="rail" aria-hidden="true"></div>
+  <button id="prev" aria-label="Previous slide">← Prev</button>
+  <button id="next" aria-label="Next slide">Next →</button>
+  <button id="ov" aria-label="Toggle overview">Overview</button>
+  <div class="count" id="count">01 / 31</div>
+</nav>
+
+<script>
+(function(){
+  var deck=document.getElementById('deck');
+  var slides=[].slice.call(deck.querySelectorAll('.slide'));
+  var SECTIONS=[
+    {n:1,name:'The problem'},{n:2,name:'Market & competitors'},{n:3,name:'Product & pipeline'},
+    {n:4,name:'Crop mapping & yield'},{n:5,name:'Case study'},{n:6,name:'The AI assistant'},
+    {n:7,name:'Data & monitoring'},{n:8,name:'Future & close'}
+  ];
+  var i=0, overview=false;
+
+  // page numbers
+  slides.forEach(function(s,k){
+    var p=document.createElement('div'); p.className='pageno';
+    p.textContent=String(k+1).padStart(2,'0'); s.appendChild(p);
+  });
+
+  // build 8-segment rail
+  var rail=document.getElementById('rail');
+  SECTIONS.forEach(function(){ var seg=document.createElement('div'); seg.className='seg'; seg.innerHTML='<i></i>'; rail.appendChild(seg); });
+  var segs=[].slice.call(rail.children);
+
+  function secOf(idx){ return parseInt(slides[idx].getAttribute('data-sec'),10); }
+
+  function render(){
+    slides.forEach(function(s,k){ s.classList.toggle('is-active',k===i); });
+    var sec=secOf(i);
+    var meta=SECTIONS[sec-1];
+    document.getElementById('secLabel').innerHTML='<b>'+String(sec).padStart(2,'0')+'</b> · '+meta.name;
+    document.getElementById('count').textContent=String(i+1).padStart(2,'0')+' / '+slides.length;
+    segs.forEach(function(seg,si){
+      seg.classList.toggle('cur',si===sec-1);
+      seg.classList.toggle('done',si<sec-1);
+    });
+    if(!overview){ try{slides[i].scrollIntoView({block:'nearest'});}catch(e){} }
+  }
+  function go(n){ i=Math.max(0,Math.min(slides.length-1,n)); render(); }
+  function setMode(ov){
+    overview=ov;
+    deck.classList.toggle('overview',ov); deck.classList.toggle('present',!ov);
+    document.body.classList.toggle('is-overview',ov);
+    document.getElementById('ov').textContent=ov?'Present':'Overview';
+    if(ov){ try{slides[i].scrollIntoView({block:'center'});}catch(e){} }
+    render();
+  }
+
+  document.getElementById('prev').onclick=function(){ if(overview) setMode(false); else go(i-1); };
+  document.getElementById('next').onclick=function(){ if(overview) setMode(false); else go(i+1); };
+  document.getElementById('ov').onclick=function(){ setMode(!overview); };
+  slides.forEach(function(s,k){ s.addEventListener('click',function(){ if(overview){ i=k; setMode(false); } }); });
+
+  document.addEventListener('keydown',function(e){
+    var t=e.target.tagName; if(t==='INPUT'||t==='TEXTAREA') return;
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){ e.preventDefault(); overview?setMode(false):go(i+1); }
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); if(!overview) go(i-1); }
+    else if(e.key==='Home'){ e.preventDefault(); go(0); }
+    else if(e.key==='End'){ e.preventDefault(); go(slides.length-1); }
+    else if(e.key.toLowerCase()==='o'){ setMode(!overview); }
+    else if(e.key==='Escape'){ if(!overview) setMode(true); }
+  });
+
+  // ---- build the cut-front strip (slide 21) ----
+  var cf=document.getElementById('cutfront');
+  if(cf){
+    for(var f=0; f<6; f++){
+      var frame=document.createElement('div'); frame.className='frame';
+      var r=document.createElement('div'); r.className='raster';
+      r.style.gridTemplateColumns='repeat(6,1fr)'; r.style.gridTemplateRows='repeat(5,1fr)';
+      var cutCol=f; // migrating cut strip
+      for(var y=0;y<5;y++){ for(var x=0;x<6;x++){
+        var c=document.createElement('div'); c.className='cell';
+        var green = 'var(--n3)';
+        if(x===cutCol){ green='var(--n0)'; }           // freshly cut
+        else if(x===cutCol-1 && cutCol>0){ green='var(--n1)'; } // regrowing
+        c.style.background=green;
+        c.style.opacity = (x===cutCol)?'.9':'.8';
+        r.appendChild(c);
+      }}
+      frame.appendChild(r);
+      var cap=document.createElement('div'); cap.className='cap'; cap.textContent='0.7'+(6-Math.abs(2-f));
+      frame.appendChild(cap);
+      cf.appendChild(frame);
+    }
+  }
+
+  // ---- build the three zone panels (slide 22) ----
+  var zc=document.getElementById('zones');
+  if(zc){
+    var titles=['winter · mean','winter · variability','summer · uniform'];
+    for(var p=0;p<3;p++){
+      var wrap=document.createElement('div'); wrap.style.textAlign='center';
+      var r2=document.createElement('div'); r2.className='raster';
+      r2.style.gridTemplateColumns='repeat(7,1fr)'; r2.style.gridTemplateRows='repeat(7,1fr)';
+      for(var k2=0;k2<49;k2++){
+        var cell=document.createElement('div'); cell.className='cell';
+        var col; var band = Math.floor(k2/7);
+        if(p===0){ col='var(--n3)'; cell.style.opacity=(0.7+((k2*7)%5)/16).toFixed(2); }        // mean: mostly green, faint structure
+        else if(p===1){ // variability: a bright band across the middle
+          col = (band>=2 && band<=4) ? 'var(--soil)' : 'var(--n3)';
+          cell.style.opacity = (band>=2&&band<=4) ? (0.55+((k2%7)/12)).toFixed(2) : '.35';
+        } else { col='var(--n3)'; cell.style.opacity='.82'; }                                    // summer: flat uniform
+        cell.style.background=col;
+        r2.appendChild(cell);
+      }
+      wrap.appendChild(r2);
+      var t2=document.createElement('div'); t2.className='cap';
+      t2.style.fontFamily='"IBM Plex Mono",monospace'; t2.style.fontSize='.86cqw';
+      t2.style.color='var(--fg-soft)'; t2.style.marginTop='.7cqh'; t2.textContent=titles[p];
+      wrap.appendChild(t2);
+      zc.appendChild(wrap);
+    }
+  }
+
+  setMode(false);
+})();
+</script>
+</body>
+</html>

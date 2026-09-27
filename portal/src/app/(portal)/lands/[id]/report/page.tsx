@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
 import { useLand } from "@/hooks/useLand";
@@ -8,32 +7,8 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { FormField, Input, Select } from "@/components/ui/FormField";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Skeleton } from "@/components/ui/Skeleton";
-
-// Dynamic imports for react-pdf (no SSR)
-const PDFViewer = dynamic(
-    () => import("@/components/pdf/pdf-renderer").then((mod) => mod.PDFViewer),
-    { ssr: false, loading: () => <div className="h-96 bg-gray-100 rounded" /> },
-);
-
-// Wrapper for dynamic PDF download button
-const PDFDownloadWrapper = dynamic(
-    () =>
-        import("@/components/pdf/LandReportPDF").then(
-            (mod) => mod.ReportDownloadButton,
-        ),
-    { ssr: false },
-);
-
-const LandReportPDFDynamic = dynamic(
-    () =>
-        import("@/components/pdf/LandReportPDF").then(
-            (mod) => mod.LandReportPDF,
-        ),
-    { ssr: false },
-);
 
 // Form validation schema
 const reportFormSchema = z.object({
@@ -123,65 +98,292 @@ export default function ReportPage({
         alert("Email feature coming soon");
     };
 
+    const handlePrint = () => {
+        window.print();
+    };
+
+    const submittedDate = new Date(land.submitted_at).toLocaleDateString(
+        "en-GB",
+        {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+        },
+    );
+
+    const statusLabel = land.land_status
+        ? land.land_status.replace(/_/g, " ")
+        : "Unknown";
+    const riskLabel = land.risk_tier
+        ? land.risk_tier.replace(/_/g, " ")
+        : "Unknown";
+    const trendLabel = land.trend_2y
+        ? land.trend_2y.replace(/_/g, " ")
+        : "Unknown";
+    const confidenceLabel = land.confidence?.status ?? "Unknown";
+    const coverageLabel =
+        land.satellite_evidence_coverage?.status?.replace(/_/g, " ") ??
+        "Unknown";
+    const flags =
+        land.flags && land.flags.length > 0
+            ? land.flags.map((flag) => flag.replace(/_/g, " "))
+            : ["No land risk flags identified"];
+
     return (
         <div>
-            <PageHeader
-                title={land.name}
-                subtitle="Report Export"
-                actions={
-                    <Button
-                        variant="secondary"
-                        onClick={() => router.push(`/lands/${id}/summary`)}
-                    >
-                        Back to Summary
-                    </Button>
-                }
-            />
+            <style jsx global>{`
+                @media print {
+                    @page {
+                        size: A4;
+                        margin: 14mm;
+                    }
 
-            <div className="p-6 flex gap-6">
-                {/* Left Panel: PDF Preview (60%) */}
-                <div className="w-3/5">
+                    body {
+                        background: white !important;
+                    }
+
+                    aside,
+                    [role="complementary"],
+                    .no-print,
+                    button {
+                        display: none !important;
+                    }
+
+                    main {
+                        margin: 0 !important;
+                    }
+
+                    .print-shell {
+                        padding: 0 !important;
+                        display: block !important;
+                        background: white !important;
+                    }
+
+                    .print-report {
+                        width: 100% !important;
+                        min-height: auto !important;
+                        box-shadow: none !important;
+                        border: 0 !important;
+                        padding: 0 !important;
+                    }
+                }
+            `}</style>
+
+            <div className="no-print">
+                <PageHeader
+                    title={land.name}
+                    subtitle="Report Export"
+                    actions={
+                        <Button
+                            variant="secondary"
+                            onClick={() => router.push(`/lands/${id}/summary`)}
+                        >
+                            Back to Summary
+                        </Button>
+                    }
+                />
+            </div>
+
+            <div className="print-shell grid gap-6 p-6 xl:grid-cols-[minmax(760px,1fr)_420px]">
+                {/* Left Panel: Report Preview */}
+                <div className="min-w-0">
                     <Card padding="md">
-                        <CardHeader>
+                        <CardHeader className="no-print">
                             <CardTitle>Report Preview</CardTitle>
                         </CardHeader>
 
-                        <div className="mt-4">
-                            {typeof window !== "undefined" ? (
-                                <div style={{ width: "100%", height: 600 }}>
-                                    <PDFViewer
-                                        style={{
-                                            width: "100%",
-                                            height: "100%",
-                                        }}
+                        <article className="print-report mx-auto mt-4 min-h-[1050px] max-w-[820px] bg-white p-12 text-gray-900 shadow-sm ring-1 ring-gray-200">
+                            <header className="border-b border-gray-200 pb-6">
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">
+                                    FarmTrust Satellite Land Assessment
+                                </p>
+                                <div className="mt-5 flex items-start justify-between gap-6">
+                                    <div>
+                                        <h2 className="text-3xl font-semibold tracking-normal text-gray-950">
+                                            {land.name}
+                                        </h2>
+                                        <p className="mt-2 text-sm text-gray-500">
+                                            {land.governorate}
+                                            {land.district
+                                                ? ` · ${land.district}`
+                                                : ""}{" "}
+                                            · {land.area_feddan.toFixed(2)} fd
+                                        </p>
+                                    </div>
+                                    <div className="text-right text-xs text-gray-500">
+                                        <p>Report date</p>
+                                        <p className="mt-1 font-semibold text-gray-900">
+                                            {formValues.reportDate}
+                                        </p>
+                                    </div>
+                                </div>
+                            </header>
+
+                            <section className="mt-7 grid grid-cols-4 gap-3">
+                                {[
+                                    ["Status", statusLabel],
+                                    ["Risk tier", riskLabel],
+                                    ["Trend", trendLabel],
+                                    ["Confidence", confidenceLabel],
+                                ].map(([label, value]) => (
+                                    <div
+                                        key={label}
+                                        className="rounded-md border border-gray-200 p-3"
                                     >
-                                        <LandReportPDFDynamic
-                                            land={land}
-                                            analystName={
-                                                formValues.analystName ||
-                                                "Analyst"
-                                            }
-                                            institution={
-                                                formValues.institution ||
-                                                "Institution"
-                                            }
-                                            reportDate={formValues.reportDate}
-                                        />
-                                    </PDFViewer>
+                                        <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                                            {label}
+                                        </p>
+                                        <p className="mt-2 text-sm font-semibold capitalize text-gray-900">
+                                            {value}
+                                        </p>
+                                    </div>
+                                ))}
+                            </section>
+
+                            <section className="mt-7">
+                                <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-900">
+                                    Assessment Summary
+                                </h3>
+                                <p className="mt-3 rounded-md bg-gray-50 p-4 text-sm leading-7 text-gray-700">
+                                    {land.report_summary ||
+                                        "No report summary is available for this land."}
+                                </p>
+                            </section>
+
+                            <section className="mt-7 grid grid-cols-2 gap-6">
+                                <div>
+                                    <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-900">
+                                        Evidence Basis
+                                    </h3>
+                                    <dl className="mt-3 space-y-3 text-sm">
+                                        <div className="flex justify-between gap-4 border-b border-gray-100 pb-2">
+                                            <dt className="text-gray-500">
+                                                Satellite coverage
+                                            </dt>
+                                            <dd className="font-semibold capitalize">
+                                                {coverageLabel}
+                                            </dd>
+                                        </div>
+                                        <div className="flex justify-between gap-4 border-b border-gray-100 pb-2">
+                                            <dt className="text-gray-500">
+                                                Cloud-free scenes
+                                            </dt>
+                                            <dd className="font-semibold">
+                                                {land.indicators
+                                                    ?.cloud_free_scenes ??
+                                                    "N/A"}
+                                            </dd>
+                                        </div>
+                                        <div className="flex justify-between gap-4 border-b border-gray-100 pb-2">
+                                            <dt className="text-gray-500">
+                                                Submitted
+                                            </dt>
+                                            <dd className="font-semibold">
+                                                {submittedDate}
+                                            </dd>
+                                        </div>
+                                    </dl>
                                 </div>
-                            ) : (
-                                <div className="h-96 bg-gray-100 rounded flex items-center justify-center">
-                                    <p className="text-gray-500">
-                                        PDF preview requires a modern browser
+
+                                <div>
+                                    <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-900">
+                                        Vegetation Indicators
+                                    </h3>
+                                    <dl className="mt-3 grid grid-cols-2 gap-3">
+                                        <div className="rounded-md border border-gray-200 p-3">
+                                            <dt className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                                                NDVI peak
+                                            </dt>
+                                            <dd className="mt-1 text-xl font-semibold">
+                                                {land.indicators?.ndvi_peak?.toFixed(
+                                                    2,
+                                                ) ?? "N/A"}
+                                            </dd>
+                                        </div>
+                                        <div className="rounded-md border border-gray-200 p-3">
+                                            <dt className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                                                EVI peak
+                                            </dt>
+                                            <dd className="mt-1 text-xl font-semibold">
+                                                {land.indicators?.evi_peak?.toFixed(
+                                                    2,
+                                                ) ?? "N/A"}
+                                            </dd>
+                                        </div>
+                                        <div className="rounded-md border border-gray-200 p-3">
+                                            <dt className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                                                Field spread
+                                            </dt>
+                                            <dd className="mt-1 text-xl font-semibold">
+                                                {land.indicators?.ndvi_spread_median?.toFixed(
+                                                    2,
+                                                ) ?? "N/A"}
+                                            </dd>
+                                        </div>
+                                        <div className="rounded-md border border-gray-200 p-3">
+                                            <dt className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                                                Moisture
+                                            </dt>
+                                            <dd className="mt-1 text-xl font-semibold">
+                                                {land.indicators?.ndmi_median?.toFixed(
+                                                    2,
+                                                ) ?? "N/A"}
+                                            </dd>
+                                        </div>
+                                    </dl>
+                                </div>
+                            </section>
+
+                            <section className="mt-7">
+                                <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-900">
+                                    Risk and Limits
+                                </h3>
+                                <div className="mt-3 grid grid-cols-2 gap-4 text-sm leading-6">
+                                    <div className="rounded-md border border-gray-200 p-4">
+                                        <p className="font-semibold text-gray-900">
+                                            Risk flags
+                                        </p>
+                                        <ul className="mt-2 list-disc space-y-1 pl-5 text-gray-700">
+                                            {flags.map((flag) => (
+                                                <li
+                                                    key={flag}
+                                                    className="capitalize"
+                                                >
+                                                    {flag}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                    <div className="rounded-md border border-gray-200 p-4">
+                                        <p className="font-semibold text-gray-900">
+                                            Not covered
+                                        </p>
+                                        <p className="mt-2 text-gray-700">
+                                            Crop identity, yield, income, loan
+                                            approval, ownership, and legal status
+                                            are outside this satellite report.
+                                        </p>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <footer className="mt-10 border-t border-gray-200 pt-4 text-xs text-gray-500">
+                                <div className="flex justify-between gap-6">
+                                    <p>
+                                        Prepared by{" "}
+                                        {formValues.analystName || "Analyst"} ·{" "}
+                                        {formValues.institution ||
+                                            "Institution"}
                                     </p>
+                                    <p>Generated locally by FarmTrust</p>
                                 </div>
-                            )}
-                        </div>
+                            </footer>
+                        </article>
                     </Card>
                 </div>
 
-                {/* Right Panel: Export Form (40%) */}
-                <div className="w-2/5">
+                {/* Right Panel: Export Form */}
+                <div className="no-print min-w-0">
                     <Card padding="md">
                         <CardHeader>
                             <CardTitle>Export Settings</CardTitle>
@@ -320,19 +522,12 @@ export default function ReportPage({
 
                             {/* Action Buttons */}
                             <div className="pt-4 space-y-2">
-                                <div className="w-full">
-                                    <PDFDownloadWrapper
-                                        land={land}
-                                        analystName={
-                                            formValues.analystName || "Analyst"
-                                        }
-                                        institution={
-                                            formValues.institution ||
-                                            "Institution"
-                                        }
-                                        reportDate={formValues.reportDate}
-                                    />
-                                </div>
+                                <Button
+                                    className="w-full"
+                                    onClick={handlePrint}
+                                >
+                                    Print / Save PDF
+                                </Button>
                                 <Button
                                     variant="secondary"
                                     className="w-full"

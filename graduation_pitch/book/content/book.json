@@ -1,0 +1,705 @@
+{
+  "university": "Menoufia University",
+  "faculty": "Faculty of Artificial Intelligence",
+  "project_title": "FarmTrust: A Satellite-Based Land Assessment and Reporting Platform for Agricultural Finance",
+  "term": "Spring 2026",
+  "team": [
+    {
+      "department": "MI",
+      "name": "Abdulhamed Samy Eid"
+    },
+    {
+      "department": "MI",
+      "name": "Sagda Esmat Elsawy"
+    },
+    {
+      "department": "MI",
+      "name": "Fatma Sabry Mahmoud"
+    },
+    {
+      "department": "MI",
+      "name": "Esraa Ebrahim Qashwa"
+    },
+    {
+      "department": "DS",
+      "name": "Fares Mamdouh"
+    },
+    {
+      "department": "MI",
+      "name": "Omar Mohamad Elmllwany"
+    }
+  ],
+  "supervisor_lines": [
+    "Mahmoud Emam",
+    "Machine intelligence Department",
+    "Faculty of Artificial Intelligence",
+    "Menoufia University"
+  ],
+  "acknowledgment": [
+    "First of all, we thank God for helping us to achieve this work and giving us the ability to finish this work in that satisfactory form.",
+    "We are extremely grateful to our supervisor for guidance, advice, and continuous support throughout this graduation project.",
+    "Finally, this work is dedicated to our families, colleagues, and everyone who supported the team during the research, design, and implementation stages."
+  ],
+  "abstract": [
+    "Agricultural finance decisions often depend on paperwork, trust, collateral, or occasional field visits, while the actual behavior of the financed land may remain difficult to verify before and during financing. This creates a practical evidence gap for banks, microfinance institutions, cooperatives, and agri-finance analysts. They need a faster and more objective way to understand whether a parcel has recent agricultural activity, whether that activity appears stable or interrupted, and how reliable the available evidence is. FarmTrust addresses this gap as a lender-facing farm risk reporting platform based on satellite time-series evidence. It supports finance review, but it does not approve or reject loans.",
+    "The first FarmTrust product is a lender-facing farm risk report for a single agricultural land polygon. A user defines an analysis polygon on a map, and the system studies the recent satellite history of that area, with the current build focused on Egypt and on plot sizes suitable for small and medium agricultural finance review. The report summarizes land status, two-year trend, latest-season performance, conservative risk flags, satellite evidence coverage, assessment confidence, and supporting visual evidence. These outputs help reviewers ask better questions and compare applications more consistently while preserving human judgement and institution-specific lending rules.",
+    "The technical pipeline uses Sentinel-2 imagery because it provides repeated public observations at a resolution and revisit rate suitable for field-level review. The system retrieves observations for the selected area, screens unusable pixels, calculates vegetation and moisture indicators such as NDVI, EVI, NDMI, and NDWI, and builds a quality-aware time-series record. Because raw satellite observations are irregular and affected by clouds, shadows, and gaps, the method separates observation quality from interpretation. A smoothed analysis curve is used to study vegetation activity cycles, while the original observation record remains visible as evidence for confidence and limitations.",
+    "FarmTrust models agricultural evidence through repeated greening and decline patterns rather than through a single latest image. The assessment estimates whether recent activity is active, intermittent, inactive, or uncertain, and summarizes the direction of change over the selected interval. Confidence means confidence in the reliability of the assessment, not confidence that the land is financially safe. When evidence is limited, the system lowers confidence or routes the result toward review instead of turning missing data into a strong land-risk claim. This conservative design is central because satellite evidence can support review, but it cannot prove every fact a lender may care about.",
+    "The generated report keeps observed evidence separate from interpreted claims. It presents what was seen, what the system cautiously interprets, how confident the assessment is, and what should be watched or checked by a reviewer. It also separates land-risk indicators from evidence limitations, so weak vegetation activity and poor satellite coverage are not treated as the same problem. A bounded report explanation assistant can narrate the assessment and answer questions using the grounded report and user-declared context, but it does not create new evidence, change scores, infer exact crop identity, estimate yield or income, diagnose pests, prove legal boundaries, or make financing decisions.",
+    "The thesis also reports the research work that shaped these boundaries. Experiments on crop classification, yield-transfer estimation, vegetation-index selection, smoothing strength, and independent phenology cross-checking helped the team decide what belongs in the current product and what remains research background. The El-Kom Al-Akhdar case study in Menoufia Governorate demonstrates the evidence workflow on a real agricultural parcel. The main contribution of FarmTrust is therefore a coherent satellite-to-report foundation for agricultural finance review: a repeatable way to transform a user-defined AOI and recent satellite history into cautious activity evidence, confidence notes, risk-supporting signals, and explainable report outputs."
+  ],
+  "toc": [
+    {
+      "title": "ACKNOWLEDGMENT",
+      "page": "ii",
+      "level": 1
+    },
+    {
+      "title": "ABSTRACT",
+      "page": "iii",
+      "level": 1
+    },
+    {
+      "title": "TABLE OF CONTENTS",
+      "page": "v",
+      "level": 1
+    },
+    {
+      "title": "LIST OF TABLES",
+      "page": "vii",
+      "level": 1
+    },
+    {
+      "title": "LIST OF FIGURES",
+      "page": "ix",
+      "level": 1
+    },
+    {
+      "title": "LIST OF ABBREVIATIONS",
+      "page": "xi",
+      "level": 1
+    },
+    {
+      "title": "PROJECT SUMMARY",
+      "page": "xii",
+      "level": 1
+    },
+    {
+      "title": "CH 1 INTRODUCTION",
+      "page": "14",
+      "level": 1
+    },
+    {
+      "title": "CH 2 BACKGROUND AND RELATED WORK",
+      "page": "20",
+      "level": 1
+    },
+    {
+      "title": "2.5 Smoothing and Phenology Decisions",
+      "page": "23",
+      "level": 2
+    },
+    {
+      "title": "CH 3 PROBLEM DEFINITION, OBJECTIVES, AND SCOPE",
+      "page": "29",
+      "level": 1
+    },
+    {
+      "title": "3.7 Non-Goals",
+      "page": "32",
+      "level": 2
+    },
+    {
+      "title": "CH 4 REQUIREMENTS AND SYSTEM ANALYSIS",
+      "page": "36",
+      "level": 1
+    },
+    {
+      "title": "4.5 Functional Requirements",
+      "page": "39",
+      "level": 2
+    },
+    {
+      "title": "CH 5 SYSTEM ARCHITECTURE AND DESIGN",
+      "page": "45",
+      "level": 1
+    },
+    {
+      "title": "5.5 End-to-End Data Flow",
+      "page": "49",
+      "level": 2
+    },
+    {
+      "title": "CH 6 SATELLITE DATA PIPELINE AND METHODOLOGY",
+      "page": "54",
+      "level": 1
+    },
+    {
+      "title": "6.6 Smoothness Selection",
+      "page": "59",
+      "level": 2
+    },
+    {
+      "title": "CH 7 EVIDENCE MODELING AND LAND ASSESSMENT",
+      "page": "63",
+      "level": 1
+    },
+    {
+      "title": "7.8 Grounded Assessment Report",
+      "page": "68",
+      "level": 2
+    },
+    {
+      "title": "CH 8 IMPLEMENTATION, LENDER REPORT, AND BOUNDED REPORT ASSISTANT",
+      "page": "71",
+      "level": 1
+    },
+    {
+      "title": "8.5 Report Explanation Assistant",
+      "page": "74",
+      "level": 2
+    },
+    {
+      "title": "CH 9 CASE STUDY, RESULTS, AND EVALUATION",
+      "page": "78",
+      "level": 1
+    },
+    {
+      "title": "9.9 Selected Research and Development Comparisons",
+      "page": "86",
+      "level": 2
+    },
+    {
+      "title": "CH 10 CONCLUSION AND FUTURE WORK",
+      "page": "92",
+      "level": 1
+    },
+    {
+      "title": "Interface Evidence Gallery",
+      "page": "97",
+      "level": 2
+    },
+    {
+      "title": "BIBLIOGRAPHY",
+      "page": "106",
+      "level": 1
+    },
+    {
+      "title": "مُلخـــــصُ المشروع",
+      "page": "107",
+      "level": 1
+    },
+    {
+      "title": "المُوجَــــــــــزُ",
+      "page": "108",
+      "level": 1
+    }
+  ],
+  "list_of_tables": [
+    [
+      "Table 1.1: Main outputs of FarmTrust",
+      "17"
+    ],
+    [
+      "Table 2.1: Sentinel-2 strengths and limits for finance-oriented land assessment",
+      "21"
+    ],
+    [
+      "Table 2.2: Vegetation-index decision boundaries used in the project",
+      "22"
+    ],
+    [
+      "Table 2.3: Interpretation lessons from the team's research work",
+      "25"
+    ],
+    [
+      "Table 2.4: Multi-country yield dataset coverage used in research framing",
+      "26"
+    ],
+    [
+      "Table 2.5: Crop and yield research streams compared",
+      "27"
+    ],
+    [
+      "Table 3.1: Technical objectives and expected outputs",
+      "31"
+    ],
+    [
+      "Table 3.2: In-scope and out-of-scope claims",
+      "33"
+    ],
+    [
+      "Table 4.1: Actors and stakeholder needs",
+      "37"
+    ],
+    [
+      "Table 4.2: Core use cases",
+      "38"
+    ],
+    [
+      "Table 4.3: Functional requirements",
+      "39"
+    ],
+    [
+      "Table 4.4: Non-functional requirements",
+      "41"
+    ],
+    [
+      "Table 4.5: Data constraints and expected handling",
+      "42"
+    ],
+    [
+      "Table 5.1: Main system responsibilities",
+      "48"
+    ],
+    [
+      "Table 5.2: Artifact roles in the current build",
+      "50"
+    ],
+    [
+      "Table 6.1: Methodology stages",
+      "54"
+    ],
+    [
+      "Table 6.2: Main signal interpretation",
+      "58"
+    ],
+    [
+      "Table 6.3: Smoothness lambda sweep used in method selection",
+      "59"
+    ],
+    [
+      "Table 6.4: Smoother and detector design decisions",
+      "60"
+    ],
+    [
+      "Table 6.5: Confidence interpretation",
+      "61"
+    ],
+    [
+      "Table 7.1: Activity-cycle evidence fields",
+      "64"
+    ],
+    [
+      "Table 7.2: Assessment vocabulary and meaning",
+      "65"
+    ],
+    [
+      "Table 7.3: Risk vs evidence limitation",
+      "67"
+    ],
+    [
+      "Table 7.4: Report evidence structure",
+      "68"
+    ],
+    [
+      "Table 7.5: Deterministic detector compared with an independent phenology cross-check",
+      "69"
+    ],
+    [
+      "Table 8.1: Implemented technology stack",
+      "71"
+    ],
+    [
+      "Table 8.2: Portal surfaces and review purpose",
+      "73"
+    ],
+    [
+      "Table 8.3: Assistant safety design",
+      "75"
+    ],
+    [
+      "Table 8.4: Responsible assistant behavior",
+      "76"
+    ],
+    [
+      "Table 9.1: Case-study questions and reporting discipline",
+      "79"
+    ],
+    [
+      "Table 9.2: Evidence features and report effect",
+      "81"
+    ],
+    [
+      "Table 9.3: Role of selected evidence signals",
+      "82"
+    ],
+    [
+      "Table 9.4: Case-study corrections to naive readings",
+      "86"
+    ],
+    [
+      "Table 9.5: Research-only AOI crop-classification probabilities",
+      "87"
+    ],
+    [
+      "Table 9.6: Feature-set ablation in the crop-classification research",
+      "88"
+    ],
+    [
+      "Table 9.7: In-distribution and out-of-zone crop-classification validation",
+      "88"
+    ],
+    [
+      "Table 9.8: Crop-model attempts and outcomes",
+      "88"
+    ],
+    [
+      "Table 9.9: Yield-transfer predictions compared with the farmer-observed range",
+      "89"
+    ],
+    [
+      "Table 9.10: Evaluation of the case-study report concept",
+      "90"
+    ],
+    [
+      "Table 10.1: Summary of project contributions",
+      "94"
+    ],
+    [
+      "Table 10.2: Future-work priorities",
+      "97"
+    ]
+  ],
+  "list_of_figures": [
+    [
+      "Figure 1.1: From satellite observations to finance-review evidence.",
+      "16"
+    ],
+    [
+      "Figure 5.1: System architecture of the FarmTrust platform.",
+      "46"
+    ],
+    [
+      "Figure 5.2: End-to-end data flow from analysis polygon to lender report.",
+      "49"
+    ],
+    [
+      "Figure 6.1: Observation quality and gap profile for the El-Kom Al-Akhdar parcel.",
+      "56"
+    ],
+    [
+      "Figure 6.2: Vegetation indices compared across the El-Kom Al-Akhdar parcel record.",
+      "57"
+    ],
+    [
+      "Figure 6.3: Raw observations transformed into a smooth analysis curve.",
+      "58"
+    ],
+    [
+      "Figure 6.4: Activity-cycle detection on the smoothed greenness curve.",
+      "61"
+    ],
+    [
+      "Figure 7.1: Four-part evidence read used in the assessment report.",
+      "63"
+    ],
+    [
+      "Figure 7.2: Independent phenology cross-check for the El-Kom Al-Akhdar parcel.",
+      "69"
+    ],
+    [
+      "Figure 7.3: Spatial map of cycle-peak greenness across the El-Kom Al-Akhdar parcel.",
+      "70"
+    ],
+    [
+      "Figure 8.1: How the report assistant stays grounded in the lender report.",
+      "74"
+    ],
+    [
+      "Figure 9.1: Two-year greenness timeline with detected activity cycles for the El-Kom Al-Akhdar parcel.",
+      "80"
+    ],
+    [
+      "Figure 9.2: Observation quality and gap profile for the El-Kom Al-Akhdar parcel.",
+      "81"
+    ],
+    [
+      "Figure 9.3: Vegetation-index comparison during the case-study period for the El-Kom Al-Akhdar parcel.",
+      "82"
+    ],
+    [
+      "Figure 9.4: Independent phenology cross-check of detected activity cycles for the El-Kom Al-Akhdar parcel.",
+      "83"
+    ],
+    [
+      "Figure 9.5: Spatial distribution of cycle-peak greenness across the El-Kom Al-Akhdar parcel.",
+      "84"
+    ],
+    [
+      "Figure 9.6: Winter cut-and-regrowth pattern observed in the El-Kom Al-Akhdar parcel.",
+      "85"
+    ],
+    [
+      "Figure 9.7: Moving low-greenness strip during winter cut-and-regrowth in the El-Kom Al-Akhdar parcel.",
+      "85"
+    ],
+    [
+      "Figure 9.8: Corn-season comparison of greenness and canopy-moisture signals during a Fall Armyworm risk window.",
+      "87"
+    ],
+    [
+      "Figure 9.9: Short-window pipeline diagnostic showing one detected activity cycle and independent timing agreement.",
+      "90"
+    ],
+    [
+      "Figure 10.1: FarmTrust landing screen and project entry point.",
+      "98"
+    ],
+    [
+      "Figure 10.2: Land portfolio list showing submitted lands, processing status, evidence coverage, and risk indicators.",
+      "99"
+    ],
+    [
+      "Figure 10.3: AOI drawing and GeoJSON upload interface for a new land submission.",
+      "99"
+    ],
+    [
+      "Figure 10.4: Processing and queued assessment states shown in the land portfolio.",
+      "100"
+    ],
+    [
+      "Figure 10.5: Land summary overview with status, trend, confidence, risk tier, and key indicators.",
+      "100"
+    ],
+    [
+      "Figure 10.6: Evidence view showing greenness time-series behavior and raw vegetation observations.",
+      "101"
+    ],
+    [
+      "Figure 10.7: Activity record showing detected vegetation cycles, track record, and evidence limitations.",
+      "101"
+    ],
+    [
+      "Figure 10.8: Activity-window detail table listing detected cycle periods, peaks, outcomes, and anomalies.",
+      "102"
+    ],
+    [
+      "Figure 10.9: Lender report card showing the headline assessment and four-part evidence read.",
+      "103"
+    ],
+    [
+      "Figure 10.10: Lender report track record, risk register, indicators, and fixed evidence-boundary section.",
+      "104"
+    ],
+    [
+      "Figure 10.11: Report assistant narration with grounded model status and evidence-type labels.",
+      "104"
+    ],
+    [
+      "Figure 10.12: English assistant question answering over a real land report.",
+      "105"
+    ],
+    [
+      "Figure 10.13: Arabic assistant answer over the same grounded report evidence.",
+      "105"
+    ],
+    [
+      "Figure 10.14: Export report screen with printable report preview and local export settings.",
+      "105"
+    ]
+  ],
+  "abbreviations": [
+    [
+      "AI",
+      "Artificial Intelligence"
+    ],
+    [
+      "AOI",
+      "Area of Interest"
+    ],
+    [
+      "API",
+      "Application Programming Interface"
+    ],
+    [
+      "EVI",
+      "Enhanced Vegetation Index"
+    ],
+    [
+      "GIS",
+      "Geographic Information System"
+    ],
+    [
+      "HMM",
+      "Hidden Markov Model"
+    ],
+    [
+      "LLM",
+      "Large Language Model"
+    ],
+    [
+      "MNDWI",
+      "Modified Normalized Difference Water Index"
+    ],
+    [
+      "MSAVI",
+      "Modified Soil Adjusted Vegetation Index"
+    ],
+    [
+      "NDMI",
+      "Normalized Difference Moisture Index"
+    ],
+    [
+      "NDRE",
+      "Normalized Difference Red Edge Index"
+    ],
+    [
+      "NDVI",
+      "Normalized Difference Vegetation Index"
+    ],
+    [
+      "NDWI",
+      "Normalized Difference Water Index"
+    ],
+    [
+      "NIR",
+      "Near-Infrared"
+    ],
+    [
+      "SCL",
+      "Scene Classification Layer"
+    ],
+    [
+      "STAC",
+      "SpatioTemporal Asset Catalog"
+    ],
+    [
+      "UI",
+      "User Interface"
+    ],
+    [
+      "UX",
+      "User Experience"
+    ]
+  ],
+  "project_summary": [
+    "This book documents FarmTrust, a satellite-based agricultural land assessment and reporting platform for agricultural finance decision support.",
+    "Chapter 1 introduces the finance-review evidence problem, the Egyptian agricultural context, the project motivation, the platform outputs, and the claim boundaries.",
+    "Chapter 2 reviews remote sensing, Sentinel-2 imagery, vegetation and moisture indices, time-series interpretation, smoothing, activity-cycle detection, agricultural finance evidence, scientific comparison boundaries, and bounded language-model explanation.",
+    "Chapter 3 defines the problem statement, research and product questions, technical objectives, assumptions, non-goals, success criteria, and decision-support scope.",
+    "Chapter 4 analyzes target users, review workflows, functional requirements, report content requirements, non-functional requirements, data constraints, assistant requirements, and escalation logic.",
+    "Chapter 5 explains the system architecture, component responsibilities, end-to-end data flow, artifact strategy, report boundary, assistant boundary, operational controls, and design tradeoffs.",
+    "Chapter 6 describes the satellite methodology: area definition, Sentinel-2 retrieval, observation quality, index calculation, smoothing, smoothness selection, activity-cycle detection, evidence coverage, confidence, and methodological boundaries.",
+    "Chapter 7 explains evidence modeling and land assessment, including activity cycles, statement groups, status and trend vocabulary, absence safeguards, risk-vs-limitation separation, confidence and grounding levels, the grounded assessment report, cross-checking, and spatial evidence.",
+    "Chapter 8 documents the implementation, backend and processing flow, portal surfaces, lender report, report assistant, grounded question answering, bilingual explanation, responsible language-model use, and current implementation limits.",
+    "Chapter 9 presents the El-Kom Al-Akhdar case study, timeline evidence, quality profile, vegetation-index comparison, smoothing rationale, phenology cross-check, spatial evidence, cut-and-regrowth interpretation, crop and yield research comparison tables, evaluation, and limitations.",
+    "Chapter 10 concludes the project, summarizes contributions, explains responsible use and future work, and closes with an interface evidence gallery from the implemented portal."
+  ],
+  "chapters": [
+    {
+      "number": 1,
+      "title": "Introduction",
+      "file": "chapters/ch01-introduction.md"
+    },
+    {
+      "number": 2,
+      "title": "Background and Related Work",
+      "file": "chapters/ch02-background-literature-review.md"
+    },
+    {
+      "number": 3,
+      "title": "Problem Definition, Objectives, and Scope",
+      "file": "chapters/ch03-problem-objectives.md"
+    },
+    {
+      "number": 4,
+      "title": "Requirements and System Analysis",
+      "file": "chapters/ch04-system-analysis.md"
+    },
+    {
+      "number": 5,
+      "title": "System Architecture and Design",
+      "file": "chapters/ch05-system-design.md"
+    },
+    {
+      "number": 6,
+      "title": "Satellite Data Pipeline and Methodology",
+      "file": "chapters/ch06-methodology.md"
+    },
+    {
+      "number": 7,
+      "title": "Evidence Modeling and Land Assessment",
+      "file": "chapters/ch07-implementation.md"
+    },
+    {
+      "number": 8,
+      "title": "Implementation, Lender Report, and Bounded Report Assistant",
+      "file": "chapters/ch08-results-evaluation.md"
+    },
+    {
+      "number": 9,
+      "title": "Case Study, Results, and Evaluation",
+      "file": "chapters/ch09-business-model.md"
+    },
+    {
+      "number": 10,
+      "title": "Conclusion and Future Work",
+      "file": "chapters/ch10-conclusion-future-work.md"
+    }
+  ],
+  "bibliography": [
+    "European Space Agency. SENTINEL-2 User Handbook. ESA Standard Document, Issue 1 Revision 2, 24 July 2015. Available at: https://sentinels.copernicus.eu/documents/247904/685211/Sentinel-2_User_Handbook.",
+    "Copernicus Data Space Ecosystem. Sentinel-2 data collection overview. Copernicus Programme, accessed 1 July 2026. Available at: https://dataspace.copernicus.eu/data-collections/copernicus-sentinel-missions/sentinel-2.",
+    "Rouse, J. W., Jr., Haas, R. H., Schell, J. A., and Deering, D. W. Monitoring vegetation systems in the Great Plains with ERTS. Third Earth Resources Technology Satellite-1 Symposium, Volume I, Section A, NASA SP-351, 1974. Available at: https://ntrs.nasa.gov/citations/19740022614.",
+    "Huete, A., Didan, K., Miura, T., Rodriguez, E. P., Gao, X., and Ferreira, L. G. Overview of the radiometric and biophysical performance of the MODIS vegetation indices. Remote Sensing of Environment, 83(1-2), 195-213, 2002. doi:10.1016/S0034-4257(02)00096-2.",
+    "Gao, B. C. NDWI - A normalized difference water index for remote sensing of vegetation liquid water from space. Remote Sensing of Environment, 58(3), 257-266, 1996. doi:10.1016/S0034-4257(96)00067-3.",
+    "McFeeters, S. K. The use of the Normalized Difference Water Index (NDWI) in the delineation of open water features. International Journal of Remote Sensing, 17(7), 1425-1432, 1996. doi:10.1080/01431169608948714.",
+    "Xu, H. Modification of normalised difference water index (NDWI) to enhance open water features in remotely sensed imagery. International Journal of Remote Sensing, 27(14), 3025-3033, 2006. doi:10.1080/01431160600589179.",
+    "Eilers, P. H. C. A perfect smoother. Analytical Chemistry, 75(14), 3631-3636, 2003. doi:10.1021/ac034173t.",
+    "Rabiner, L. R. A tutorial on hidden Markov models and selected applications in speech recognition. Proceedings of the IEEE, 77(2), 257-286, 1989. doi:10.1109/5.18626.",
+    "STAC Community. SpatioTemporal Asset Catalog specification. Accessed 1 July 2026. Available at: https://stacspec.org/.",
+    "Microsoft Planetary Computer. Sentinel-2 Level-2A dataset and STAC API documentation. Accessed 1 July 2026. Available at: https://planetarycomputer.microsoft.com/dataset/sentinel-2-l2a.",
+    "FastAPI. FastAPI documentation. Accessed 1 July 2026. Available at: https://fastapi.tiangolo.com/.",
+    "Vercel. Next.js documentation. Accessed 1 July 2026. Available at: https://nextjs.org/docs."
+  ],
+  "arabic_project_title": "FarmTrust: منصة قائمة على صور الأقمار الصناعية لتقييم الأراضي وإعداد التقارير للتمويل الزراعي",
+  "arabic_term": "ربيع 2026",
+  "arabic_team": [
+    {
+      "department": "ذكاء الآلة",
+      "name": "عبدالحميد سامي عيد"
+    },
+    {
+      "department": "ذكاء الآلة",
+      "name": "سجدة عصمت الصاوي الزناتي"
+    },
+    {
+      "department": "ذكاء الآلة",
+      "name": "فاطمه صبري محمود حسن"
+    },
+    {
+      "department": "ذكاء الآلة",
+      "name": "اسراء ابراهيم قشوه"
+    },
+    {
+      "department": "علوم البيانات",
+      "name": "فارس ممدوح"
+    },
+    {
+      "department": "ذكاء الآلة",
+      "name": "عمر محمد الملواني"
+    }
+  ],
+  "arabic_supervisor_lines": [
+    "محمود امام",
+    "الاستاذ بقسم ذكاء الالة",
+    "كلية الذكاء الاصطناعي",
+    "جامعة المنوفية"
+  ],
+  "arabic_summary": [
+    "يعرض هذا المشروع نظام FarmTrust لدعم تقييم الأراضي الزراعية باستخدام صور الأقمار الصناعية وتقارير الأدلة الموجهة لقطاع التمويل الزراعي. يبدأ النظام من حدود أرض يرسمها المستخدم، ثم يحلل سجل Sentinel-2 الزمني لاستخراج مؤشرات الغطاء النباتي والرطوبة وجودة المشاهد، ثم يحول هذه الأدلة إلى تقرير يساعد المقيم المالي على فهم حالة الأرض ومستوى الثقة في التحليل.",
+    "يركز المشروع على دعم القرار وليس اتخاذ القرار الآلي. لذلك لا يدعي النظام الموافقة على القروض أو رفضها، ولا يثبت نوع المحصول بدقة من القمر الصناعي وحده، ولا يتنبأ بالإنتاجية أو الدخل، ولا يشخص الآفات أو يقدم مسحا قانونيا للحدود. بدلا من ذلك يقدم أدلة منظمة عن النشاط النباتي، الاتجاه العام، جودة المشاهد، حدود الثقة، ونقاط المتابعة.",
+    "يتضمن النظام تقريرا مقروءا للمقرض ومساعدا تفسيريا مقيدا يشرح التقرير ويجيب عن الأسئلة اعتمادا على الأدلة الموجودة فقط. يستطيع المساعد استخدام السياق الذي يقدمه المستخدم، لكنه لا يضيف حقائق غير مدعومة. وبهذا يقدم المشروع نموذجا عمليا لاستخدام الاستشعار عن بعد والذكاء الاصطناعي بشكل مسؤول في مراجعة التمويل الزراعي."
+  ],
+  "arabic_abstract": [
+    "تعتمد قرارات التمويل الزراعي في كثير من الأحيان على أوراق رسمية، أو ضمانات، أو ثقة شخصية، أو زيارات ميدانية متقطعة، بينما يظل السلوك الفعلي للأرض خلال الفترة السابقة للتمويل أو أثناءه غير واضح بصورة كافية. لذلك توجد فجوة عملية في الأدلة التي يحتاجها محللو التمويل الزراعي: فهم يحتاجون إلى طريقة أسرع وأكثر موضوعية لمعرفة ما إذا كانت الأرض نشطة زراعيا، وهل يظهر نشاطها بصورة مستقرة أم متقطعة، وما مدى موثوقية الأدلة المتاحة. يعالج مشروع FarmTrust هذه الفجوة بوصفه منصة لإنتاج تقرير مخاطر زراعية موجه للمقرض، قائم على أدلة زمنية من الأقمار الصناعية. والغرض منه هو دعم المراجعة الائتمانية، وليس الموافقة الآلية على القروض أو رفضها.",
+    "يركز الإصدار الأول من FarmTrust على تقرير مخاطر لأرض زراعية واحدة يحدد المستخدم حدودها على الخريطة. بعد تحديد الحدود، يدرس النظام السجل الحديث للأرض باستخدام صور Sentinel-2، مع تركيز الإصدار الحالي على الأراضي الزراعية في مصر والمساحات المناسبة لمراجعة التمويل الزراعي الصغير والمتوسط. يعرض التقرير حالة الأرض، والاتجاه خلال عامين، وأداء الموسم الأخير، ومؤشرات مخاطر محافظة، وتغطية الأدلة الفضائية، ومستوى الثقة في التقييم، والرسوم الداعمة. هذه المخرجات تساعد المراجع على طرح أسئلة أفضل ومقارنة الطلبات بصورة أكثر اتساقا، مع بقاء الحكم النهائي للإنسان وسياسات المؤسسة الممولة.",
+    "يعتمد خط المعالجة على صور Sentinel-2 لأنها توفر مشاهد عامة ومتكررة بدقة مناسبة لمراجعة الحقول الزراعية. يبدأ النظام من منطقة الاهتمام، ثم يجلب المشاهد المتاحة، ويفحص جودة البكسلات، ويستبعد المشاهد غير الصالحة أو الضعيفة، ويحسب مؤشرات الغطاء النباتي والرطوبة الداعمة. وبعد ذلك يبني النظام سجلا زمنيا واعيا بالجودة. ونظرا لأن المشاهد الفضائية قد تتأثر بالسحب والظلال والفجوات الزمنية، فإن المنهجية تفصل بين جودة الملاحظة وبين التفسير. فالمنحنى التحليلي الناعم يستخدم لفهم شكل النشاط النباتي، بينما يبقى سجل الملاحظات الأصلي أساسا لتقدير الثقة وحدود الدليل.",
+    "ينظر FarmTrust إلى النشاط الزراعي من خلال دورات نشاط نباتي، وليس من خلال صورة واحدة حديثة فقط. تكتشف المنهجية أنماط الاخضرار والانخفاض المتكرر، وتقدر ما إذا كانت الأرض نشطة، أو متقطعة النشاط، أو غير نشطة، أو غير مؤكدة، ثم تلخص اتجاه التغير خلال الفترة المختارة. ويقصد بالثقة هنا الثقة في موثوقية التقييم، وليس الثقة في أن الأرض آمنة ماليا. فإذا كانت الأدلة محدودة، يخفض النظام مستوى الثقة أو يوجه النتيجة للمراجعة بدلا من تحويل نقص البيانات إلى ادعاء قوي عن مخاطر الأرض. هذا التصميم المحافظ مهم لأن بيانات الأقمار الصناعية تساعد في المراجعة، لكنها لا تثبت كل الحقائق التي قد يحتاجها المقرض.",
+    "تم تصميم التقرير النهائي بحيث يفصل بين الأدلة المرصودة والتفسير الناتج عنها. فهو يعرض ما ظهر في السجل الفضائي، وما يستنتجه النظام بحذر من هذه الأدلة، ومستوى الثقة، وما ينبغي متابعته أو فحصه بواسطة المراجع. كما يفرق التقرير بين مؤشرات مخاطر الأرض وبين قيود الدليل نفسه؛ فضعف النشاط النباتي ليس مثل ضعف تغطية الصور، ولا ينبغي معاملتهما كنوع واحد من المشكلات. هذا التنظيم يجعل التقرير أكثر قابلية للمراجعة والنقاش والتصدير كملف PDF للاستخدام داخل عملية التمويل.",
+    "يتضمن المشروع أيضا مساعدا تفسيريا مقيدا يعمل كطبقة شرح بجانب التقرير. يستطيع المساعد تلخيص التقييم والإجابة عن الأسئلة اعتمادا على التقرير والسياق الذي يصرح به المستخدم، لكنه لا ينشئ أدلة جديدة ولا يغير درجة التقييم. كما توجد إجابة حتمية بديلة عندما لا يكون مسار نموذج اللغة مفعلا. وقد تم تقييد المساعد عمدا: فهو لا يستنتج نوع المحصول بدقة من القمر الصناعي وحده، ولا يقدر الإنتاجية أو الدخل، ولا يشخص الآفات، ولا يثبت الحدود القانونية، ولا يتخذ قرارات تمويلية. وبذلك يكون المساعد واجهة مسؤولة لفهم التقرير، وليس مصدرا مفتوحا لادعاءات جديدة.",
+    "تعرض الرسالة أيضا العمل البحثي الذي ساعد الفريق على تحديد حدود المنتج. فقد ساعدت تجارب تصنيف المحاصيل، ونقل نماذج الإنتاجية، واختيار مؤشرات الغطاء النباتي، واختيار قوة التنعيم، والمراجعة المستقلة لدورات النشاط النباتي في تحديد ما يصلح للإصدار الحالي وما يجب أن يبقى ضمن الخلفية البحثية. وتعرض دراسة الحالة في الكوم الأخضر بمركز شبين الكوم في محافظة المنوفية مسار الأدلة على قطعة زراعية حقيقية، بما يشمل جودة المشاهد، ودورات النشاط النباتي، والتباين المكاني، وتفسير القطع وإعادة النمو، وحدود التقييم المعتمد على الأقمار الصناعية فقط.",
+    "لذلك لا تكمن مساهمة FarmTrust في أنه منصة زراعية عامة أو بديل عن المقرضين أو الخبراء الزراعيين أو الزيارات الميدانية. مساهمته الأساسية هي بناء مسار واضح من حدود الأرض وسجل الأقمار الصناعية إلى تقرير تمويلي منظم: أدلة عن نشاط الأرض، وملاحظات ثقة، وإشارات داعمة للمخاطر، ومخرجات قابلة للتفسير. ويمكن في المستقبل توسيع هذا المسار نحو المتابعة بعد التمويل، والتحقق على نطاق أوسع، وسير عمل تمويلي أكثر اكتمالا، لكن الاتجاه الأساسي يبقى ثابتا: يساعد FarmTrust المراجعين على رؤية أدلة الأرض بوضوح أكبر دون أن يدعي اتخاذ قرار القرض بدلا منهم."
+  ]
+}

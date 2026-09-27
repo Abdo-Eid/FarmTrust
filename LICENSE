@@ -1,0 +1,122 @@
+# License and Copyright Notice
+
+Copyright (c) 2026 FarmTrust Team. All rights reserved.
+
+This repository is **dual-licensed by component**. The terms in Part A apply to
+the software. The terms in Part B apply to the research material. Material that
+is not authored by the FarmTrust Team is **excluded from both parts** — see
+[`NOTICE`](./NOTICE) for the full list of excluded third-party and institutional
+material.
+
+## Copyright holders
+
+Copyright in this work is held jointly by the following individuals, in equal
+shares:
+
+| Latin | Arabic |
+| --- | --- |
+| Abdulhamed Samy Eid | عبدالحميد سامي عيد |
+| Sagda Esmat Elsawy | سجدة عصمت الصاوي الزناتي |
+| Fatma Sabry Mahmoud | فاطمه صبري محمود حسن |
+| Esraa Ebrahim Qashwa | اسراء ابراهيم قشوه |
+| Fares Mamdouh | فارس ممدوح |
+| Omar Mohamad Elmllwany | عمر محمد الملواني |
+
+**Menoufia University and its Faculty of Artificial Intelligence are not
+copyright holders of this work and are not granted any rights in it.** The work
+was produced by the individuals named above. Any separate institutional claim,
+policy, or agreement the authors may enter into is outside the scope of this
+license and does not transfer copyright.
+
+---
+
+## Part A — Software: All Rights Reserved
+
+The following components are proprietary and confidential. Copyright is reserved
+and no permission is granted to use, copy, modify, merge, publish, distribute,
+sublicense, or create derivative works of them, in whole or in part, without
+prior written permission from the copyright holders.
+
+- `farmtrust_core/` — satellite time-series ingestion, preprocessing, smoothing,
+  activity-cycle detection, and land assessment
+- `api/` — backend service layer
+- `portal/` — web frontend and report/export surfaces
+- `scripts/` — operational and ingestion tooling
+- `contracts/` — interface and schema definitions
+- `tests/` — test suites
+- All build, configuration, and dependency-lock files (`pyproject.toml`,
+  `uv.lock`, `portal/package.json`, `portal/bun.lock`, and similar)
+- All documentation, specifications, and engineering records under `docs/`,
+  including `docs/PROJECT.md`, `docs/ENGINEERING.md`, `docs/PIPELINE.md`,
+  `docs/UI.md`, `docs/DECISIONS.md`, and `docs/TASKS/`
+
+Permitted without written consent:
+
+- Reading, cloning, and running the software privately for evaluation, study,
+  internal review, or academic assessment.
+- Attributing and citing the work.
+
+Explicitly **not** permitted without written consent:
+
+- Redistributing the software, in whole or in part, modified or unmodified.
+- Publishing, hosting, or mirroring the software in a public repository.
+- Selling, licensing, or offering the software or any derivative of it for
+  commercial or paid use.
+- Removing or obscuring copyright, authorship, or license notices.
+- Using the software, or any part of it, to build a competing product or service.
+
+All rights not expressly granted are reserved.
+
+## Part B — Research Material: CC BY-NC-SA 4.0
+
+The research outcomes, findings, analyses, and supporting records produced by
+the team are released under the **Creative Commons Attribution-NonCommercial-
+ShareAlike 4.0 International License (CC BY-NC-SA 4.0)**.
+
+**Covered components:**
+
+- `notebooks/` — exploratory and modelling notebooks
+- `outputs/exploration/` — exploratory analysis code, figures, and reports
+- `outputs/diagnostics/` — deterministic pipeline diagnostics and HMM
+  cross-check outputs
+- `outputs/tools/` — research comparison and visualisation tools
+- `docs/documentations/` — research logs, scientific notes, and write-ups
+
+**You are free to:**
+
+- Share — copy and redistribute the material in any medium or format.
+- Adapt — remix, transform, and build upon the material.
+
+**Under the following terms:**
+
+- **Attribution** — you must give appropriate credit, link to this license, and
+  indicate if changes were made. Cite the FarmTrust Team as the author.
+- **NonCommercial** — you may not use the material for commercial purposes or
+  any commercial use is strictly prohibited.
+- **ShareAlike** — if you remix, transform, or build upon the material, you must
+  distribute your contributions under the same license as the original.
+- No additional restrictions may be applied that legally limit others from doing
+  anything the license permits.
+
+The full legal text is available at
+<https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode>.
+
+---
+
+## Originality of research outcomes
+
+The research findings, method choices, model designs, evaluation results, and
+technical analyses recorded in Part B are the original work of the FarmTrust
+Team. They are offered as our own contribution and are claimed under this
+license.
+
+No warranty is provided. This work is provided "as is", without warranty of any
+kind, express or implied, including but not limited to the warranties of
+merchantability, fitness for a particular purpose, and noninfringement. The
+authors are not liable for any claim, damages, or other liability arising from,
+out of, or in connection with this work or its use.
+
+Satellite-derived evidence carries the limitations described in the project
+documentation. This software is decision support for agricultural finance
+review; it does not provide automated loan approval, legal land surveying, crop
+identity proof, or yield guarantees.

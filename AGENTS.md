@@ -14,7 +14,7 @@
 | `ENGINEERING.md` | Engineering truth: how — architecture, pipeline, ops, interfaces |
 | `DECISIONS.md` | Curated decision log; prune superseded entries with references |
 | `FUTURE.md` | Non-authoritative idea parking; not scope, roadmap, or architecture truth |
-| `TASKS/*.md` | Execution truth per slice; must ripple shared-truth changes |
+| `docs/TASKS/*.md` | Execution truth per slice; must ripple shared-truth changes |
 
 ## Doc routing
 Update exactly ONE file per request. Touch a second only for a required truth ripple.
@@ -22,12 +22,12 @@ Update exactly ONE file per request. Touch a second only for a required truth ri
 - Architecture/ops/interfaces/risks → `ENGINEERING.md` (technical: how)
 - Decisions/commitments → `DECISIONS.md`
 - Non-committed future ideas/options → `FUTURE.md`; do not treat as scope, roadmap, or architecture truth
-- Execution slice → `TASKS/T-xx-*.md`
+- Execution slice → `docs/TASKS/T-xx-*.md`
 
 Keep a 1-2 line abstract in `PROJECT.md`; link to `ENGINEERING.md` for technical-but-contextual detail.
 
 ## TASKs
-`TASKS/` is not an archive. Keep only active or pending tasks there; git history is the archive for closed tasks.
+`docs/TASKS/` is not an archive. Keep only active or pending tasks there; git history is the archive for closed tasks.
 
 **Convergence gates:**
 - *Before exploration ends* (`PROJECT.md`): MVP scope written · top questions prioritized · active options capped with evidence and decision triggers; non-committed ideas parked in `FUTURE.md`.
@@ -41,8 +41,8 @@ Each TASK declares boundaries, interfaces, and dependencies. Shared-truth change
 - Do not move unchecked implementation tasks into `OPEN_ITEMS.md`; `OPEN_ITEMS.md` is for unresolved questions or decisions, not task tracking.
 - Promote durable knowledge into canonical docs before deleting the task.
 - Promote durable architecture diagrams to `ENGINEERING.md`; do not keep diagrams only in closed tasks.
-- If follow-up work is real and near-term, create a new task in `TASKS/`.
-- If follow-up work is not near-term, leave it out of `TASKS/`; git history is the archive.
+- If follow-up work is real and near-term, create a new task in `docs/TASKS/`.
+- If follow-up work is not near-term, leave it out of `docs/TASKS/`; git history is the archive.
 - After durable knowledge is promoted and follow-ups are handled, delete the closed task file.
 
 **Required Task sections:** Goal · Scope (IN/OUT) · Role Split · Chosen approach · Task List · Feedback Log · Decisions · Open Questions · Knowledge to Keep · Done Summary.
@@ -52,7 +52,7 @@ During closeout: extract long-lived knowledge to durable docs; keep only a conci
 ## Defaults
 - Unfamiliar repo → explore and read canonical docs first.
 - Creative change/feature → brainstorm direction before implementation.
-- One live task per initiative in `TASKS/`. Role split: `driver` · `reviewer` · `curator` (flexible/interleaved).
+- One live task per initiative in `docs/TASKS/`. Role split: `driver` · `reviewer` · `curator` (flexible/interleaved).
 - Before commit or task closeout: compact task, update task status, remove stale notes, promote durable knowledge.
 - Commits: conventional format, small and reversible; verify before committing; no secrets.
 - Tests: no TDD requirement; prefer running existing tests; add when risk is high.
